@@ -1,0 +1,12 @@
+---
+description: Styling conventions using Tailwind v4, Base UI, and Hugeicons
+globs: components/ui/**/*.{tsx,ts}, app/**/*.tsx
+---
+# Styling & UI Engine
+- Styling: Tailwind CSS v4 (New CSS Engine)
+- UI Engine: shadcn/ui with 'Base UI' (Headless)
+- Design Strategy: Follow a Mobile-First responsive design strategy using Tailwind v4 utility classes.
+
+# Icons Configuration
+- Icons: Hugeicons React (@hugeicons/react) ONLY.
+- Search and use Hugeicons Pro library first. Use Lucide icons only as a fallback if no suitable Hugeicon exists.
