@@ -1,0 +1,10 @@
+---
+description: Rules for Supabase, Zod validation, and Server Actions
+globs: lib/supabase/**/*.{ts,tsx}, services/**/*.{ts,tsx}, actions/**/*.{ts,tsx}
+---
+# Database & Data Handling
+- Database/Auth: Supabase
+- Server Actions: Implement all data mutations via Server Actions to enhance endpoint security and simplify logic.
+- Type Safety: Use Supabase-generated types for all database interactions to ensure end-to-end type safety. Strictly avoid using 'any'.
+- Validation: Use Zod for runtime schema validation (API responses, Form data).
+- Error/Loading States: Always implement declarative error handling with error.tsx and loading states with loading.tsx or Suspense.

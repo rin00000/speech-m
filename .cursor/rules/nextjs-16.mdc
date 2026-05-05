@@ -1,0 +1,15 @@
+---
+description: Standards for Next.js 16 and App Router Architecture
+globs: app/**/*.{tsx,ts}, components/**/*.{tsx,ts}
+---
+# Next.js 16 & Performance Optimization
+- Framework: Next.js 16 (Stable, App Router)
+- PPR (Partial Prerendering): Actively utilize PPR to combine static shells with dynamic island data.
+- Optimized Caching: Adhere to Next.js 16's 'Uncached by default' policy. Use cache: 'force-cache' only when explicitly required.
+- Request Memoization: Leverage Next.js internal memoization for data fetching.
+- RSC First Strategy: Default to React Server Components. Use 'use client' strictly for leaf-level components requiring interactivity.
+
+# Conventions
+- Naming: Use kebab-case for all file names and component names (e.g., job-detail-card.tsx).
+- Components: Always use Arrow Functions.
+- Logic Separation: Abstract business logic, complex data fetching, and API calls into hooks/ or services/.
