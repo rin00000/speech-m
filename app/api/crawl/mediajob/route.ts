@@ -16,8 +16,13 @@ type JobInsert = {
 const BASE_URL = "https://www.mediajob.co.kr";
 const CRAWL_PAGES = 2;
 
-function buildCrawlUrl(page: number) {
-  return `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=2&page=${page}`;
+const CRAWL_TARGETS: { label: string; exp_lv: string; source: JobSource }[] = [
+  { label: "아나운서", exp_lv: "2", source: "mediajob_announcer" },
+  { label: "기자",    exp_lv: "3", source: "mediajob_reporter"  },
+];
+
+function buildCrawlUrl(exp_lv: string, page: number) {
+  return `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=${exp_lv}&page=${page}`;
 }
 
 const REGION_PREFIXES = [
@@ -53,6 +58,11 @@ function parseDeadline(raw: string): string | null {
   if (t === "내일마감") {
     const d = new Date(today);
     d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+  if (t === "모레마감") {
+    const d = new Date(today);
+    d.setDate(d.getDate() + 2);
     return d.toISOString().slice(0, 10);
   }
 
@@ -108,7 +118,7 @@ const FETCH_HEADERS = {
   Referer: BASE_URL,
 };
 
-function parseJobsFromHtml(html: string, seenRecIdx: Set<string>): JobInsert[] {
+function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSource): JobInsert[] {
   const $ = cheerio.load(html);
   const jobs: JobInsert[] = [];
 
@@ -159,7 +169,7 @@ function parseJobsFromHtml(html: string, seenRecIdx: Set<string>): JobInsert[] {
     const location = extractLocation(fullText);
 
     const deadlineMatch = fullText.match(
-      /D-\d+(?:\s*\(~\d{2}\/\d{2}\))?|내일마감|채용시까지|상시채용|급구|\d{2}\/\d{2}(?:\([^)]+\))?/
+      /D-\d+(?:\s*\(~\d{2}\/\d{2}\))?|내일마감|모레마감|채용시까지|상시채용|급구|\d{2}\/\d{2}(?:\([^)]+\))?/
     );
     const deadline = deadlineMatch ? parseDeadline(deadlineMatch[0]) : null;
 
@@ -167,7 +177,7 @@ function parseJobsFromHtml(html: string, seenRecIdx: Set<string>): JobInsert[] {
       title,
       company,
       location,
-      source: "mediajob",
+      source,
       source_url: sourceUrl,
       status: "pending",
       deadline,
@@ -182,27 +192,22 @@ export async function POST() {
     const jobs: JobInsert[] = [];
     const seenRecIdx = new Set<string>();
 
-    for (let page = 1; page <= CRAWL_PAGES; page++) {
-      const res = await fetch(buildCrawlUrl(page), {
-        headers: FETCH_HEADERS,
-        cache: "no-store",
-      });
+    for (const target of CRAWL_TARGETS) {
+      for (let page = 1; page <= CRAWL_PAGES; page++) {
+        const res = await fetch(buildCrawlUrl(target.exp_lv, page), {
+          headers: FETCH_HEADERS,
+          cache: "no-store",
+        });
 
-      if (!res.ok) {
-        // 1페이지 실패는 즉시 중단, 2페이지 실패는 1페이지 결과로 계속 진행
-        if (page === 1) {
-          return NextResponse.json(
-            { error: `미디어잡 요청 실패: HTTP ${res.status}` },
-            { status: 502 }
-          );
+        if (!res.ok) {
+          console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패: HTTP ${res.status}`);
+          break;
         }
-        console.warn(`[crawl/mediajob] page ${page} 요청 실패: HTTP ${res.status}`);
-        break;
-      }
 
-      const html = await res.text();
-      const pageJobs = parseJobsFromHtml(html, seenRecIdx);
-      jobs.push(...pageJobs);
+        const html = await res.text();
+        const pageJobs = parseJobsFromHtml(html, seenRecIdx, target.source);
+        jobs.push(...pageJobs);
+      }
     }
 
     if (jobs.length === 0) {
