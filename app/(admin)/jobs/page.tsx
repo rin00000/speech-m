@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { Header } from "@/components/admin/header";
+import { CrawlButton } from "@/components/admin/crawl-button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
@@ -35,7 +36,7 @@ const STATUS_STYLE: Record<
 };
 
 export default async function JobsPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: jobs, error } = await supabase
     .from("job_postings")
     .select("*")
@@ -54,15 +55,18 @@ export default async function JobsPage() {
           <p className="text-sm text-slate-500">
             수집된 공고를 검토하고 네이버 블로그에 발행하세요.
           </p>
-          <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
-            <HugeiconsIcon
-              icon={Add01Icon}
-              size={15}
-              color="currentColor"
-              strokeWidth={2}
-            />
-            공고 추가
-          </button>
+          <div className="flex items-center gap-2">
+            <CrawlButton />
+            <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
+              <HugeiconsIcon
+                icon={Add01Icon}
+                size={15}
+                color="currentColor"
+                strokeWidth={2}
+              />
+              공고 추가
+            </button>
+          </div>
         </div>
 
         {error && (
