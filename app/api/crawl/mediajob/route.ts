@@ -9,14 +9,16 @@ type JobInsert = {
   location?: string | null;
   source: JobSource;
   source_url: string;
-  status?: JobStatus;
-  content?: string | null;
+  status: JobStatus;
   deadline?: string | null;
-  published_at?: string | null;
 };
 
 const BASE_URL = "https://www.mediajob.co.kr";
-const CRAWL_URL = `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=2`;
+const CRAWL_PAGES = 2;
+
+function buildCrawlUrl(page: number) {
+  return `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=2&page=${page}`;
+}
 
 const REGION_PREFIXES = [
   "서울",
@@ -81,12 +83,6 @@ function parseDeadline(raw: string): string | null {
     return d.toISOString().slice(0, 10);
   }
 
-  // YYYYMMDD format
-  const ymdMatch = t.match(/^(\d{4})(\d{2})(\d{2})$/);
-  if (ymdMatch) {
-    return `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
-  }
-
   return null;
 }
 
@@ -104,93 +100,110 @@ function extractLocation(text: string): string | null {
   return null;
 }
 
-export async function POST() {
-  try {
-    const res = await fetch(CRAWL_URL, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml",
-        "Accept-Language": "ko-KR,ko;q=0.9",
-        Referer: BASE_URL,
-      },
-      cache: "no-store",
+const FETCH_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml",
+  "Accept-Language": "ko-KR,ko;q=0.9",
+  Referer: BASE_URL,
+};
+
+function parseJobsFromHtml(html: string, seenRecIdx: Set<string>): JobInsert[] {
+  const $ = cheerio.load(html);
+  const jobs: JobInsert[] = [];
+
+  // #list_06 범위
+  $("#list_06 > dl > dd > div.list_content li").each((_, el) => {
+    const $el = $(el);
+    const links = $el.find('a[href*="rec_idx"]');
+
+    const firstHref = links.first().attr("href") ?? "";
+    const recIdxMatch = firstHref.match(/rec_idx=(\d+)/);
+    if (!recIdxMatch) return;
+
+    const recIdx = recIdxMatch[1];
+    if (seenRecIdx.has(recIdx)) return;
+    seenRecIdx.add(recIdx);
+
+    const sourceUrl = `${BASE_URL}/recruit/recruit.htm?cmd=view&rec_idx=${recIdx}`;
+
+    // 로고+텍스트 이중 링크 중복 제거
+    const uniqueTexts: string[] = [];
+    links.each((_, link) => {
+      const text = $(link).text().trim();
+      if (text && !uniqueTexts.includes(text)) uniqueTexts.push(text);
     });
 
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: `미디어잡 요청 실패: HTTP ${res.status}` },
-        { status: 502 }
-      );
+    let company: string | null = null;
+    let title = "";
+
+    if (uniqueTexts.length >= 2) {
+      company = uniqueTexts[0];
+      title = uniqueTexts[1];
+    } else if (uniqueTexts.length === 1) {
+      title = uniqueTexts[0];
+      // 회사명이 평문 텍스트인 경우: 링크 제거 후 첫 번째 텍스트 줄 추출
+      const $clone = $el.clone();
+      $clone.find("a").remove();
+      const plainLines = $clone
+        .text()
+        .split("\n")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s !== "새글");
+      company = plainLines[0] || null;
     }
 
-    const html = await res.text();
-    const $ = cheerio.load(html);
+    if (!title) return;
 
+    const fullText = $el.text();
+    const location = extractLocation(fullText);
+
+    const deadlineMatch = fullText.match(
+      /D-\d+(?:\s*\(~\d{2}\/\d{2}\))?|내일마감|채용시까지|상시채용|급구|\d{2}\/\d{2}(?:\([^)]+\))?/
+    );
+    const deadline = deadlineMatch ? parseDeadline(deadlineMatch[0]) : null;
+
+    jobs.push({
+      title,
+      company,
+      location,
+      source: "mediajob",
+      source_url: sourceUrl,
+      status: "pending",
+      deadline,
+    });
+  });
+
+  return jobs;
+}
+
+export async function POST() {
+  try {
     const jobs: JobInsert[] = [];
     const seenRecIdx = new Set<string>();
 
-    // div.list_content 안의 li = 개별 공고 / #list_06 범위로 VVIP·배너 자동 제외
-    $("#list_06 > dl > dd > div.list_content li").each((_, el) => {
-        const $el = $(el);
-        const links = $el.find('a[href*="rec_idx"]');
-
-        const firstHref = links.first().attr("href") ?? "";
-        const recIdxMatch = firstHref.match(/rec_idx=(\d+)/);
-        if (!recIdxMatch) return;
-
-        const recIdx = recIdxMatch[1];
-        if (seenRecIdx.has(recIdx)) return;
-        seenRecIdx.add(recIdx);
-
-        const sourceUrl = `${BASE_URL}/recruit/recruit.htm?cmd=view&rec_idx=${recIdx}`;
-
-        // 링크 텍스트 중복 제거 (로고+텍스트 이중 링크 대응)
-        const uniqueTexts: string[] = [];
-        links.each((_, link) => {
-          const text = $(link).text().trim();
-          if (text && !uniqueTexts.includes(text)) uniqueTexts.push(text);
-        });
-
-        let company: string | null = null;
-        let title = "";
-
-        if (uniqueTexts.length >= 2) {
-          company = uniqueTexts[0];
-          title = uniqueTexts[1];
-        } else if (uniqueTexts.length === 1) {
-          title = uniqueTexts[0];
-          // 회사명이 평문 텍스트인 경우: 링크 제거 후 첫 번째 텍스트 줄 추출
-          const $clone = $el.clone();
-          $clone.find("a").remove();
-          const plainLines = $clone
-            .text()
-            .split("\n")
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0 && s !== "새글");
-          company = plainLines[0] || null;
-        }
-
-        if (!title) return;
-
-        const fullText = $el.text();
-        const location = extractLocation(fullText);
-
-        const deadlineMatch = fullText.match(
-          /D-\d+(?:\s*\(~\d{2}\/\d{2}\))?|내일마감|채용시까지|상시채용|급구|\d{2}\/\d{2}(?:\([^)]+\))?/
-        );
-        const deadline = deadlineMatch ? parseDeadline(deadlineMatch[0]) : null;
-
-        jobs.push({
-          title,
-          company,
-          location,
-          source: "mediajob",
-          source_url: sourceUrl,
-          status: "pending",
-          deadline,
-        });
+    for (let page = 1; page <= CRAWL_PAGES; page++) {
+      const res = await fetch(buildCrawlUrl(page), {
+        headers: FETCH_HEADERS,
+        cache: "no-store",
       });
+
+      if (!res.ok) {
+        // 1페이지 실패는 즉시 중단, 2페이지 실패는 1페이지 결과로 계속 진행
+        if (page === 1) {
+          return NextResponse.json(
+            { error: `미디어잡 요청 실패: HTTP ${res.status}` },
+            { status: 502 }
+          );
+        }
+        console.warn(`[crawl/mediajob] page ${page} 요청 실패: HTTP ${res.status}`);
+        break;
+      }
+
+      const html = await res.text();
+      const pageJobs = parseJobsFromHtml(html, seenRecIdx);
+      jobs.push(...pageJobs);
+    }
 
     if (jobs.length === 0) {
       return NextResponse.json(
@@ -202,7 +215,7 @@ export async function POST() {
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("job_postings")
-      .upsert(jobs, { onConflict: "source_url" })
+      .upsert(jobs, { onConflict: "source_url", ignoreDuplicates: true })
       .select("id");
 
     if (error) {
