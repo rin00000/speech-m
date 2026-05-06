@@ -1,19 +1,22 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Header } from "@/components/admin/header";
 import { CrawlButton } from "@/components/admin/crawl-button";
+import { JobActions } from "@/components/admin/job-actions";
+import { JobsFilter } from "@/components/admin/jobs-filter";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
   Add01Icon,
   LinkSquare01Icon,
 } from "@hugeicons/core-free-icons";
-import type { Database } from "@/types/database.types";
+import type { Database, JobSource, JobStatus } from "@/types/database.types";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
 const SOURCE_LABEL: Record<JobPosting["source"], string> = {
-  mediajob: "미디어잡",
-  arang: "아랑카페",
+  mediajob_announcer: "아나운서",
+  mediajob_reporter:  "기자",
+  arang:  "아랑카페",
   custom: "직접입력",
 };
 
@@ -35,13 +38,52 @@ const STATUS_STYLE: Record<
   },
 };
 
-export default async function JobsPage() {
+const VALID_STATUSES = ["pending", "approved", "rejected"] as const;
+const VALID_SOURCES = ["mediajob_announcer", "mediajob_reporter", "arang", "custom"] as const;
+
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; source?: string }>;
+}) {
+  const { status: rawStatus, source: rawSource } = await searchParams;
+
+  const activeStatus = VALID_STATUSES.includes(rawStatus as JobStatus)
+    ? (rawStatus as JobStatus)
+    : null;
+  const activeSource = VALID_SOURCES.includes(rawSource as JobSource)
+    ? (rawSource as JobSource)
+    : null;
+
   const supabase = createAdminClient();
-  const { data: jobs, error } = await supabase
-    .from("job_postings")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .returns<JobPosting[]>();
+
+  const [{ data: allForCounts }, { data: jobs, error }] = await Promise.all([
+    supabase.from("job_postings").select("status, source"),
+    (() => {
+      let q = supabase
+        .from("job_postings")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (activeStatus) q = q.eq("status", activeStatus);
+      if (activeSource) q = q.eq("source", activeSource);
+      return q.returns<JobPosting[]>();
+    })(),
+  ]);
+
+  const rows = allForCounts ?? [];
+  const statusCounts = {
+    all:      rows.length,
+    pending:  rows.filter((r) => r.status === "pending").length,
+    approved: rows.filter((r) => r.status === "approved").length,
+    rejected: rows.filter((r) => r.status === "rejected").length,
+  };
+  const sourceCounts = {
+    all:                 rows.length,
+    mediajob_announcer:  rows.filter((r) => r.source === "mediajob_announcer").length,
+    mediajob_reporter:   rows.filter((r) => r.source === "mediajob_reporter").length,
+    arang:               rows.filter((r) => r.source === "arang").length,
+    custom:              rows.filter((r) => r.source === "custom").length,
+  };
 
   return (
     <div className="flex flex-col">
@@ -52,9 +94,12 @@ export default async function JobsPage() {
 
       <div className="flex-1 p-6">
         <div className="mb-5 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            수집된 공고를 검토하고 네이버 블로그에 발행하세요.
-          </p>
+          <JobsFilter
+            statusCounts={statusCounts}
+            sourceCounts={sourceCounts}
+            activeStatus={activeStatus}
+            activeSource={activeSource}
+          />
           <div className="flex items-center gap-2">
             <CrawlButton />
             <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
@@ -86,10 +131,12 @@ export default async function JobsPage() {
               />
             </span>
             <p className="mt-4 text-sm font-medium text-slate-600">
-              등록된 공고가 없습니다
+              {activeStatus || activeSource ? "해당 조건의 공고가 없습니다" : "등록된 공고가 없습니다"}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              크롤러를 실행하거나 직접 공고를 추가해 주세요.
+              {activeStatus || activeSource
+                ? "다른 필터를 선택하거나 크롤러를 실행해 보세요."
+                : "크롤러를 실행하거나 직접 공고를 추가해 주세요."}
             </p>
           </div>
         ) : (
@@ -103,6 +150,7 @@ export default async function JobsPage() {
                   <th className="px-4 py-3">마감일</th>
                   <th className="px-4 py-3">상태</th>
                   <th className="px-4 py-3">링크</th>
+                  <th className="px-4 py-3">액션</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -151,6 +199,9 @@ export default async function JobsPage() {
                             strokeWidth={1.5}
                           />
                         </a>
+                      </td>
+                      <td className="px-4 py-3">
+                        <JobActions jobId={job.id} status={job.status} />
                       </td>
                     </tr>
                   );
