@@ -1,47 +1,30 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Header } from "@/components/admin/header";
 import { CrawlButton } from "@/components/admin/crawl-button";
-import { JobActions } from "@/components/admin/job-actions";
 import { JobsFilter } from "@/components/admin/jobs-filter";
+import { JobsTable } from "@/components/admin/jobs-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
   Add01Icon,
-  LinkSquare01Icon,
+  CheckmarkCircle01Icon,
+  Cancel01Icon,
+  Clock01Icon,
+  GridViewIcon,
 } from "@hugeicons/core-free-icons";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
-const SOURCE_LABEL: Record<JobPosting["source"], string> = {
-  mediajob_announcer: "아나운서",
-  mediajob_reporter:  "기자",
-  mediajob_intern:    "인턴",
-  saramin:            "사람인",
-  arang:              "아랑카페",
-  custom:             "직접입력",
-};
-
-const STATUS_STYLE: Record<
-  JobPosting["status"],
-  { label: string; className: string }
-> = {
-  pending: {
-    label: "검토 중",
-    className: "bg-amber-50 text-amber-600 ring-amber-200",
-  },
-  approved: {
-    label: "승인됨",
-    className: "bg-emerald-50 text-emerald-600 ring-emerald-200",
-  },
-  rejected: {
-    label: "거절됨",
-    className: "bg-red-50 text-red-500 ring-red-200",
-  },
-};
-
 const VALID_STATUSES = ["pending", "approved", "rejected"] as const;
-const VALID_SOURCES = ["mediajob_announcer", "mediajob_reporter", "mediajob_intern", "saramin", "arang", "custom"] as const;
+const VALID_SOURCES = [
+  "mediajob_announcer",
+  "mediajob_reporter",
+  "mediajob_intern",
+  "saramin",
+  "arang",
+  "custom",
+] as const;
 
 export default async function JobsPage({
   searchParams,
@@ -73,21 +56,56 @@ export default async function JobsPage({
   ]);
 
   const rows = allForCounts ?? [];
-  const statusCounts = {
-    all:      rows.length,
-    pending:  rows.filter((r) => r.status === "pending").length,
-    approved: rows.filter((r) => r.status === "approved").length,
-    rejected: rows.filter((r) => r.status === "rejected").length,
-  };
-  const sourceCounts = {
-    all:                 rows.length,
-    mediajob_announcer:  rows.filter((r) => r.source === "mediajob_announcer").length,
-    mediajob_reporter:   rows.filter((r) => r.source === "mediajob_reporter").length,
-    mediajob_intern:     rows.filter((r) => r.source === "mediajob_intern").length,
-    saramin:             rows.filter((r) => r.source === "saramin").length,
-    arang:               rows.filter((r) => r.source === "arang").length,
-    custom:              rows.filter((r) => r.source === "custom").length,
-  };
+  const { statusCounts, sourceCounts } = rows.reduce(
+    (acc, r: { status: JobStatus; source: JobSource }) => {
+      acc.statusCounts[r.status]++;
+      acc.sourceCounts[r.source]++;
+      return acc;
+    },
+    {
+      statusCounts: { all: rows.length, pending: 0, approved: 0, rejected: 0 } as Record<"all" | JobStatus, number>,
+      sourceCounts: {
+        all: rows.length,
+        mediajob_announcer: 0,
+        mediajob_reporter: 0,
+        mediajob_intern: 0,
+        saramin: 0,
+        arang: 0,
+        custom: 0,
+      } as Record<"all" | JobSource, number>,
+    },
+  );
+
+  const statCards = [
+    {
+      label: "전체",
+      value: statusCounts.all,
+      icon: GridViewIcon,
+      accent: "text-slate-600 bg-slate-100",
+      bar: "bg-slate-400",
+    },
+    {
+      label: "검토 중",
+      value: statusCounts.pending,
+      icon: Clock01Icon,
+      accent: "text-amber-600 bg-amber-50",
+      bar: "bg-amber-400",
+    },
+    {
+      label: "승인됨",
+      value: statusCounts.approved,
+      icon: CheckmarkCircle01Icon,
+      accent: "text-emerald-600 bg-emerald-50",
+      bar: "bg-emerald-500",
+    },
+    {
+      label: "거절됨",
+      value: statusCounts.rejected,
+      icon: Cancel01Icon,
+      accent: "text-red-500 bg-red-50",
+      bar: "bg-red-400",
+    },
+  ];
 
   return (
     <div className="flex flex-col">
@@ -96,35 +114,54 @@ export default async function JobsPage({
         description="미디어잡, 회사 홈페이지 등에서 수집된 공고를 관리합니다."
       />
 
-      <div className="flex-1 p-6">
-        <div className="mb-5 flex items-center justify-between">
+      <div className="flex-1 space-y-5 p-6">
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {statCards.map(({ label, value, icon, accent, bar }) => (
+            <div
+              key={label}
+              className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
+            >
+              <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
+              <div className="flex items-center justify-between pl-2">
+                <div>
+                  <p className="text-xs font-medium text-slate-400">{label}</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+                </div>
+                <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                  <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter + Actions row */}
+        <div className="flex items-start justify-between gap-4">
           <JobsFilter
             statusCounts={statusCounts}
             sourceCounts={sourceCounts}
             activeStatus={activeStatus}
             activeSource={activeSource}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <CrawlButton apiPath="/api/crawl/mediajob" label="미디어잡 수집" />
             <CrawlButton apiPath="/api/crawl/saramin" label="사람인 수집" />
             <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
-              <HugeiconsIcon
-                icon={Add01Icon}
-                size={15}
-                color="currentColor"
-                strokeWidth={2}
-              />
+              <HugeiconsIcon icon={Add01Icon} size={15} color="currentColor" strokeWidth={2} />
               공고 추가
             </button>
           </div>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             데이터를 불러오는 중 오류가 발생했습니다.
           </div>
         )}
 
+        {/* Empty state */}
         {!jobs || jobs.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-white py-20 text-center shadow-sm">
             <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
@@ -136,7 +173,9 @@ export default async function JobsPage({
               />
             </span>
             <p className="mt-4 text-sm font-medium text-slate-600">
-              {activeStatus || activeSource ? "해당 조건의 공고가 없습니다" : "등록된 공고가 없습니다"}
+              {activeStatus || activeSource
+                ? "해당 조건의 공고가 없습니다"
+                : "등록된 공고가 없습니다"}
             </p>
             <p className="mt-1 text-xs text-slate-400">
               {activeStatus || activeSource
@@ -145,75 +184,7 @@ export default async function JobsPage({
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium text-slate-500">
-                  <th className="px-4 py-3">공고명</th>
-                  <th className="px-4 py-3">회사</th>
-                  <th className="px-4 py-3">소스</th>
-                  <th className="px-4 py-3">마감일</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3">링크</th>
-                  <th className="px-4 py-3">액션</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {jobs.map((job) => {
-                  const status = STATUS_STYLE[job.status];
-                  return (
-                    <tr
-                      key={job.id}
-                      className="transition-colors hover:bg-slate-50/60"
-                    >
-                      <td className="px-4 py-3 font-medium text-slate-800">
-                        {job.title}
-                        {job.location && (
-                          <span className="ml-2 text-xs text-slate-400">
-                            {job.location}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {job.company ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">
-                        {SOURCE_LABEL[job.source]}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">
-                        {job.deadline ?? "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${status.className}`}
-                        >
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <a
-                          href={job.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex text-slate-400 transition-colors hover:text-indigo-500"
-                        >
-                          <HugeiconsIcon
-                            icon={LinkSquare01Icon}
-                            size={16}
-                            color="currentColor"
-                            strokeWidth={1.5}
-                          />
-                        </a>
-                      </td>
-                      <td className="px-4 py-3">
-                        <JobActions jobId={job.id} status={job.status} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <JobsTable jobs={jobs} />
         )}
       </div>
     </div>

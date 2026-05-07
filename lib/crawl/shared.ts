@@ -11,6 +11,7 @@ export type JobInsert = {
 };
 
 export const TEXT_DEADLINE = new Set([
+  "채용시",
   "채용시까지",
   "상시채용",
   "급구",
