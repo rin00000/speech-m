@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -8,41 +8,36 @@ import {
   CheckmarkCircle01Icon,
   AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
+import { runCrawl, type CrawlSource } from "@/app/(admin)/jobs/actions";
 
 type State = "idle" | "loading" | "success" | "error";
 
 type Props = {
-  apiPath: string;
+  source: CrawlSource;
   label: string;
 };
 
-export const CrawlButton = ({ apiPath, label }: Props) => {
+export const CrawlButton = ({ source, label }: Props) => {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<State>("idle");
   const [message, setMessage] = useState("");
 
-  const run = async () => {
+  const run = () => {
     setState("loading");
     setMessage("");
-    try {
-      const res = await fetch(apiPath, { method: "POST" });
-      const json = await res.json();
-
-      if (!res.ok || json.error) {
+    startTransition(async () => {
+      const result = await runCrawl(source);
+      if (!result.success) {
         setState("error");
-        setMessage(json.error ?? "크롤링 실패");
+        setMessage(result.error ?? "크롤링 실패");
         return;
       }
-
       setState("success");
-      setMessage(`${json.saved}건 저장`);
+      setMessage(`${result.saved ?? 0}건 저장`);
       router.refresh();
-
       setTimeout(() => setState("idle"), 4000);
-    } catch {
-      setState("error");
-      setMessage("네트워크 오류");
-    }
+    });
   };
 
   const STYLES: Record<State, string> = {
@@ -59,10 +54,12 @@ export const CrawlButton = ({ apiPath, label }: Props) => {
     error: AlertCircleIcon,
   };
 
+  const disabled = state === "loading" || isPending;
+
   return (
     <button
       onClick={run}
-      disabled={state === "loading"}
+      disabled={disabled}
       className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-colors ${STYLES[state]}`}
     >
       <HugeiconsIcon
