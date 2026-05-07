@@ -24,6 +24,7 @@ const SOURCE_TABS: { key: JobSource | null; label: string }[] = [
   { key: null,                  label: "전체" },
   { key: "mediajob_announcer",  label: "아나운서" },
   { key: "mediajob_reporter",   label: "기자" },
+  { key: "mediajob_intern",     label: "인턴" },
   { key: "arang",               label: "아랑카페" },
   { key: "custom",              label: "직접입력" },
 ];
