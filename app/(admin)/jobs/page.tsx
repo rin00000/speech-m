@@ -16,6 +16,7 @@ type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 const SOURCE_LABEL: Record<JobPosting["source"], string> = {
   mediajob_announcer: "아나운서",
   mediajob_reporter:  "기자",
+  mediajob_intern:    "인턴",
   arang:  "아랑카페",
   custom: "직접입력",
 };
@@ -39,7 +40,7 @@ const STATUS_STYLE: Record<
 };
 
 const VALID_STATUSES = ["pending", "approved", "rejected"] as const;
-const VALID_SOURCES = ["mediajob_announcer", "mediajob_reporter", "arang", "custom"] as const;
+const VALID_SOURCES = ["mediajob_announcer", "mediajob_reporter", "mediajob_intern", "arang", "custom"] as const;
 
 export default async function JobsPage({
   searchParams,
@@ -81,6 +82,7 @@ export default async function JobsPage({
     all:                 rows.length,
     mediajob_announcer:  rows.filter((r) => r.source === "mediajob_announcer").length,
     mediajob_reporter:   rows.filter((r) => r.source === "mediajob_reporter").length,
+    mediajob_intern:     rows.filter((r) => r.source === "mediajob_intern").length,
     arang:               rows.filter((r) => r.source === "arang").length,
     custom:              rows.filter((r) => r.source === "custom").length,
   };

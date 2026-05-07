@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import type { JobSource, JobStatus } from "@/types/database.types";
+import type { JobSource } from "@/types/database.types";
 
 type JobInsert = {
   title: string;
@@ -9,73 +9,55 @@ type JobInsert = {
   location?: string | null;
   source: JobSource;
   source_url: string;
-  status: JobStatus;
+  status: "pending";
   deadline?: string | null;
 };
 
 const BASE_URL = "https://www.mediajob.co.kr";
 const CRAWL_PAGES = 2;
 
-const CRAWL_TARGETS: { label: string; exp_lv: string; source: JobSource }[] = [
-  { label: "아나운서", exp_lv: "2", source: "mediajob_announcer" },
-  { label: "기자",    exp_lv: "3", source: "mediajob_reporter"  },
+type CrawlTarget = {
+  label: string;
+  source: JobSource;
+  buildUrl: (page: number) => string;
+};
+
+const CRAWL_TARGETS: CrawlTarget[] = [
+  {
+    label: "아나운서",
+    source: "mediajob_announcer",
+    buildUrl: (page) => `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=2&page=${page}`,
+  },
+  {
+    label: "기자",
+    source: "mediajob_reporter",
+    buildUrl: (page) => `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=3&page=${page}`,
+  },
+  {
+    label: "인턴",
+    source: "mediajob_intern",
+    buildUrl: (page) => `${BASE_URL}/recruit/recruit.htm?ctg=intern&page=${page}`,
+  },
 ];
 
-function buildCrawlUrl(exp_lv: string, page: number) {
-  return `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=${exp_lv}&page=${page}`;
-}
+const TEXT_DEADLINE = new Set(["채용시까지", "상시채용", "급구", "오늘마감", "내일마감", "모레마감"]);
 
-const REGION_PREFIXES = [
-  "서울",
-  "경기",
-  "인천",
-  "부산",
-  "대구",
-  "대전",
-  "광주",
-  "울산",
-  "세종",
-  "강원",
-  "경남",
-  "경북",
-  "전남",
-  "전북",
-  "충남",
-  "충북",
-  "제주",
-  "전국",
-  "해외",
-];
-
-function parseDeadline(raw: string): string | null {
+function parseDeadline(raw: string, today: Date): string | null {
   const t = raw.trim();
   if (!t) return null;
-  if (["채용시까지", "상시채용", "급구"].includes(t)) return t;
+  if (TEXT_DEADLINE.has(t)) return t;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  if (t === "내일마감") {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
-  }
-  if (t === "모레마감") {
-    const d = new Date(today);
-    d.setDate(d.getDate() + 2);
-    return d.toISOString().slice(0, 10);
-  }
-
-  // D-N format (may include embedded date like "D-12 (~05/18)")
-  const embeddedDate = t.match(/\(~(\d{2})\/(\d{2})\)/);
-  if (embeddedDate) {
-    const month = parseInt(embeddedDate[1]);
-    const day = parseInt(embeddedDate[2]);
+  const mmddToIso = (month: number, day: number): string => {
     const d = new Date(today.getFullYear(), month - 1, day);
     if (d < today) d.setFullYear(d.getFullYear() + 1);
     return d.toISOString().slice(0, 10);
-  }
+  };
 
+  // D-N (~MM/DD) — 괄호 안 날짜 우선
+  const embeddedDate = t.match(/\(~(\d{2})\/(\d{2})\)/);
+  if (embeddedDate) return mmddToIso(parseInt(embeddedDate[1]), parseInt(embeddedDate[2]));
+
+  // D-N
   const dDaysMatch = t.match(/D-(\d+)/);
   if (dDaysMatch) {
     const d = new Date(today);
@@ -83,30 +65,10 @@ function parseDeadline(raw: string): string | null {
     return d.toISOString().slice(0, 10);
   }
 
-  // MM/DD(요일) format
+  // MM/DD(요일)
   const mmddMatch = t.match(/^(\d{2})\/(\d{2})/);
-  if (mmddMatch) {
-    const month = parseInt(mmddMatch[1]);
-    const day = parseInt(mmddMatch[2]);
-    const d = new Date(today.getFullYear(), month - 1, day);
-    if (d < today) d.setFullYear(d.getFullYear() + 1);
-    return d.toISOString().slice(0, 10);
-  }
+  if (mmddMatch) return mmddToIso(parseInt(mmddMatch[1]), parseInt(mmddMatch[2]));
 
-  return null;
-}
-
-function extractLocation(text: string): string | null {
-  for (const region of REGION_PREFIXES) {
-    const idx = text.indexOf(region);
-    if (idx === -1) continue;
-    const snippet = text
-      .slice(idx, idx + 30)
-      .replace(/\s*수도권.+$/, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    return snippet;
-  }
   return null;
 }
 
@@ -118,17 +80,16 @@ const FETCH_HEADERS = {
   Referer: BASE_URL,
 };
 
-function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSource): JobInsert[] {
+function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSource, today: Date): JobInsert[] {
   const $ = cheerio.load(html);
   const jobs: JobInsert[] = [];
 
   // #list_06 범위
   $("#list_06 > dl > dd > div.list_content li").each((_, el) => {
     const $el = $(el);
-    const links = $el.find('a[href*="rec_idx"]');
-
-    const firstHref = links.first().attr("href") ?? "";
-    const recIdxMatch = firstHref.match(/rec_idx=(\d+)/);
+    const titleLink = $el.find("div.cell_mid div.cl_top a").first();
+    const href = titleLink.attr("href") ?? "";
+    const recIdxMatch = href.match(/rec_idx=(\d+)/);
     if (!recIdxMatch) return;
 
     const recIdx = recIdxMatch[1];
@@ -136,42 +97,13 @@ function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSou
     seenRecIdx.add(recIdx);
 
     const sourceUrl = `${BASE_URL}/recruit/recruit.htm?cmd=view&rec_idx=${recIdx}`;
-
-    // 로고+텍스트 이중 링크 중복 제거
-    const uniqueTexts: string[] = [];
-    links.each((_, link) => {
-      const text = $(link).text().trim();
-      if (text && !uniqueTexts.includes(text)) uniqueTexts.push(text);
-    });
-
-    let company: string | null = null;
-    let title = "";
-
-    if (uniqueTexts.length >= 2) {
-      company = uniqueTexts[0];
-      title = uniqueTexts[1];
-    } else if (uniqueTexts.length === 1) {
-      title = uniqueTexts[0];
-      // 회사명이 평문 텍스트인 경우: 링크 제거 후 첫 번째 텍스트 줄 추출
-      const $clone = $el.clone();
-      $clone.find("a").remove();
-      const plainLines = $clone
-        .text()
-        .split("\n")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && s !== "새글");
-      company = plainLines[0] || null;
-    }
-
+    const title = titleLink.text().trim();
     if (!title) return;
 
-    const fullText = $el.text();
-    const location = extractLocation(fullText);
-
-    const deadlineMatch = fullText.match(
-      /D-\d+(?:\s*\(~\d{2}\/\d{2}\))?|내일마감|모레마감|채용시까지|상시채용|급구|\d{2}\/\d{2}(?:\([^)]+\))?/
-    );
-    const deadline = deadlineMatch ? parseDeadline(deadlineMatch[0]) : null;
+    const company     = $el.find("div.cell_first label span").first().text().trim() || null;
+    const location    = $el.find("span.ico_area").first().text().trim() || null;
+    const deadlineRaw = $el.find("div.cell_date").first().text().trim() || null;
+    const deadline    = deadlineRaw ? parseDeadline(deadlineRaw, today) : null;
 
     jobs.push({
       title,
@@ -189,25 +121,38 @@ function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSou
 
 export async function POST() {
   try {
-    const jobs: JobInsert[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const seenRecIdx = new Set<string>();
 
-    for (const target of CRAWL_TARGETS) {
-      for (let page = 1; page <= CRAWL_PAGES; page++) {
-        const res = await fetch(buildCrawlUrl(target.exp_lv, page), {
-          headers: FETCH_HEADERS,
-          cache: "no-store",
-        });
+    const tasks = CRAWL_TARGETS.flatMap((target) =>
+      Array.from({ length: CRAWL_PAGES }, (_, i) => ({
+        target,
+        page: i + 1,
+        promise: fetch(target.buildUrl(i + 1), { headers: FETCH_HEADERS, cache: "no-store" }),
+      }))
+    );
 
-        if (!res.ok) {
-          console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패: HTTP ${res.status}`);
-          break;
-        }
+    const results = await Promise.allSettled(tasks.map((t) => t.promise));
 
-        const html = await res.text();
-        const pageJobs = parseJobsFromHtml(html, seenRecIdx, target.source);
-        jobs.push(...pageJobs);
+    const jobs: JobInsert[] = [];
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const { target, page } = tasks[i];
+
+      if (result.status === "rejected") {
+        console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패:`, result.reason);
+        continue;
       }
+      if (!result.value.ok) {
+        console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패: HTTP ${result.value.status}`);
+        continue;
+      }
+
+      const html = await result.value.text();
+      const pageJobs = parseJobsFromHtml(html, seenRecIdx, target.source, today);
+      jobs.push(...pageJobs);
     }
 
     if (jobs.length === 0) {
