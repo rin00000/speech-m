@@ -40,6 +40,11 @@ export function parseDeadline(raw: string, today: Date): string | null {
   if (saraminDate)
     return mmddToIso(parseInt(saraminDate[1]), parseInt(saraminDate[2]));
 
+  // 잡코리아: ~MM/DD(요일)
+  const jobkoreaDate = t.match(/^~(\d{2})\/(\d{2})/);
+  if (jobkoreaDate)
+    return mmddToIso(parseInt(jobkoreaDate[1]), parseInt(jobkoreaDate[2]));
+
   // 미디어잡: D-N (~MM/DD) — 괄호 안 날짜 우선
   const embeddedDate = t.match(/\(~(\d{2})\/(\d{2})\)/);
   if (embeddedDate)

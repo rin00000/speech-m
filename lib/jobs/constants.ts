@@ -5,6 +5,7 @@ export const SOURCE_LABEL: Record<JobSource, string> = {
   mediajob_reporter: "기자",
   mediajob_intern: "인턴",
   saramin: "사람인",
+  jobkorea: "잡코리아",
   arang: "아랑카페",
   custom: "직접입력",
 };
