@@ -1,6 +1,6 @@
 ---
 description: Standards for Next.js 16 and App Router Architecture
-globs: app/**/*.{tsx,ts}, components/**/*.{tsx,ts}
+globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},middleware.ts
 ---
 # Next.js 16 & Performance Optimization
 - Framework: Next.js 16 (Stable, App Router)
