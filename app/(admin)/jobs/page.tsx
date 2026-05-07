@@ -147,9 +147,9 @@ export default async function JobsPage({
             activeSource={activeSource}
           />
           <div className="flex shrink-0 items-center gap-2">
-            <CrawlButton apiPath="/api/crawl/mediajob" label="미디어잡 수집" />
-            <CrawlButton apiPath="/api/crawl/saramin" label="사람인 수집" />
-            <CrawlButton apiPath="/api/crawl/jobkorea" label="잡코리아 수집" />
+            <CrawlButton source="mediajob" label="미디어잡 수집" />
+            <CrawlButton source="saramin" label="사람인 수집" />
+            <CrawlButton source="jobkorea" label="잡코리아 수집" />
             <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
               <HugeiconsIcon icon={Add01Icon} size={15} color="currentColor" strokeWidth={2} />
               공고 추가
