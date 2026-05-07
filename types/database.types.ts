@@ -1,4 +1,4 @@
-export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "custom";
+export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "saramin" | "custom";
 export type JobStatus = "pending" | "approved" | "rejected";
 
 export interface Database {

@@ -17,8 +17,9 @@ const SOURCE_LABEL: Record<JobPosting["source"], string> = {
   mediajob_announcer: "아나운서",
   mediajob_reporter:  "기자",
   mediajob_intern:    "인턴",
-  arang:  "아랑카페",
-  custom: "직접입력",
+  saramin:            "사람인",
+  arang:              "아랑카페",
+  custom:             "직접입력",
 };
 
 const STATUS_STYLE: Record<
@@ -40,7 +41,7 @@ const STATUS_STYLE: Record<
 };
 
 const VALID_STATUSES = ["pending", "approved", "rejected"] as const;
-const VALID_SOURCES = ["mediajob_announcer", "mediajob_reporter", "mediajob_intern", "arang", "custom"] as const;
+const VALID_SOURCES = ["mediajob_announcer", "mediajob_reporter", "mediajob_intern", "saramin", "arang", "custom"] as const;
 
 export default async function JobsPage({
   searchParams,
@@ -83,6 +84,7 @@ export default async function JobsPage({
     mediajob_announcer:  rows.filter((r) => r.source === "mediajob_announcer").length,
     mediajob_reporter:   rows.filter((r) => r.source === "mediajob_reporter").length,
     mediajob_intern:     rows.filter((r) => r.source === "mediajob_intern").length,
+    saramin:             rows.filter((r) => r.source === "saramin").length,
     arang:               rows.filter((r) => r.source === "arang").length,
     custom:              rows.filter((r) => r.source === "custom").length,
   };
@@ -103,7 +105,8 @@ export default async function JobsPage({
             activeSource={activeSource}
           />
           <div className="flex items-center gap-2">
-            <CrawlButton />
+            <CrawlButton apiPath="/api/crawl/mediajob" label="미디어잡 수집" />
+            <CrawlButton apiPath="/api/crawl/saramin" label="사람인 수집" />
             <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
               <HugeiconsIcon
                 icon={Add01Icon}
