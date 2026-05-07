@@ -11,7 +11,12 @@ import {
 
 type State = "idle" | "loading" | "success" | "error";
 
-export const CrawlButton = () => {
+type Props = {
+  apiPath: string;
+  label: string;
+};
+
+export const CrawlButton = ({ apiPath, label }: Props) => {
   const router = useRouter();
   const [state, setState] = useState<State>("idle");
   const [message, setMessage] = useState("");
@@ -20,7 +25,7 @@ export const CrawlButton = () => {
     setState("loading");
     setMessage("");
     try {
-      const res = await fetch("/api/crawl/mediajob", { method: "POST" });
+      const res = await fetch(apiPath, { method: "POST" });
       const json = await res.json();
 
       if (!res.ok || json.error) {
@@ -67,7 +72,7 @@ export const CrawlButton = () => {
         strokeWidth={2}
         className={state === "loading" ? "animate-spin" : ""}
       />
-      {state === "idle" && "미디어잡 수집"}
+      {state === "idle" && label}
       {state === "loading" && "수집 중…"}
       {state === "success" && `완료 · ${message}`}
       {state === "error" && `오류 · ${message}`}
