@@ -1,0 +1,21 @@
+---
+description: End-of-task report and commit message policy
+globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*.{ts,mts,tsx},plan.md
+---
+
+# End-of-Task Workflow
+- At task completion, provide a brief closing report:
+  - work summary
+  - validation status
+  - git change state (`staged`, `unstaged`, `untracked`)
+  - recommended commit message
+
+# Commit Message Policy
+- Use Conventional Commit type in English.
+- Write commit description in Korean.
+- Title format: `<type>: <한국어 설명>`
+- Body should explain "why" in 1-3 short lines when needed.
+
+# Safety Rules
+- Do not include secrets or credentials in commit candidates.
+- Exclude `.env*` and token/key credential files by default.

@@ -3,15 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
+import { triggerCrawl, type CrawlSource } from "@/lib/crawl/trigger";
+import { runJobFitBatch } from "@/lib/ai/job-fit/batch";
 import type { JobStatus } from "@/types/database.types";
-
-export type CrawlSource = "mediajob" | "saramin" | "jobkorea";
-
-const ALLOWED_CRAWL_SOURCES: readonly CrawlSource[] = [
-  "mediajob",
-  "saramin",
-  "jobkorea",
-] as const;
+export type { CrawlSource } from "@/lib/crawl/trigger";
 
 export type RunCrawlResult = {
   success: boolean;
@@ -20,11 +15,17 @@ export type RunCrawlResult = {
   error?: string;
 };
 
-export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => {
-  if (!ALLOWED_CRAWL_SOURCES.includes(source)) {
-    return { success: false, error: "허용되지 않는 소스입니다." };
-  }
+export type RunAiFitResult = {
+  success: boolean;
+  scanned?: number;
+  approved?: number;
+  rejected?: number;
+  pending?: number;
+  failed?: number;
+  error?: string;
+};
 
+export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => {
   const secret = process.env.CRAWL_API_SECRET;
   if (!secret) {
     return { success: false, error: "CRAWL_API_SECRET 환경변수가 설정되지 않았습니다." };
@@ -39,26 +40,32 @@ export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => 
   }
 
   try {
-    const res = await fetch(`${proto}://${host}/api/crawl/${source}`, {
-      method: "POST",
-      headers: { "x-crawl-secret": secret },
-      cache: "no-store",
+    const result = await triggerCrawl(source, {
+      baseUrl: `${proto}://${host}`,
+      secret,
     });
 
-    const json = (await res.json()) as {
-      saved?: number;
-      total?: number;
-      error?: string;
-    };
-
-    if (!res.ok || json.error) {
-      return { success: false, error: json.error ?? `HTTP ${res.status}` };
+    if (!result.success) {
+      return { success: false, error: result.error ?? "크롤링 실패" };
     }
 
     revalidatePath("/jobs");
-    return { success: true, saved: json.saved ?? 0, total: json.total ?? 0 };
+    return { success: true, saved: result.saved ?? 0, total: result.total ?? 0 };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+};
+
+export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
+  try {
+    const result = await runJobFitBatch(30);
+    revalidatePath("/jobs");
+    return result;
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 };
 

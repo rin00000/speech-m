@@ -1,0 +1,37 @@
+---
+description: Speech-M domain constraints and business boundaries
+globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*.{ts,mts,tsx},data/**/*,docs/**/*.{md,mdx}
+---
+
+# Speech-M Domain Rules
+- Primary persona: academy director (admin curator).
+- Primary interface: admin dashboard with dense but readable information.
+- Keep icon consistency with `@hugeicons/react` unless unavailable.
+
+# Pipeline Intent
+- Optimize the workflow `Scrape -> AI Filter -> Human-in-the-loop -> AI Post`.
+- Prefer curation quality over raw posting volume.
+- Auto-accept/reject clear cases; route ambiguous postings to admin review queue.
+
+# Crawling & Runtime Constraints
+- Assume serverless timeout constraints; prefer async/background processing for crawling and batch jobs.
+- Design collection jobs to be retry-safe and dedupe-aware.
+
+# Domain Boundaries
+- Sources: MediaJob, Arang Cafe, public institutions, custom URLs.
+- Targets: announcer, anchor, weathercaster, and broadcast journalist roles in major/local/cable broadcasters.
+- Exclusions: YouTube-only channels, small agencies, under-qualified postings, and non-target field reporter roles.
+
+# Extended Product Modules
+- Script automation: collect recent reusable news/radio scripts and deliver merged HWP/PDF in async batches.
+- Study operations: support recording bundle automation, attendance/deposit calculations, and relay-style feedback workflows.
+- Private CRM: archive exam reviews privately and support counseling reservation flows with stale lead cleanup.
+
+# Data Security Constraints
+- Treat exam reviews and student data as strictly private.
+- Never relax Supabase RLS for private tables.
+- Apply minimum-retention handling for unregistered counseling lead data when policy requires deletion.
+
+# Delivery Rules
+- Validate behavior changes with explicit run/test checks.
+- Keep diffs focused and avoid unrelated refactors.
