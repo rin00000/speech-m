@@ -107,6 +107,7 @@ export const JobsTable = ({ jobs }: Props) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkPending, startBulkTransition] = useTransition();
   const [query, setQuery] = useState("");
+  const [density, setDensity] = useState<"compact" | "comfortable">("compact");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -147,6 +148,10 @@ export const JobsTable = ({ jobs }: Props) => {
   };
 
   if (jobs.length === 0) return null;
+
+  const cellPaddingClass = density === "compact" ? "px-3 py-2" : "px-4 py-3";
+  const toolbarButtonClass =
+    "inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-colors";
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
@@ -207,12 +212,38 @@ export const JobsTable = ({ jobs }: Props) => {
             {query && jobs.length !== filtered.length && ` / 전체 ${jobs.length}건`}
           </span>
         )}
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setDensity("compact")}
+            className={`${toolbarButtonClass} ${
+              density === "compact"
+                ? "border-slate-300 bg-white text-slate-700"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            Compact
+          </button>
+          <button
+            type="button"
+            onClick={() => setDensity("comfortable")}
+            className={`${toolbarButtonClass} ${
+              density === "comfortable"
+                ? "border-slate-300 bg-white text-slate-700"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            Cozy
+          </button>
+        </div>
       </div>
 
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium text-slate-500">
-            <th className="w-10 px-4 py-3">
+      <div className="max-h-[70vh] overflow-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium text-slate-500">
+              <th className={`w-10 ${cellPaddingClass}`}>
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -222,81 +253,82 @@ export const JobsTable = ({ jobs }: Props) => {
                 onChange={toggleAll}
                 className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-indigo-600"
               />
-            </th>
-            <th className="px-4 py-3">공고명</th>
-            <th className="px-4 py-3">회사</th>
-            <th className="px-4 py-3">소스</th>
-            <th className="px-4 py-3">마감일</th>
-            <th className="px-4 py-3">상태</th>
-            <th className="px-4 py-3">수집일</th>
-            <th className="px-4 py-3">링크</th>
-            <th className="px-4 py-3">액션</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50">
-          {filtered.length === 0 ? (
-            <tr>
-              <td colSpan={9} className="py-12 text-center text-sm text-slate-400">
-                &ldquo;{query}&rdquo; 에 해당하는 공고가 없습니다.
-              </td>
+              </th>
+              <th className={cellPaddingClass}>공고명</th>
+              <th className={cellPaddingClass}>회사</th>
+              <th className={cellPaddingClass}>소스</th>
+              <th className={cellPaddingClass}>마감일</th>
+              <th className={cellPaddingClass}>상태</th>
+              <th className={cellPaddingClass}>수집일</th>
+              <th className={cellPaddingClass}>링크</th>
+              <th className={cellPaddingClass}>액션</th>
             </tr>
-          ) : (
-            filtered.map((job) => {
-              const statusStyle = STATUS_STYLE[job.status];
-              const isSelected = selectedIds.has(job.id);
-              return (
-                <tr
-                  key={job.id}
-                  className={`transition-colors hover:bg-slate-50/60 ${isSelected ? "bg-indigo-50/40" : ""}`}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleOne(job.id)}
-                      className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-indigo-600"
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-800">
-                    {job.title}
-                    {job.location && (
-                      <span className="ml-2 text-xs text-slate-400">{job.location}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{job.company ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-500">{SOURCE_LABEL[job.source]}</td>
-                  <td className="px-4 py-3">
-                    <DeadlineBadge deadline={job.deadline} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle.className}`}
-                    >
-                      {statusStyle.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-400" title={job.created_at}>
-                    {relativeTime(job.created_at)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <a
-                      href={job.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex text-slate-400 transition-colors hover:text-indigo-500"
-                    >
-                      <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.5} />
-                    </a>
-                  </td>
-                  <td className="px-4 py-3">
-                    <RowActions jobId={job.id} status={job.status} />
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="py-12 text-center text-sm text-slate-400">
+                  &ldquo;{query}&rdquo; 에 해당하는 공고가 없습니다.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((job) => {
+                const statusStyle = STATUS_STYLE[job.status];
+                const isSelected = selectedIds.has(job.id);
+                return (
+                  <tr
+                    key={job.id}
+                    className={`transition-colors hover:bg-slate-50/60 ${isSelected ? "bg-indigo-50/40" : ""}`}
+                  >
+                    <td className={cellPaddingClass}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleOne(job.id)}
+                        className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-indigo-600"
+                      />
+                    </td>
+                    <td className={`${cellPaddingClass} font-medium text-slate-800`}>
+                      {job.title}
+                      {job.location && (
+                        <span className="ml-2 text-xs text-slate-400">{job.location}</span>
+                      )}
+                    </td>
+                    <td className={`${cellPaddingClass} text-slate-600`}>{job.company ?? "—"}</td>
+                    <td className={`${cellPaddingClass} text-slate-500`}>{SOURCE_LABEL[job.source]}</td>
+                    <td className={cellPaddingClass}>
+                      <DeadlineBadge deadline={job.deadline} />
+                    </td>
+                    <td className={cellPaddingClass}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle.className}`}
+                      >
+                        {statusStyle.label}
+                      </span>
+                    </td>
+                    <td className={`${cellPaddingClass} text-xs text-slate-400`} title={job.created_at}>
+                      {relativeTime(job.created_at)}
+                    </td>
+                    <td className={cellPaddingClass}>
+                      <a
+                        href={job.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex text-slate-400 transition-colors hover:text-indigo-500"
+                      >
+                        <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.5} />
+                      </a>
+                    </td>
+                    <td className={cellPaddingClass}>
+                      <RowActions jobId={job.id} status={job.status} />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
