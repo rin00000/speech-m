@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
+  fetchWithRetry,
   parseDeadline,
   type JobInsert,
 } from "@/lib/crawl/shared";
@@ -82,7 +83,7 @@ export async function POST() {
     const seenRecIdx = new Set<string>();
 
     const fetches = Array.from({ length: CRAWL_PAGES }, (_, i) =>
-      fetch(buildUrl(i + 1), { headers: FETCH_HEADERS, cache: "no-store" })
+      fetchWithRetry(buildUrl(i + 1), { headers: FETCH_HEADERS, cache: "no-store" })
     );
 
     const results = await Promise.allSettled(fetches);

@@ -72,3 +72,57 @@ export const BASE_FETCH_HEADERS = {
   Accept: "text/html,application/xhtml+xml",
   "Accept-Language": "ko-KR,ko;q=0.9",
 } as const;
+
+type FetchWithRetryOptions = {
+  timeoutMs?: number;
+  retries?: number;
+  retryDelayMs?: number;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * 네트워크 일시 장애를 흡수하기 위해 timeout + 재시도를 표준화한다.
+ */
+export async function fetchWithRetry(
+  input: URL | RequestInfo,
+  init?: RequestInit,
+  options?: FetchWithRetryOptions
+): Promise<Response> {
+  const timeoutMs = options?.timeoutMs ?? 8000;
+  const retries = options?.retries ?? 2;
+  const retryDelayMs = options?.retryDelayMs ?? 400;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort("fetch-timeout"), timeoutMs);
+
+    try {
+      const response = await fetch(input, {
+        ...init,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        return response;
+      }
+
+      const isRetriableStatus = response.status >= 500 || response.status === 429;
+      if (!isRetriableStatus || attempt === retries) {
+        return response;
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      if (attempt === retries) {
+        throw error;
+      }
+    }
+
+    await sleep(retryDelayMs * (attempt + 1));
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("fetchWithRetry failed");
+}
