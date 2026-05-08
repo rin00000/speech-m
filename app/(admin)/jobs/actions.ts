@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
+import {
+  evaluateBenchmarkPassFail,
+  type BenchmarkMetrics,
+  type BenchmarkResult,
+} from "@/lib/ai/job-fit/benchmark";
 import type { JobStatus } from "@/types/database.types";
 
 export type CrawlSource = "mediajob" | "saramin" | "jobkorea";
@@ -18,6 +23,12 @@ export type RunCrawlResult = {
   saved?: number;
   total?: number;
   error?: string;
+};
+
+export const evaluateAiFilterBenchmark = async (
+  metrics: BenchmarkMetrics
+): Promise<BenchmarkResult> => {
+  return evaluateBenchmarkPassFail(metrics);
 };
 
 export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => {
