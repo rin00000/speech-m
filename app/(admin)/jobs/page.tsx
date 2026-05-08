@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Header } from "@/components/admin/header";
 import { CrawlButton } from "@/components/admin/crawl-button";
+import { AiFitButton } from "@/components/admin/ai-fit-button";
 import { JobsFilter } from "@/components/admin/jobs-filter";
 import { JobsTable } from "@/components/admin/jobs-table";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -147,9 +148,10 @@ export default async function JobsPage({
             activeSource={activeSource}
           />
           <div className="flex shrink-0 items-center gap-2">
-            <CrawlButton source="mediajob" label="미디어잡 수집" />
-            <CrawlButton source="saramin" label="사람인 수집" />
-            <CrawlButton source="jobkorea" label="잡코리아 수집" />
+            <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
+            <CrawlButton source="saramin" label="사람인 즉시 동기화" />
+            <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />
+            <AiFitButton />
             <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
               <HugeiconsIcon icon={Add01Icon} size={15} color="currentColor" strokeWidth={2} />
               공고 추가

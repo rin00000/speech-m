@@ -1,0 +1,10 @@
+{"id":"g1","title":"지상파 아나운서 공개채용","company":"KBS","location":"서울","source":"custom","source_url":"https://example.com/1","expected_label":"approved"}
+{"id":"g2","title":"기상캐스터 경력직 모집","company":"연합뉴스TV","location":"서울","source":"custom","source_url":"https://example.com/2","expected_label":"approved"}
+{"id":"g3","title":"취재기자 채용","company":"지역일간지","location":"대구","source":"custom","source_url":"https://example.com/3","expected_label":"rejected"}
+{"id":"g4","title":"유튜브 채널 전속 진행자 모집","company":"OO미디어","location":"서울","source":"custom","source_url":"https://example.com/4","expected_label":"rejected"}
+{"id":"g5","title":"종편 뉴스 앵커 채용","company":"JTBC","location":"서울","source":"custom","source_url":"https://example.com/5","expected_label":"approved"}
+{"id":"g6","title":"리포터 및 취재기자 모집","company":"지역방송사","location":"부산","source":"custom","source_url":"https://example.com/6","expected_label":"rejected"}
+{"id":"g7","title":"쇼호스트 신입 공개채용","company":"홈쇼핑A","location":"서울","source":"custom","source_url":"https://example.com/7","expected_label":"approved"}
+{"id":"g8","title":"1인 미디어 콘텐츠 진행자","company":"스타트업B","location":"경기","source":"custom","source_url":"https://example.com/8","expected_label":"rejected"}
+{"id":"g9","title":"지역민방 아나운서 모집","company":"KNN","location":"부산","source":"custom","source_url":"https://example.com/9","expected_label":"approved"}
+{"id":"g10","title":"MC/행사 진행자 단기 계약","company":"소형 에이전시C","location":"서울","source":"custom","source_url":"https://example.com/10","expected_label":"rejected"}
