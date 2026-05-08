@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
+  fetchWithRetry,
   parseDeadline,
   type JobInsert,
 } from "@/lib/crawl/shared";
@@ -90,7 +91,10 @@ export async function POST() {
       Array.from({ length: CRAWL_PAGES }, (_, i) => ({
         target,
         page: i + 1,
-        promise: fetch(target.buildUrl(i + 1), { headers: FETCH_HEADERS, cache: "no-store" }),
+        promise: fetchWithRetry(target.buildUrl(i + 1), {
+          headers: FETCH_HEADERS,
+          cache: "no-store",
+        }),
       }))
     );
 

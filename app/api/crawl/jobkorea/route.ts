@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
+  fetchWithRetry,
   parseDeadline,
   type JobInsert,
 } from "@/lib/crawl/shared";
@@ -98,7 +99,7 @@ export async function POST() {
     const seenGno = new Set<string>();
 
     const fetches = Array.from({ length: CRAWL_PAGES }, (_, i) =>
-      fetch(ENDPOINT, {
+      fetchWithRetry(ENDPOINT, {
         method: "POST",
         headers: FETCH_HEADERS,
         body: buildBody(i + 1),
