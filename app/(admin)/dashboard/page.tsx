@@ -1,48 +1,110 @@
 import { Header } from "@/components/admin/header";
+import { SOURCE_LABEL } from "@/lib/jobs/constants";
+import { relativeTime } from "@/lib/jobs/utils";
+import { createAdminClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database.types";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
-  FileEditIcon,
-  BookOpen01Icon,
+  CheckmarkCircle01Icon,
   ChartLineData02Icon,
+  JobShareIcon,
+  LinkSquare01Icon,
 } from "@hugeicons/core-free-icons";
 
-const STAT_CARDS = [
-  {
-    label: "등록된 공고",
-    value: "—",
-    sub: "전체 공고 수",
-    icon: Briefcase01Icon,
-    color: "text-indigo-500",
-    bg: "bg-indigo-50",
-  },
-  {
-    label: "시험 후기",
-    value: "—",
-    sub: "누적 후기 수",
-    icon: FileEditIcon,
-    color: "text-violet-500",
-    bg: "bg-violet-50",
-  },
-  {
-    label: "스터디 그룹",
-    value: "—",
-    sub: "운영 중인 스터디",
-    icon: BookOpen01Icon,
-    color: "text-emerald-500",
-    bg: "bg-emerald-50",
-  },
-  {
-    label: "이번 달 활동",
-    value: "—",
-    sub: "총 업데이트 건수",
-    icon: ChartLineData02Icon,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-  },
-];
+type JobPosting = Pick<
+  Database["public"]["Tables"]["job_postings"]["Row"],
+  "id" | "title" | "company" | "source" | "source_url" | "deadline" | "published_at"
+>;
 
-export default function DashboardPage() {
+const formatCount = (count: number | null) => (count ?? 0).toLocaleString("ko-KR");
+
+const getMonthStartIso = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+};
+
+export default async function DashboardPage() {
+  const supabase = createAdminClient();
+  const monthStartIso = getMonthStartIso();
+
+  const [
+    totalJobsResult,
+    approvedJobsResult,
+    publishedJobsResult,
+    monthlyPublishedJobsResult,
+    recentPublishedJobsResult,
+  ] = await Promise.all([
+    supabase.from("job_postings").select("id", { count: "exact", head: true }),
+    supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved"),
+    supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved")
+      .not("published_at", "is", null),
+    supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved")
+      .not("published_at", "is", null)
+      .gte("published_at", monthStartIso),
+    supabase
+      .from("job_postings")
+      .select("id,title,company,source,source_url,deadline,published_at")
+      .eq("status", "approved")
+      .not("published_at", "is", null)
+      .order("published_at", { ascending: false })
+      .limit(6)
+      .returns<JobPosting[]>(),
+  ]);
+
+  const hasJobsError = [
+    totalJobsResult,
+    approvedJobsResult,
+    publishedJobsResult,
+    monthlyPublishedJobsResult,
+    recentPublishedJobsResult,
+  ].some((result) => result.error);
+
+  const recentPublishedJobs = recentPublishedJobsResult.data ?? [];
+  const statCards = [
+    {
+      label: "등록된 공고",
+      value: formatCount(totalJobsResult.count),
+      sub: "전체 공고 수",
+      icon: Briefcase01Icon,
+      color: "text-indigo-500",
+      bg: "bg-indigo-50",
+    },
+    {
+      label: "승인된 공고",
+      value: formatCount(approvedJobsResult.count),
+      sub: "HITL 검수 통과",
+      icon: CheckmarkCircle01Icon,
+      color: "text-emerald-500",
+      bg: "bg-emerald-50",
+    },
+    {
+      label: "내부 표시",
+      value: formatCount(publishedJobsResult.count),
+      sub: "승인 후 표시 확정",
+      icon: JobShareIcon,
+      color: "text-sky-500",
+      bg: "bg-sky-50",
+    },
+    {
+      label: "이번 달 표시",
+      value: formatCount(monthlyPublishedJobsResult.count),
+      sub: "이번 달 내부 표시",
+      icon: ChartLineData02Icon,
+      color: "text-amber-500",
+      bg: "bg-amber-50",
+    },
+  ];
+
   return (
     <div className="flex flex-col">
       <Header
@@ -53,7 +115,7 @@ export default function DashboardPage() {
       <div className="flex-1 p-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STAT_CARDS.map((card) => (
+          {statCards.map((card) => (
             <div
               key={card.label}
               className="flex flex-col gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-sm"
@@ -81,21 +143,67 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Recent Activity Placeholder */}
         <div className="mt-6 rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-700">
-              최근 활동
-            </h2>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
-              준비 중
+            <div>
+              <h2 className="text-sm font-semibold text-slate-700">
+                최근 내부 표시 공고
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                승인 후 내부 표시가 확정된 최신 공고입니다.
+              </p>
+            </div>
+            <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-600">
+              {formatCount(publishedJobsResult.count)}건
             </span>
           </div>
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-12 text-center">
-            <p className="text-sm text-slate-400">
-              데이터를 연결하면 최근 활동이 표시됩니다.
-            </p>
-          </div>
+          {hasJobsError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              공고 데이터를 불러오는 중 오류가 발생했습니다.
+            </div>
+          ) : recentPublishedJobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-12 text-center">
+              <p className="text-sm font-medium text-slate-500">
+                내부 표시가 확정된 승인 공고가 없습니다.
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                공고 관리에서 승인 공고를 게시(내부 표시)하면 여기에 표시됩니다.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {recentPublishedJobs.map((job) => (
+                <div key={job.id} className="flex items-center gap-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-medium text-slate-800">
+                        {job.title}
+                      </p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                        {SOURCE_LABEL[job.source]}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+                      <span>{job.company ?? "회사명 미상"}</span>
+                      <span>마감 {job.deadline ?? "미정"}</span>
+                      <span title={job.published_at ?? undefined}>
+                        표시 {job.published_at ? relativeTime(job.published_at) : "—"}
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href={job.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-500"
+                    title="원문 보기"
+                  >
+                    <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.6} />
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
