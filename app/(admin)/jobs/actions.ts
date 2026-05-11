@@ -5,6 +5,11 @@ import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { triggerCrawl, type CrawlSource } from "@/lib/crawl/trigger";
 import { runJobFitBatch } from "@/lib/ai/job-fit/batch";
+import {
+  evaluateBenchmarkPassFail,
+  type BenchmarkMetrics,
+  type BenchmarkResult,
+} from "@/lib/ai/job-fit/benchmark";
 import type { JobStatus } from "@/types/database.types";
 export type { CrawlSource } from "@/lib/crawl/trigger";
 
@@ -23,6 +28,13 @@ export type RunAiFitResult = {
   pending?: number;
   failed?: number;
   error?: string;
+};
+
+/** 서버 액션에서 즉시 판정. 외부 배치·curl은 `POST /api/admin/benchmark-job-fit`(동일 `x-crawl-secret`) 사용. */
+export const evaluateAiFilterBenchmark = async (
+  metrics: BenchmarkMetrics
+): Promise<BenchmarkResult> => {
+  return evaluateBenchmarkPassFail(metrics);
 };
 
 export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => {

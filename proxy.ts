@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export const config = {
-  matcher: "/api/crawl/:path*",
+  matcher: ["/api/crawl/:path*", "/api/admin/benchmark-job-fit"],
 };
 
 export function proxy(request: NextRequest) {
