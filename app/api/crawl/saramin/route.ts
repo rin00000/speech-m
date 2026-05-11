@@ -3,12 +3,16 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
+  fetchWithRetry,
   parseDeadline,
+  poolAllSettled,
+  shareInFlightPromise,
   type JobInsert,
 } from "@/lib/crawl/shared";
 
 const BASE_URL = "https://www.saramin.co.kr";
 const CRAWL_PAGES = 1;
+const FETCH_CONCURRENCY = 2;
 
 // 기자, 도슨트, 리포터, 기상캐스터, 성우, 쇼호스트, 큐레이터, 아나운서, MC
 const CAT_KEWD = "1295,1283,1284,1290,1294,1289,1285,1322,1307";
@@ -80,12 +84,15 @@ export async function POST() {
     today.setHours(0, 0, 0, 0);
 
     const seenRecIdx = new Set<string>();
+    const inFlight = new Map<string, Promise<Response>>();
+    const pages = Array.from({ length: CRAWL_PAGES }, (_, i) => i + 1);
 
-    const fetches = Array.from({ length: CRAWL_PAGES }, (_, i) =>
-      fetch(buildUrl(i + 1), { headers: FETCH_HEADERS, cache: "no-store" })
-    );
-
-    const results = await Promise.allSettled(fetches);
+    const results = await poolAllSettled(pages, FETCH_CONCURRENCY, (page) => {
+      const url = buildUrl(page);
+      return shareInFlightPromise(inFlight, url, () =>
+        fetchWithRetry(url, { headers: FETCH_HEADERS, cache: "no-store" })
+      );
+    });
 
     const jobs: JobInsert[] = [];
     for (let i = 0; i < results.length; i++) {
