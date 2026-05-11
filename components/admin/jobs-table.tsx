@@ -21,6 +21,7 @@ import {
 } from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
+import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";
 import { relativeTime } from "@/lib/jobs/utils";
 
@@ -61,10 +62,22 @@ const DeadlineBadge = ({ deadline }: { deadline: string | null }) => {
 
 const RowActions = ({
   jobId,
+  jobTitle,
+  company,
+  location,
+  deadline,
+  source,
+  sourceUrl,
   status,
   publishedAt,
 }: {
   jobId: string;
+  jobTitle: string;
+  company: string | null;
+  location: string | null;
+  deadline: string | null;
+  source: JobPosting["source"];
+  sourceUrl: string;
   status: JobStatus;
   publishedAt: string | null;
 }) => {
@@ -84,6 +97,28 @@ const RowActions = ({
       router.refresh();
     });
   };
+
+  const canShareToNaver = status === "approved" && Boolean(publishedAt);
+  const naverShareUrl = canShareToNaver
+    ? buildNaverShareUrl({
+        title: jobTitle,
+        company,
+        location,
+        deadline,
+        source,
+        source_url: sourceUrl,
+      })
+    : "";
+  const naverDraftContent = canShareToNaver
+    ? buildBlogContent({
+        title: jobTitle,
+        company,
+        location,
+        deadline,
+        source,
+        source_url: sourceUrl,
+      })
+    : "";
 
   if (status === "pending") {
     return (
@@ -119,6 +154,17 @@ const RowActions = ({
         >
           <HugeiconsIcon icon={JobShareIcon} size={16} color="currentColor" strokeWidth={1.8} />
         </button>
+      )}
+      {canShareToNaver && (
+        <a
+          href={naverShareUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`네이버 공유하기\n\n${naverDraftContent}`}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+        >
+          <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.8} />
+        </a>
       )}
       <button
         onClick={() => void handle("pending")}
@@ -378,7 +424,17 @@ export const JobsTable = ({ jobs }: Props) => {
                       </a>
                     </td>
                     <td className={cellPaddingClass}>
-                      <RowActions jobId={job.id} status={job.status} publishedAt={job.published_at} />
+                      <RowActions
+                        jobId={job.id}
+                        jobTitle={job.title}
+                        company={job.company}
+                        location={job.location}
+                        deadline={job.deadline}
+                        source={job.source}
+                        sourceUrl={job.source_url}
+                        status={job.status}
+                        publishedAt={job.published_at}
+                      />
                     </td>
                   </tr>
                 );
