@@ -31,7 +31,7 @@ Worktree Root: `C:/Users/rinju/speech-m-wt`
 ## Main Workspace
 - Path: `C:/Users/rinju/speech-m`
 - Branch: `feature/admin-layout`
-- Status: merged locally — `feat/crawler-pipeline`, `feat/ai-filtering`, `feat/admin-ui-density` 통합됨 (push: `git push origin feature/admin-layout`)
+- Status: merged_and_pushed — `feat/crawler-pipeline`, `feat/ai-filtering`, `feat/admin-ui-density` 통합 후 `origin/feature/admin-layout` 반영됨
 - Note: `lib/ai/job-fit/config.ts`에 `JOB_FIT_CONFIG`와 benchmark threshold가 공존
 
 ## Update Rule
