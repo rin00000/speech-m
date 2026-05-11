@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { triggerCrawl, type CrawlSource } from "@/lib/crawl/trigger";
-import { runJobFitBatch } from "@/lib/ai/job-fit/batch";
 import {
   evaluateBenchmarkPassFail,
+  runJobFitBatch,
   type BenchmarkMetrics,
   type BenchmarkResult,
-} from "@/lib/ai/job-fit/benchmark";
+} from "@/lib/ai/job-fit";
 import type { JobStatus } from "@/types/database.types";
 export type { CrawlSource } from "@/lib/crawl/trigger";
 

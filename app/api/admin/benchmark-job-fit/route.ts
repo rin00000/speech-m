@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { evaluateBenchmarkPassFail } from "@/lib/ai/job-fit/benchmark";
+import { evaluateBenchmarkPassFail } from "@/lib/ai/job-fit";
 
 const metricsSchema = z.object({
   precision: z.number(),

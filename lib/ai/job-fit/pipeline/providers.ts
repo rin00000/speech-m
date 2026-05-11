@@ -1,6 +1,6 @@
-import { jobFitResultSchema, type JobFitInput, type JobFitResult } from "@/lib/ai/job-fit/schema";
-import { buildSystemPrompt, buildUserPrompt } from "@/lib/ai/job-fit/rules";
-import { JOB_FIT_CONFIG } from "@/lib/ai/job-fit/config";
+import { JOB_FIT_CONFIG } from "../domain/config";
+import { jobFitResultSchema, type JobFitInput, type JobFitResult } from "../domain/schema";
+import { buildSystemPrompt, buildUserPrompt } from "../policy/rules";
 
 type ProviderResult = {
   model: string;
@@ -49,7 +49,7 @@ const evaluateWithOpenAI = async (input: JobFitInput): Promise<ProviderResult> =
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: buildSystemPrompt() },
+        { role: "system", content: buildSystemPrompt(input.source) },
         {
           role: "user",
           content: buildUserPrompt(input),
@@ -92,7 +92,7 @@ const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> =
       contents: [
         {
           role: "user",
-          parts: [{ text: `${buildSystemPrompt()}\n\n${buildUserPrompt(input)}` }],
+          parts: [{ text: `${buildSystemPrompt(input.source)}\n\n${buildUserPrompt(input)}` }],
         },
       ],
     }),

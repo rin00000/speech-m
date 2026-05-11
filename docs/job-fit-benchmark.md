@@ -22,10 +22,10 @@ CI에서는 위 시크릿이 모두 설정된 경우에만 워크플로가 검�
 
 ## 배치(`runJobFitBatch`)와의 관계
 
-현재 정책은 **옵션 A**: 배치 본문은 변경하지 않고, 골든 런·메트릭 산출은 **배치 외부**(스크립트 `scripts/benchmark-job-fit.mts` 등)에서 수행한 뒤, 산출된 메트릭으로 이 엔드포인트를 호출한다.
+현재 정책은 **옵션 A**: 배치 본문은 변경하지 않고, 골든 런·메트릭 산출은 **배치 외부**(`npm run bench:job-fit` → `lib/ai/job-fit/bench/golden-llm-run.ts`, `tsx --tsconfig tsconfig.bench.json`)에서 수행한 뒤, 산출된 메트릭으로 이 엔드포인트를 호출한다.
 
 ## 관련 파일
 
 - [app/api/admin/benchmark-job-fit/route.ts](../app/api/admin/benchmark-job-fit/route.ts)
-- [lib/ai/job-fit/benchmark.ts](../lib/ai/job-fit/benchmark.ts)
-- [lib/ai/job-fit/config.ts](../lib/ai/job-fit/config.ts) (`JOB_FIT_BENCHMARK_THRESHOLDS`)
+- [lib/ai/job-fit/bench/benchmark.ts](../lib/ai/job-fit/bench/benchmark.ts)
+- [lib/ai/job-fit/domain/config.ts](../lib/ai/job-fit/domain/config.ts) (`JOB_FIT_BENCHMARK_THRESHOLDS`)

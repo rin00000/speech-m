@@ -6,8 +6,8 @@
  * `npm run check:job-fit-benchmark`로 검증한다. 상세는 docs/job-fit-benchmark.md.
  */
 import { createAdminClient } from "@/lib/supabase/server";
-import { evaluateJobFit } from "@/lib/ai/job-fit/evaluate";
 import type { Database } from "@/types/database.types";
+import { evaluateJobFit } from "./evaluate";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 

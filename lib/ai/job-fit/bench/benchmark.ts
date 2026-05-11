@@ -1,7 +1,7 @@
 import {
   JOB_FIT_BENCHMARK_THRESHOLDS,
   type BenchmarkThresholdConfig,
-} from "@/lib/ai/job-fit/config";
+} from "../domain/config";
 
 export type BenchmarkMetrics = {
   precision: number;

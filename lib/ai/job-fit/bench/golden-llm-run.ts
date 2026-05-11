@@ -1,4 +1,7 @@
 import { readFile } from "node:fs/promises";
+import { jobFitResultSchema, type JobFitInput } from "../domain/schema";
+import { tryDeterministicDecision } from "../policy/deterministic";
+import { buildSystemPrompt, buildUserPrompt } from "../policy/rules";
 
 type GoldenRow = {
   id: string;
@@ -24,28 +27,32 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.JOB_FIT_MODEL_GEMINI ?? "gemini-2.5-flash";
 const OPENAI_MODEL = process.env.JOB_FIT_MODEL_OPENAI ?? "gpt-4.1-mini";
 
-const systemPrompt = [
-  "너는 방송아카데미 채용 공고 심사관이다.",
-  "아나운서/앵커/기상캐스터 중심이면 approved, 아니면 rejected.",
-  "취재기자, 유튜브 전용, 소형 에이전시는 rejected 우선.",
-  'JSON 형식으로만 응답: {"label":"approved|rejected","score":0-100}',
-].join("\n");
+const rowToInput = (row: GoldenRow): JobFitInput => ({
+  id: row.id,
+  title: row.title,
+  company: row.company,
+  location: row.location,
+  source: row.source,
+  sourceUrl: row.source_url,
+});
 
-const parseLabel = (text: string): "approved" | "rejected" => {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
+const extractJsonObject = (text: string): unknown => {
+  const trimmed = text.trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("No JSON payload");
-  const parsed = JSON.parse(text.slice(start, end + 1)) as {
-    label?: "approved" | "rejected";
-  };
-  if (parsed.label !== "approved" && parsed.label !== "rejected") {
-    throw new Error("Invalid label");
-  }
+  return JSON.parse(trimmed.slice(start, end + 1));
+};
+
+const parseJobFitLabel = (text: string): "approved" | "rejected" => {
+  const json = extractJsonObject(text);
+  const parsed = jobFitResultSchema.parse(json);
   return parsed.label;
 };
 
 const callOpenAI = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
   if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
+  const input = rowToInput(row);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -57,10 +64,10 @@ const callOpenAI = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: buildSystemPrompt(input.source) },
         {
           role: "user",
-          content: `title=${row.title}\ncompany=${row.company ?? "unknown"}\nlocation=${row.location ?? "unknown"}\nsource=${row.source}\nurl=${row.source_url}`,
+          content: buildUserPrompt(input),
         },
       ],
     }),
@@ -69,11 +76,12 @@ const callOpenAI = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
     choices?: Array<{ message?: { content?: string } }>;
   };
   const text = json.choices?.[0]?.message?.content ?? "";
-  return parseLabel(text);
+  return parseJobFitLabel(text);
 };
 
 const callGemini = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing");
+  const input = rowToInput(row);
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
     {
@@ -89,7 +97,7 @@ const callGemini = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
             role: "user",
             parts: [
               {
-                text: `${systemPrompt}\n\ntitle=${row.title}\ncompany=${row.company ?? "unknown"}\nlocation=${row.location ?? "unknown"}\nsource=${row.source}\nurl=${row.source_url}`,
+                text: `${buildSystemPrompt(input.source)}\n\n${buildUserPrompt(input)}`,
               },
             ],
           },
@@ -101,7 +109,17 @@ const callGemini = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  return parseLabel(text);
+  return parseJobFitLabel(text);
+};
+
+const predictLabel = async (
+  row: GoldenRow,
+  llm: (row: GoldenRow) => Promise<"approved" | "rejected">
+): Promise<"approved" | "rejected"> => {
+  const input = rowToInput(row);
+  const det = tryDeterministicDecision(input);
+  if (det) return det.label;
+  return llm(row);
 };
 
 const evaluate = async (
@@ -114,7 +132,7 @@ const evaluate = async (
   let fnCount = 0;
 
   for (const row of rows) {
-    const predicted = await fn(row);
+    const predicted = await predictLabel(row, fn);
     if (predicted === row.expected_label) correct += 1;
     if (predicted === "approved" && row.expected_label === "rejected") fp += 1;
     if (predicted === "rejected" && row.expected_label === "approved") fnCount += 1;
@@ -153,9 +171,7 @@ const main = async () => {
   }
 
   if (results.length === 0) {
-    throw new Error(
-      "No benchmark run. Set GEMINI_API_KEY or OPENAI_API_KEY."
-    );
+    throw new Error("No benchmark run. Set GEMINI_API_KEY or OPENAI_API_KEY.");
   }
 
   console.log(JSON.stringify({ results }, null, 2));

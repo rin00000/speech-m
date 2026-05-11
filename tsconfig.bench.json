@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "plugins": []
+  },
+  "include": [
+    "lib/ai/job-fit/bench/golden-llm-run.ts",
+    "lib/ai/job-fit/policy/rules.ts",
+    "lib/ai/job-fit/policy/deterministic.ts",
+    "lib/ai/job-fit/policy/keyword-match.ts",
+    "lib/ai/job-fit/domain/schema.ts"
+  ]
+}

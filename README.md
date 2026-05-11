@@ -40,7 +40,7 @@ flowchart LR
 
 - **관리자 영역** — `app/(admin)/`: 대시보드, 채용공고 목록·필터·테이블, 크롤 트리거, job-fit 실행 버튼 등 운영자 흐름을 한 곳에 모았습니다.  
 - **크롤 API** — `app/api/crawl/*`: 소스별·일괄 동기화 라우트와 공통 트리거 로직(`lib/crawl/`).  
-- **Job-fit** — `lib/ai/job-fit/`: 모델·룰·배치 평가, 샘플 골든 메트릭과 벤치마크 API(`app/api/admin/benchmark-job-fit`).  
+- **Job-fit** — `lib/ai/job-fit/`: `domain/`·`policy/`·`pipeline/`·`bench/`·`index.ts`로 구역화, 샘플 골든 메트릭과 벤치마크 API(`app/api/admin/benchmark-job-fit`).  
 - **UI 컴포넌트** — `components/admin/`: 사이드바, 테이블, 필터, 크롤/AI 버튼 등 관리자 전용 조각.
 
 ## 로컬에서 실행하기

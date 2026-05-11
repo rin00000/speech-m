@@ -8,3 +8,5 @@
 {"id":"g8","title":"1인 미디어 콘텐츠 진행자","company":"스타트업B","location":"경기","source":"custom","source_url":"https://example.com/8","expected_label":"rejected"}
 {"id":"g9","title":"지역민방 아나운서 모집","company":"KNN","location":"부산","source":"custom","source_url":"https://example.com/9","expected_label":"approved"}
 {"id":"g10","title":"MC/행사 진행자 단기 계약","company":"소형 에이전시C","location":"서울","source":"custom","source_url":"https://example.com/10","expected_label":"rejected"}
+{"id":"g11","title":"아나운서 공개채용","company":"원투원TV","location":"서울","source":"custom","source_url":"https://example.com/11","expected_label":"rejected"}
+{"id":"g12","title":"취재기자 모집","company":"JTV","location":"부산","source":"mediajob_intern","source_url":"https://example.com/12","expected_label":"rejected"}

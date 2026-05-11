@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toFinalStatus } from "@/lib/ai/job-fit/schema";
+import { toFinalStatus } from "./schema";
 
 describe("toFinalStatus", () => {
   it("auto-approves high-score approved label", () => {

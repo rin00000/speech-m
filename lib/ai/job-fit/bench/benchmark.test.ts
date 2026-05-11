@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateBenchmarkPassFail } from "@/lib/ai/job-fit/benchmark";
+import { evaluateBenchmarkPassFail } from "./benchmark";
 
 describe("evaluateBenchmarkPassFail", () => {
   it("passes when all metrics meet thresholds", () => {
