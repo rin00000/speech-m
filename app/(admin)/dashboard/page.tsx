@@ -88,17 +88,17 @@ export default async function DashboardPage() {
       bg: "bg-emerald-50",
     },
     {
-      label: "내부 표시",
+      label: "내부 게시",
       value: formatCount(publishedJobsResult.count),
-      sub: "승인 후 표시 확정",
+      sub: "승인 후 게시 확정",
       icon: JobShareIcon,
       color: "text-sky-500",
       bg: "bg-sky-50",
     },
     {
-      label: "이번 달 표시",
+      label: "이번 달 게시",
       value: formatCount(monthlyPublishedJobsResult.count),
-      sub: "이번 달 내부 표시",
+      sub: "이번 달 내부 게시",
       icon: ChartLineData02Icon,
       color: "text-amber-500",
       bg: "bg-amber-50",
@@ -147,10 +147,10 @@ export default async function DashboardPage() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-slate-700">
-                최근 내부 표시 공고
+                최근 내부 게시 공고
               </h2>
               <p className="mt-1 text-xs text-slate-400">
-                승인 후 내부 표시가 확정된 최신 공고입니다.
+                승인 후 내부 게시가 확정된 최신 공고입니다.
               </p>
             </div>
             <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-600">
@@ -164,10 +164,10 @@ export default async function DashboardPage() {
           ) : recentPublishedJobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">
-                내부 표시가 확정된 승인 공고가 없습니다.
+                내부 게시가 확정된 승인 공고가 없습니다.
               </p>
               <p className="mt-1 text-xs text-slate-400">
-                공고 관리에서 승인 공고를 게시(내부 표시)하면 여기에 표시됩니다.
+                공고 관리에서 승인 공고를 내부 게시하면 여기에 표시됩니다.
               </p>
             </div>
           ) : (
@@ -187,7 +187,7 @@ export default async function DashboardPage() {
                       <span>{job.company ?? "회사명 미상"}</span>
                       <span>마감 {job.deadline ?? "미정"}</span>
                       <span title={job.published_at ?? undefined}>
-                        표시 {job.published_at ? relativeTime(job.published_at) : "—"}
+                        내부 게시 {job.published_at ? relativeTime(job.published_at) : "—"}
                       </span>
                     </div>
                   </div>

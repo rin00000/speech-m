@@ -114,7 +114,7 @@ const RowActions = ({
         <button
           onClick={handlePublish}
           disabled={isPending}
-          title="게시(내부 표시)"
+          title="내부 게시"
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <HugeiconsIcon icon={JobShareIcon} size={16} color="currentColor" strokeWidth={1.8} />
@@ -243,7 +243,7 @@ export const JobsTable = ({ jobs }: Props) => {
               className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <HugeiconsIcon icon={JobShareIcon} size={13} color="currentColor" strokeWidth={2} />
-              일괄 게시
+              일괄 내부 게시
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
@@ -313,7 +313,7 @@ export const JobsTable = ({ jobs }: Props) => {
               <th className={cellPaddingClass}>소스</th>
               <th className={cellPaddingClass}>마감일</th>
               <th className={cellPaddingClass}>상태</th>
-              <th className={cellPaddingClass}>게시</th>
+              <th className={cellPaddingClass}>내부 게시 시각</th>
               <th className={cellPaddingClass}>수집일</th>
               <th className={cellPaddingClass}>링크</th>
               <th className={cellPaddingClass}>액션</th>

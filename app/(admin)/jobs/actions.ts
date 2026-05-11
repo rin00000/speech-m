@@ -83,7 +83,7 @@ export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
 
 /**
  * HITL: pending = human/AI 미확정, approved/rejected = 검수 확정.
- * 검수 상태가 approved가 아니면 외부 게시 추적(`published_at`)을 비워 일관성을 유지한다.
+ * 검수 상태가 approved가 아니면 내부 게시 시각(`published_at`)을 비워 일관성을 유지한다.
  */
 const statusUpdatePayload = (status: JobStatus) =>
   status === "approved"
@@ -119,7 +119,7 @@ export type MarkPublishedResult = {
   error?: string;
 };
 
-/** 승인된 공고만 내부 채널(표시용) 게시: `published_at` 최초 1회 설정(idempotent). */
+/** 승인된 공고만 내부 게시 처리: `published_at`에 내부 게시 시각을 최초 1회 설정(idempotent). */
 export const markJobsPublished = async (ids: string[]): Promise<MarkPublishedResult> => {
   if (!ids.length) return { success: true, updated: 0 };
   const supabase = createAdminClient();
