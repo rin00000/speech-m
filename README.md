@@ -64,6 +64,47 @@ npm run dev
 
 실제 키·URL은 저장소에 커밋하지 마세요.
 
+## Vercel 배포 (실행 체크리스트)
+
+루트 [vercel.json](vercel.json)에 **Cron**(`GET /api/crawl/all`)이 있어 Vercel 배포를 전제로 합니다. Cron 호출은 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`로 검증합니다.
+
+### 1) 프로젝트 연결
+
+1. [Vercel Dashboard](https://vercel.com/dashboard) → **Add New… → Project**.
+2. Git 저장소 **Import** (본 프로젝트 `speech-m`).
+3. **Framework Preset**: Next.js, **Root Directory**: 저장소 루트.
+4. **Production Branch**: 팀 규칙에 맞게 `main` 또는 `dev` 등으로 지정.
+
+### 2) Environment Variables
+
+Vercel **Settings → Environment Variables**에서 Production(필요 시 Preview)에 아래를 등록합니다.
+
+| 변수 | 용도 |
+|------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 키 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 서버 전용(관리자·`/jobs/[id]/share` 등). Preview에 넣을지는 팀 정책으로 결정 |
+| `NEXT_PUBLIC_APP_URL` | (권장) 공개 사이트 절대 URL. 네이버 공유·OG용으로 [`lib/jobs/site-url.ts`](lib/jobs/site-url.ts)에서 사용. 예: `https://<프로젝트>.vercel.app` 또는 커스텀 도메인 |
+| `CRAWL_API_SECRET` | `/api/crawl/*` 호출 시 내부 트리거에 필요 |
+| `CRON_SECRET` | Vercel Cron이 `/api/crawl/all` 호출 시 Bearer 검증에 필요 |
+| `OPENAI_API_KEY` / `GEMINI_API_KEY` 등 | job-fit 등 LLM 기능 사용 시 |
+
+### 3) 첫 배포 후 확인
+
+1. **Deployments**에서 빌드 로그가 성공인지 확인.
+2. **Visit**로 프로덕션 URL 접속.
+3. 공개 랜딩 검증: `https://<배포도메인>/jobs/<job-id>/share` — DB에서 해당 행이 **승인(`approved`) + 내부 게시 확정(`published_at` 있음)**이면 200과 본문·메타, 아니면 404([app/jobs/[id]/share/page.tsx](app/jobs/[id]/share/page.tsx)).
+
+### 4) 네이버 공유 E2E
+
+1. 관리자 공고 목록에서 위 조건을 만족하는 행의 네이버 공유 링크 사용([components/admin/jobs-table.tsx](components/admin/jobs-table.tsx)).
+2. 네이버 화면에서 제목·요약(스크랩)이 랜딩 페이지 메타와 맞는지 확인.
+3. 요약이 기대와 다르면: `NEXT_PUBLIC_APP_URL`이 브라우저 주소창과 일치하는지, 랜딩이 200인지, 배포 환경의 Supabase에 동일 데이터가 있는지 순서로 점검.
+
+### 5) 선택: 커스텀 도메인
+
+Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하고, `NEXT_PUBLIC_APP_URL`을 `https://<커스텀도메인>`으로 바꾼 뒤 **Redeploy**합니다.
+
 ## 스크립트 · 품질
 
 | 명령 | 설명 |
