@@ -1,0 +1,9 @@
+---
+description: Recover and continue parallel git worktree execution context
+alwaysApply: true
+---
+
+# Parallel Worktree Continuity
+- If parallel worktree workflow is active, read `docs/worktree-parallel-status.md` before planning.
+- Treat that file as the source of truth for branch ownership, task scope, and next actions.
+- Keep updates concise: status, latest commit, blockers, next step per worktree.
