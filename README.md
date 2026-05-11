@@ -2,11 +2,13 @@
 
 **방송인 지망생·입시 준비를 위한 채용 정보 올인원 관리 웹앱** — 수집부터 AI 1차 선별, 사람 검수(HITL), 이후 포스팅까지 한 흐름으로 묶는 것을 목표로 합니다.
 
+*All-in-one web platform for curating broadcaster-relevant job postings: scrape, AI-assisted triage, human review, and downstream posting.*
+
 ---
 
 ## 왜 만들었나
 
-채용공고는 사이트마다 흩어져 있고, 방송·미디어 직무에 맞는지만 골라내는 데 시간이 많이 듭니다. Speech-M은 **크롤링으로 모은 공고를 DB에** 넣고, **관리자 화면에서 상태·소스별로 필터링**하며, **LLM 기반 job-fit 평가**로 1차 후보를 좁힌 뒤 사람이 최종 판단하는 **“Director’s Eye” 품질 우선** 파이프라인을 코드로 구현한 프로젝트입니다.
+채용공고는 사이트마다 흩어져 있고, 방송·미디어 직무에 맞는지만 골라내는 데 시간이 많이 듭니다. Speech-M은 **크롤링으로 모은 공고를 DB에** 넣고, **관리자 화면에서 상태·소스별로 필터링**하며, **LLM 기반 job-fit 평가**로 1차 후보를 좁힌 뒤 사람이 최종 판단하는 **“Director’s Eye” 품질 우선** 파이프라인을 코드로 구현한 **개인 포트폴리오 / 사이드 프로젝트**입니다.
 
 ## 핵심 파이프라인
 
@@ -178,3 +180,11 @@ Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하�
 | `npm run check:job-fit-benchmark` | 배포 URL의 벤치마크 API에 메트릭 POST 후 pass/fail (`BENCHMARK_BASE_URL`, `CRAWL_API_SECRET` 필요) |
 
 GitHub Actions에는 job-fit HTTP 검증 워크플로(시크릿이 설정된 경우에만 실제 호출)가 있습니다.
+
+## 면책
+
+외부 채용 사이트를 크롤하거나 자동화할 때는 **각 사이트의 이용약관·로봇 배제 정책·저작권**을 준수해야 합니다. 본 저장소는 학습·포트폴리오 목적의 구현 예시이며, 운영 시 법적·계약적 책임은 사용자에게 있습니다.
+
+## 라이선스
+
+별도 `LICENSE` 파일은 없습니다. 코드 재사용·배포 전에는 저장소 소유자에게 문의하거나, 공개 범위를 스스로 판단해 주세요.
