@@ -26,6 +26,10 @@ export type JobFitDecision = JobFitResult & {
   promptVersion: string;
 };
 
+/**
+ * AI 1차 판정 경계: `JOB_FIT_CONFIG.policy`·`evaluateJobFit`와 동일해야 한다.
+ * 60+이면서 approved 라벨 → 자동 승인, 44 이하이면서 rejected 라벨 → 자동 거절, 그 외 → pending(관리자 HITL).
+ */
 export const toFinalStatus = (result: JobFitResult): JobFitDecision["finalStatus"] => {
   if (result.score >= 60 && result.label === "approved") return "approved";
   if (result.score <= 44 && result.label === "rejected") return "rejected";

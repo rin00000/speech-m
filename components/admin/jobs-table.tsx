@@ -12,8 +12,13 @@ import {
   Delete01Icon,
   MultiplicationSignIcon,
   Search01Icon,
+  JobShareIcon,
 } from "@hugeicons/core-free-icons";
-import { updateJobStatus, bulkUpdateJobStatus } from "@/app/(admin)/jobs/actions";
+import {
+  updateJobStatus,
+  bulkUpdateJobStatus,
+  markJobsPublished,
+} from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";
@@ -54,12 +59,29 @@ const DeadlineBadge = ({ deadline }: { deadline: string | null }) => {
   return <span className="text-xs text-slate-500">{deadline}</span>;
 };
 
-const RowActions = ({ jobId, status }: { jobId: string; status: JobStatus }) => {
+const RowActions = ({
+  jobId,
+  status,
+  publishedAt,
+}: {
+  jobId: string;
+  status: JobStatus;
+  publishedAt: string | null;
+}) => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handle = (next: JobStatus) => {
-    startTransition(() => {
-      updateJobStatus(jobId, next);
+    startTransition(async () => {
+      await updateJobStatus(jobId, next);
+      router.refresh();
+    });
+  };
+
+  const handlePublish = () => {
+    startTransition(async () => {
+      await markJobsPublished([jobId]);
+      router.refresh();
     });
   };
 
@@ -67,7 +89,7 @@ const RowActions = ({ jobId, status }: { jobId: string; status: JobStatus }) => 
     return (
       <div className="flex items-center gap-1">
         <button
-          onClick={() => handle("approved")}
+          onClick={() => void handle("approved")}
           disabled={isPending}
           title="승인"
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
@@ -75,7 +97,7 @@ const RowActions = ({ jobId, status }: { jobId: string; status: JobStatus }) => 
           <HugeiconsIcon icon={CheckmarkCircle01Icon} size={16} color="currentColor" strokeWidth={1.8} />
         </button>
         <button
-          onClick={() => handle("rejected")}
+          onClick={() => void handle("rejected")}
           disabled={isPending}
           title="거절"
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
@@ -87,14 +109,26 @@ const RowActions = ({ jobId, status }: { jobId: string; status: JobStatus }) => 
   }
 
   return (
-    <button
-      onClick={() => handle("pending")}
-      disabled={isPending}
-      title="재검토"
-      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <HugeiconsIcon icon={ArrowTurnBackwardIcon} size={15} color="currentColor" strokeWidth={1.8} />
-    </button>
+    <div className="flex items-center gap-1">
+      {status === "approved" && !publishedAt && (
+        <button
+          onClick={handlePublish}
+          disabled={isPending}
+          title="게시(내부 표시)"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <HugeiconsIcon icon={JobShareIcon} size={16} color="currentColor" strokeWidth={1.8} />
+        </button>
+      )}
+      <button
+        onClick={() => void handle("pending")}
+        disabled={isPending}
+        title="재검토"
+        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <HugeiconsIcon icon={ArrowTurnBackwardIcon} size={15} color="currentColor" strokeWidth={1.8} />
+      </button>
+    </div>
   );
 };
 
@@ -147,6 +181,14 @@ export const JobsTable = ({ jobs }: Props) => {
     });
   };
 
+  const handleBulkPublish = () => {
+    startBulkTransition(async () => {
+      await markJobsPublished(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      router.refresh();
+    });
+  };
+
   if (jobs.length === 0) return null;
 
   const cellPaddingClass = density === "compact" ? "px-3 py-2" : "px-4 py-3";
@@ -194,6 +236,14 @@ export const JobsTable = ({ jobs }: Props) => {
             >
               <HugeiconsIcon icon={Delete01Icon} size={13} color="currentColor" strokeWidth={2} />
               일괄 거절
+            </button>
+            <button
+              onClick={handleBulkPublish}
+              disabled={isBulkPending}
+              className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 transition-colors hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <HugeiconsIcon icon={JobShareIcon} size={13} color="currentColor" strokeWidth={2} />
+              일괄 게시
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
@@ -263,6 +313,7 @@ export const JobsTable = ({ jobs }: Props) => {
               <th className={cellPaddingClass}>소스</th>
               <th className={cellPaddingClass}>마감일</th>
               <th className={cellPaddingClass}>상태</th>
+              <th className={cellPaddingClass}>게시</th>
               <th className={cellPaddingClass}>수집일</th>
               <th className={cellPaddingClass}>링크</th>
               <th className={cellPaddingClass}>액션</th>
@@ -271,7 +322,7 @@ export const JobsTable = ({ jobs }: Props) => {
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-sm text-slate-400">
+                <td colSpan={10} className="py-12 text-center text-sm text-slate-400">
                   &ldquo;{query}&rdquo; 에 해당하는 공고가 없습니다.
                 </td>
               </tr>
@@ -310,6 +361,9 @@ export const JobsTable = ({ jobs }: Props) => {
                         {statusStyle.label}
                       </span>
                     </td>
+                    <td className={`${cellPaddingClass} text-xs text-slate-400`} title={job.published_at ?? undefined}>
+                      {job.published_at ? relativeTime(job.published_at) : "—"}
+                    </td>
                     <td className={`${cellPaddingClass} text-xs text-slate-400`} title={job.created_at}>
                       {relativeTime(job.created_at)}
                     </td>
@@ -324,7 +378,7 @@ export const JobsTable = ({ jobs }: Props) => {
                       </a>
                     </td>
                     <td className={cellPaddingClass}>
-                      <RowActions jobId={job.id} status={job.status} />
+                      <RowActions jobId={job.id} status={job.status} publishedAt={job.published_at} />
                     </td>
                   </tr>
                 );

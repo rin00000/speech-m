@@ -33,6 +33,7 @@ const SOURCE_TABS_MEDIAJOB: { key: JobSource; label: string }[] = [
 
 const SOURCE_TABS_OTHER: { key: JobSource; label: string }[] = [
   { key: "saramin", label: "사람인" },
+  { key: "jobkorea", label: "잡코리아" },
   { key: "arang", label: "아랑카페" },
   { key: "custom", label: "직접입력" },
 ];
