@@ -21,6 +21,7 @@ import {
 } from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
+import { NaverShareIconLink } from "@/components/admin/naver-share-icon-link";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";
@@ -163,15 +164,12 @@ const RowActions = ({
         </button>
       )}
       {canShareToNaver && naverShareUrl && (
-        <a
+        <NaverShareIconLink
           href={naverShareUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           title={`네이버 공유하기\n\n${naverDraftContent}`}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
-        >
-          <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.8} />
-        </a>
+          iconType="a"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:bg-emerald-50 hover:opacity-90"
+        />
       )}
       <button
         onClick={() => void handle("pending")}

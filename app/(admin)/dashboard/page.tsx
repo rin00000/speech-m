@@ -1,5 +1,8 @@
+import { NaverShareIconLink } from "@/components/admin/naver-share-icon-link";
 import { Header } from "@/components/admin/header";
 import { SOURCE_LABEL } from "@/lib/jobs/constants";
+import { buildNaverShareUrl } from "@/lib/jobs/naver-share";
+import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { relativeTime } from "@/lib/jobs/utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
@@ -14,7 +17,7 @@ import {
 
 type JobPosting = Pick<
   Database["public"]["Tables"]["job_postings"]["Row"],
-  "id" | "title" | "company" | "source" | "source_url" | "deadline" | "published_at"
+  "id" | "title" | "company" | "location" | "source" | "source_url" | "deadline" | "published_at"
 >;
 
 const formatCount = (count: number | null) => (count ?? 0).toLocaleString("ko-KR");
@@ -53,7 +56,7 @@ export default async function DashboardPage() {
       .gte("published_at", monthStartIso),
     supabase
       .from("job_postings")
-      .select("id,title,company,source,source_url,deadline,published_at")
+      .select("id,title,company,location,source,source_url,deadline,published_at")
       .eq("status", "approved")
       .not("published_at", "is", null)
       .order("published_at", { ascending: false })
@@ -70,6 +73,7 @@ export default async function DashboardPage() {
   ].some((result) => result.error);
 
   const recentPublishedJobs = recentPublishedJobsResult.data ?? [];
+  const siteOrigin = getPublicSiteOrigin();
   const statCards = [
     {
       label: "등록된 공고",
@@ -191,15 +195,36 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <a
-                    href={job.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-500"
-                    title="원문 보기"
-                  >
-                    <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.6} />
-                  </a>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {siteOrigin ? (
+                      <NaverShareIconLink
+                        href={buildNaverShareUrl(
+                          {
+                            id: job.id,
+                            title: job.title,
+                            company: job.company,
+                            location: job.location,
+                            deadline: job.deadline,
+                            source: job.source,
+                            source_url: job.source_url,
+                          },
+                          siteOrigin,
+                        )}
+                        title="네이버 공유하기"
+                        iconType="c"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-opacity hover:bg-emerald-50 hover:opacity-90"
+                      />
+                    ) : null}
+                    <a
+                      href={job.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-500"
+                      title="원문 보기"
+                    >
+                      <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.6} />
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>

@@ -97,13 +97,26 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 
 ### 4) 네이버 공유 E2E
 
-1. 관리자 공고 목록에서 위 조건을 만족하는 행의 네이버 공유 링크 사용([components/admin/jobs-table.tsx](components/admin/jobs-table.tsx)).
-2. 네이버 화면에서 제목·요약(스크랩)이 랜딩 페이지 메타와 맞는지 확인.
-3. 요약이 기대와 다르면: `NEXT_PUBLIC_APP_URL`이 브라우저 주소창과 일치하는지, 랜딩이 200인지, 배포 환경의 Supabase에 동일 데이터가 있는지 순서로 점검.
+아래는 **배포 URL**에서 재현 가능한 확인 순서입니다. 네이버 서버가 공유 `url`을 가져오려면 공개 HTTPS 랜딩이 필요합니다([네이버 공유하기 개발가이드](https://developers.naver.com/docs/share/navershare/)).
+
+1. **랜딩 단독 확인**: 브라우저에서 `https://<배포도메인>/jobs/<job-id>/share`를 연 뒤, 개발자 도구로 `<title>`·`meta name="description"`·`og:description`이 기대 문구인지 확인([app/jobs/[id]/share/page.tsx](app/jobs/[id]/share/page.tsx)).
+2. **관리자 공고 목록**: 승인 + 내부 게시 확정 행의 네이버 공유 아이콘 클릭([components/admin/jobs-table.tsx](components/admin/jobs-table.tsx)).
+3. **대시보드**: **최근 내부 게시 공고** 목록에서 동일하게 네이버 공유 아이콘 클릭([app/(admin)/dashboard/page.tsx](app/(admin)/dashboard/page.tsx)).
+4. 네이버 공유·블로그 편집 화면에서 **제목·요약(스크랩)**이 1번 랜딩 메타와 맞는지 확인.
+5. 불일치 시: `NEXT_PUBLIC_APP_URL`이 실제 접속 도메인과 같은지, 1번 URL이 200인지, Vercel이 가리키는 Supabase에 해당 `job_postings` 행이 있는지 순서로 점검([`lib/jobs/site-url.ts`](lib/jobs/site-url.ts)).
 
 ### 5) 선택: 커스텀 도메인
 
 Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하고, `NEXT_PUBLIC_APP_URL`을 `https://<커스텀도메인>`으로 바꾼 뒤 **Redeploy**합니다.
+
+### 6) Vercel Cron 실행 점검
+
+일일 크롤은 [vercel.json](vercel.json)의 `GET /api/crawl/all`로 스케줄됩니다. 라우트는 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`을 검증하고, 내부 소스 호출에 `CRAWL_API_SECRET`을 사용합니다.
+
+1. Vercel 프로젝트 **Settings → Cron Jobs**(또는 배포 **Functions** 로그)에서 최근 호출 여부 확인.
+2. **Logs**에서 `/api/crawl/all` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼.
+3. **500**과 함께 `CRAWL_API_SECRET` 문구가 보이면 해당 환경 변수 미설정을 확인.
+4. 로컬에서 수동 검증: `curl -sS -H "Authorization: Bearer <CRON_SECRET>" "https://<배포도메인>/api/crawl/all"` (값은 노출되지 않게 터미널 히스토리 주의).
 
 ## 스크립트 · 품질
 
