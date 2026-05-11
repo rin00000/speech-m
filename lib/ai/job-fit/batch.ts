@@ -1,3 +1,10 @@
+/**
+ * Pending 공고 일괄 LLM 판별.
+ *
+ * Benchmark threshold(`JOB_FIT_BENCHMARK_THRESHOLDS`)와의 연동 정책은 **옵션 A**:
+ * 이 모듈은 호출하지 않는다. 골든 런·메트릭 산출 후 `POST /api/admin/benchmark-job-fit` 또는
+ * `npm run check:job-fit-benchmark`로 검증한다. 상세는 docs/job-fit-benchmark.md.
+ */
 import { createAdminClient } from "@/lib/supabase/server";
 import { evaluateJobFit } from "@/lib/ai/job-fit/evaluate";
 import type { Database } from "@/types/database.types";

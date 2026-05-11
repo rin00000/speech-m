@@ -17,3 +17,5 @@ npm run bench:job-fit
 필수 환경변수 중 하나 이상:
 - `GEMINI_API_KEY`
 - `OPENAI_API_KEY`
+
+배포 환경에서 **집계 메트릭만** threshold 대비 검증할 때는 [job-fit-benchmark.md](./job-fit-benchmark.md)와 `npm run check:job-fit-benchmark`를 사용한다.
