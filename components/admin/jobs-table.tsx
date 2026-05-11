@@ -22,6 +22,7 @@ import {
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
+import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";
 import { relativeTime } from "@/lib/jobs/utils";
 
@@ -99,16 +100,22 @@ const RowActions = ({
   };
 
   const canShareToNaver = status === "approved" && Boolean(publishedAt);
-  const naverShareUrl = canShareToNaver
-    ? buildNaverShareUrl({
-        title: jobTitle,
-        company,
-        location,
-        deadline,
-        source,
-        source_url: sourceUrl,
-      })
-    : "";
+  const siteOrigin = getPublicSiteOrigin();
+  const naverShareUrl =
+    canShareToNaver && siteOrigin
+      ? buildNaverShareUrl(
+          {
+            id: jobId,
+            title: jobTitle,
+            company,
+            location,
+            deadline,
+            source,
+            source_url: sourceUrl,
+          },
+          siteOrigin,
+        )
+      : "";
   const naverDraftContent = canShareToNaver
     ? buildBlogContent({
         title: jobTitle,
@@ -155,7 +162,7 @@ const RowActions = ({
           <HugeiconsIcon icon={JobShareIcon} size={16} color="currentColor" strokeWidth={1.8} />
         </button>
       )}
-      {canShareToNaver && (
+      {canShareToNaver && naverShareUrl && (
         <a
           href={naverShareUrl}
           target="_blank"
