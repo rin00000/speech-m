@@ -213,9 +213,11 @@ export const JobsTable = ({ jobs }: Props) => {
           </span>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1" role="group" aria-label="표 밀도">
           <button
             type="button"
+            aria-pressed={density === "compact"}
+            title="행 간격을 좁혀 한 화면에 더 많이 표시"
             onClick={() => setDensity("compact")}
             className={`${toolbarButtonClass} ${
               density === "compact"
@@ -223,10 +225,12 @@ export const JobsTable = ({ jobs }: Props) => {
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >
-            Compact
+            촘촘함
           </button>
           <button
             type="button"
+            aria-pressed={density === "comfortable"}
+            title="행 간격을 넓혀 가독성을 높임"
             onClick={() => setDensity("comfortable")}
             className={`${toolbarButtonClass} ${
               density === "comfortable"
@@ -234,25 +238,25 @@ export const JobsTable = ({ jobs }: Props) => {
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >
-            Cozy
+            여유
           </button>
         </div>
       </div>
 
-      <div className="max-h-[70vh] overflow-auto">
+      <div className="max-h-[70vh] overflow-auto overscroll-contain" tabIndex={0} role="region" aria-label="공고 목록">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium text-slate-500">
+            <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-medium text-slate-500 shadow-sm">
               <th className={`w-10 ${cellPaddingClass}`}>
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSelected;
-                }}
-                onChange={toggleAll}
-                className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-indigo-600"
-              />
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={toggleAll}
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-indigo-600"
+                />
               </th>
               <th className={cellPaddingClass}>공고명</th>
               <th className={cellPaddingClass}>회사</th>
