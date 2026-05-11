@@ -1,0 +1,33 @@
+name: job-fit benchmark (HTTP)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/admin-layout
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify benchmark API (optional)
+        env:
+          BENCHMARK_BASE_URL: ${{ secrets.BENCHMARK_BASE_URL }}
+          CRAWL_API_SECRET: ${{ secrets.CRAWL_API_SECRET }}
+        run: |
+          if [ -z "$BENCHMARK_BASE_URL" ] || [ -z "$CRAWL_API_SECRET" ]; then
+            echo "Skip: set repository secrets BENCHMARK_BASE_URL and CRAWL_API_SECRET to run HTTP benchmark check."
+            exit 0
+          fi
+          npm run check:job-fit-benchmark

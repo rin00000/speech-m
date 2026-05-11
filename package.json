@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "bench:job-fit": "node scripts/benchmark-job-fit.mts"
+    "bench:job-fit": "node scripts/benchmark-job-fit.mts",
+    "check:job-fit-benchmark": "node scripts/check-job-fit-benchmark.mjs"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.1.1",
