@@ -25,6 +25,7 @@ export type RunCrawlResult = {
   error?: string;
 };
 
+/** 서버 액션에서 즉시 판정. 외부 배치·curl은 `POST /api/admin/benchmark-job-fit`(동일 `x-crawl-secret`) 사용. */
 export const evaluateAiFilterBenchmark = async (
   metrics: BenchmarkMetrics
 ): Promise<BenchmarkResult> => {
