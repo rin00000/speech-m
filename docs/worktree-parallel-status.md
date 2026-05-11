@@ -31,7 +31,7 @@ Worktree Root: `C:/Users/rinju/speech-m-wt`
 ## Main Workspace
 - Path: `C:/Users/rinju/speech-m`
 - Branch: `feature/admin-layout`
-- Latest Commit: `cb5c17d` (로컬: 세 브랜치 merge + 상태 문서; push 시 `git push origin feature/admin-layout`)
+- Status: merged locally — `feat/crawler-pipeline`, `feat/ai-filtering`, `feat/admin-ui-density` 통합됨 (push: `git push origin feature/admin-layout`)
 - Note: `lib/ai/job-fit/config.ts`에 `JOB_FIT_CONFIG`와 benchmark threshold가 공존
 
 ## Update Rule
