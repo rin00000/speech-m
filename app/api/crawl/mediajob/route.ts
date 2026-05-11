@@ -5,12 +5,15 @@ import {
   BASE_FETCH_HEADERS,
   fetchWithRetry,
   parseDeadline,
+  poolAllSettled,
+  shareInFlightPromise,
   type JobInsert,
 } from "@/lib/crawl/shared";
 import type { JobSource } from "@/types/database.types";
 
 const BASE_URL = "https://www.mediajob.co.kr";
 const CRAWL_PAGES = 2;
+const FETCH_CONCURRENCY = 3;
 
 type CrawlTarget = {
   label: string;
@@ -80,6 +83,12 @@ function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSou
   return jobs;
 }
 
+type MediajobFetchTask = {
+  target: CrawlTarget;
+  page: number;
+  url: string;
+};
+
 export async function POST() {
   try {
     const today = new Date();
@@ -87,18 +96,26 @@ export async function POST() {
 
     const seenRecIdx = new Set<string>();
 
-    const tasks = CRAWL_TARGETS.flatMap((target) =>
-      Array.from({ length: CRAWL_PAGES }, (_, i) => ({
-        target,
-        page: i + 1,
-        promise: fetchWithRetry(target.buildUrl(i + 1), {
-          headers: FETCH_HEADERS,
-          cache: "no-store",
-        }),
-      }))
+    const tasks: MediajobFetchTask[] = CRAWL_TARGETS.flatMap((target) =>
+      Array.from({ length: CRAWL_PAGES }, (_, i) => {
+        const page = i + 1;
+        return {
+          target,
+          page,
+          url: target.buildUrl(page),
+        };
+      })
     );
 
-    const results = await Promise.allSettled(tasks.map((t) => t.promise));
+    const inFlight = new Map<string, Promise<Response>>();
+    const results = await poolAllSettled(tasks, FETCH_CONCURRENCY, (task) =>
+      shareInFlightPromise(inFlight, task.url, () =>
+        fetchWithRetry(task.url, {
+          headers: FETCH_HEADERS,
+          cache: "no-store",
+        })
+      )
+    );
 
     const jobs: JobInsert[] = [];
     for (let i = 0; i < results.length; i++) {

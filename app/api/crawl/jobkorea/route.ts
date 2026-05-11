@@ -5,6 +5,8 @@ import {
   BASE_FETCH_HEADERS,
   fetchWithRetry,
   parseDeadline,
+  poolAllSettled,
+  shareInFlightPromise,
   type JobInsert,
 } from "@/lib/crawl/shared";
 
@@ -15,6 +17,7 @@ const REFERER = `${BASE_URL}/recruit/joblist?menucode=duty`;
 // 기자, 아나운서, 리포터·성우, MC·쇼호스트, 큐레이터
 const DUTY_CODES = ["1000395", "1000397", "1000398", "1000399", "1000404"] as const;
 const CRAWL_PAGES = 2;
+const FETCH_CONCURRENCY = 2;
 const PAGE_SIZE = 40;
 
 const buildBody = (page: number) =>
@@ -97,17 +100,19 @@ export async function POST() {
     today.setHours(0, 0, 0, 0);
 
     const seenGno = new Set<string>();
+    const inFlight = new Map<string, Promise<Response>>();
+    const pages = Array.from({ length: CRAWL_PAGES }, (_, i) => i + 1);
 
-    const fetches = Array.from({ length: CRAWL_PAGES }, (_, i) =>
-      fetchWithRetry(ENDPOINT, {
-        method: "POST",
-        headers: FETCH_HEADERS,
-        body: buildBody(i + 1),
-        cache: "no-store",
-      })
+    const results = await poolAllSettled(pages, FETCH_CONCURRENCY, (page) =>
+      shareInFlightPromise(inFlight, `POST:${ENDPOINT}:page=${page}`, () =>
+        fetchWithRetry(ENDPOINT, {
+          method: "POST",
+          headers: FETCH_HEADERS,
+          body: buildBody(page),
+          cache: "no-store",
+        })
+      )
     );
-
-    const results = await Promise.allSettled(fetches);
 
     const jobs: JobInsert[] = [];
     for (let i = 0; i < results.length; i++) {
