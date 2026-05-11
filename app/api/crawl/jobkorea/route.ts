@@ -14,8 +14,8 @@ const BASE_URL = "https://www.jobkorea.co.kr";
 const ENDPOINT = `${BASE_URL}/Recruit/Home/_GI_List/`;
 const REFERER = `${BASE_URL}/recruit/joblist?menucode=duty`;
 
-// 기자, 아나운서, 리포터·성우, MC·쇼호스트, 큐레이터
-const DUTY_CODES = ["1000395", "1000397", "1000398", "1000399", "1000404"] as const;
+// 기자, 아나운서, 리포터·성우, MC·쇼호스트
+const DUTY_CODES = ["1000395", "1000397", "1000398", "1000399"] as const;
 const CRAWL_PAGES = 2;
 const FETCH_CONCURRENCY = 2;
 const PAGE_SIZE = 40;
