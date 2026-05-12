@@ -1,4 +1,4 @@
-import { Header } from "@/components/admin/header";
+import { Header } from "@/components/admin/layout/header";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileEditIcon, Add01Icon, LockIcon } from "@hugeicons/core-free-icons";
 

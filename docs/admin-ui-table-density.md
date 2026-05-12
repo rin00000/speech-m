@@ -2,7 +2,7 @@
 
 ## 현황
 
-데이터가 긴 **표 형태**는 현재 [components/admin/jobs-table.tsx](../components/admin/jobs-table.tsx) 한 곳뿐이다. 스크롤 영역(`max-h` + `overflow-auto`), sticky 헤더, **촘촘함 / 여유** 밀도 토글이 여기에만 적용되어 있다.
+데이터가 긴 **표 형태**는 현재 [components/admin/jobs/jobs-table.tsx](../components/admin/jobs/jobs-table.tsx) 한 곳뿐이다. 스크롤 영역(`max-h` + `overflow-auto`), sticky 헤더, **촘촘함 / 여유** 밀도 토글이 여기에만 적용되어 있다.
 
 ## 다른 화면에 적용할 때
 

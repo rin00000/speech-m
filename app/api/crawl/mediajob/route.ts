@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
+import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
@@ -15,6 +16,7 @@ const BASE_URL = "https://www.mediajob.co.kr";
 const CRAWL_PAGES = 2;
 const FETCH_CONCURRENCY = 3;
 
+/** Site default list order is 수정일 최신순; URLs below do not override sort. */
 type CrawlTarget = {
   label: string;
   source: JobSource;
@@ -143,10 +145,21 @@ export async function POST() {
       );
     }
 
+    const toUpsert = await filterBlockedFromJobs(jobs);
+    const skippedBlocked = jobs.length - toUpsert.length;
+    if (toUpsert.length === 0) {
+      return NextResponse.json({
+        success: true,
+        saved: 0,
+        total: jobs.length,
+        skipped_blocked: skippedBlocked,
+      });
+    }
+
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("job_postings")
-      .upsert(jobs, { onConflict: "source_url", ignoreDuplicates: true })
+      .upsert(toUpsert, { onConflict: "source_url", ignoreDuplicates: true })
       .select("id");
 
     if (error) {
@@ -157,6 +170,7 @@ export async function POST() {
       success: true,
       saved: data?.length ?? 0,
       total: jobs.length,
+      skipped_blocked: skippedBlocked,
     });
   } catch (err) {
     console.error("[crawl/mediajob]", err);

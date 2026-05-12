@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
-import { Header } from "@/components/admin/header";
-import { CrawlButton } from "@/components/admin/crawl-button";
-import { AiFitButton } from "@/components/admin/ai-fit-button";
-import { JobsFilter } from "@/components/admin/jobs-filter";
-import { JobsTable } from "@/components/admin/jobs-table";
+import { Header } from "@/components/admin/layout/header";
+import { CrawlButton } from "@/components/admin/crawl/crawl-button";
+import { AiFitButton } from "@/components/admin/ai/ai-fit-button";
+import { JobsSourceTabs } from "@/components/admin/jobs/jobs-source-tabs";
+import { JobsTable } from "@/components/admin/jobs/jobs-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
@@ -15,6 +15,7 @@ import {
   GridViewIcon,
 } from "@hugeicons/core-free-icons";
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
+import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -56,6 +57,7 @@ export default async function JobsPage({
     : null;
   const showRejected = rawShowRejected === "1";
   const hideRejectedInList = activeStatus === null && !showRejected;
+  const rejectedRetentionDays = getRejectedJobRetentionDays();
 
   const supabase = createAdminClient();
 
@@ -148,6 +150,9 @@ export default async function JobsPage({
     },
   ];
 
+  const jobList = jobs ?? [];
+  const hasJobs = jobList.length > 0;
+
   return (
     <div className="flex flex-col">
       <Header
@@ -156,56 +161,60 @@ export default async function JobsPage({
       />
 
       <div className="flex-1 space-y-5 p-6">
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {statCards.map(({ label, value, icon, accent, bar, status: cardStatus, href, scope }) => {
-            const isActive =
-              cardStatus === null
-                ? activeStatus === null && (scope === "all" ? showRejected : !showRejected)
-                : activeStatus === cardStatus;
-            return (
-              <Link
-                key={label}
-                href={href}
-                className={`relative block overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
-                  isActive ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-100"
-                }`}
-              >
-                <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
-                <div className="flex items-center justify-between pl-2">
-                  <div>
-                    <p className="text-xs font-medium text-slate-400">{label}</p>
-                    <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+        {/* Stats cards + rejected visibility hint (state tabs removed; cards are the primary control) */}
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {statCards.map(({ label, value, icon, accent, bar, status: cardStatus, href, scope }) => {
+              const isActive =
+                cardStatus === null
+                  ? activeStatus === null && (scope === "all" ? showRejected : !showRejected)
+                  : activeStatus === cardStatus;
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  className={`relative block overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+                    isActive ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-100"
+                  }`}
+                >
+                  <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
+                  <div className="flex items-center justify-between pl-2">
+                    <div>
+                      <p className="text-xs font-medium text-slate-400">{label}</p>
+                      <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+                    </div>
+                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                      <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
+                    </span>
                   </div>
-                  <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
-                    <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Filter + Actions row */}
-        <div className="flex items-start justify-between gap-4">
-          <JobsFilter
-            statusCounts={statusCounts}
-            workQueueCount={workQueueCount}
-            sourceCounts={sourceCounts}
-            activeStatus={activeStatus}
-            activeSource={activeSource}
-            showRejected={showRejected}
-          />
-          <div className="flex shrink-0 items-center gap-2">
-            <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
-            <CrawlButton source="saramin" label="사람인 즉시 동기화" />
-            <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />
-            <AiFitButton />
-            <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
-              <HugeiconsIcon icon={Add01Icon} size={15} color="currentColor" strokeWidth={2} />
-              공고 추가
-            </button>
+                </Link>
+              );
+            })}
           </div>
+          {!showRejected && statusCounts.rejected > 0 ? (
+            <p className="text-[11px] text-slate-500">
+              거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
+              <Link
+                href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                DB 전체 보기
+              </Link>
+            </p>
+          ) : showRejected ? (
+            <p className="text-[11px] text-slate-500">
+              <Link
+                href={buildJobsAdminHref({ source: activeSource })}
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                작업 대상만(거절 숨김)
+              </Link>
+            </p>
+          ) : null}
+          <p className="text-[11px] leading-relaxed text-slate-400">
+            거절 공고는 거절 확정 시각 기준 {rejectedRetentionDays}일이 지나면 정리 크론 실행 시 DB에서
+            자동 삭제됩니다. 수동 삭제와 동일하게 해당 URL은 다시 수집되지 않습니다.
+          </p>
         </div>
 
         {/* Error */}
@@ -215,52 +224,77 @@ export default async function JobsPage({
           </div>
         )}
 
-        {/* Empty state */}
-        {!jobs || jobs.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white py-20 text-center shadow-sm">
-            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <HugeiconsIcon
-                icon={Briefcase01Icon}
-                size={28}
-                color="currentColor"
-                strokeWidth={1.5}
-              />
-            </span>
-            <p className="mt-4 text-sm font-medium text-slate-600">
-              {hideRejectedInList && statusCounts.rejected > 0
-                ? "보류·승인 공고가 없습니다. 거절만 있는 경우 아래에서 거절 목록을 여세요."
-                : activeStatus || activeSource
-                  ? "해당 조건의 공고가 없습니다"
-                  : "등록된 공고가 없습니다"}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              {hideRejectedInList && statusCounts.rejected > 0 ? (
-                <>
-                  거절 {statusCounts.rejected}건은 기본 목록에서 숨깁니다.{" "}
-                  <a
-                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
-                    href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
-                  >
-                    거절 포함해 보기
-                  </a>
-                  {" · "}
-                  <a
-                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
-                    href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
-                  >
-                    거절됨만 보기
-                  </a>
-                </>
-              ) : activeStatus || activeSource ? (
-                "다른 필터를 선택하거나 크롤러를 실행해 보세요."
-              ) : (
-                "크롤러를 실행하거나 직접 공고를 추가해 주세요."
-              )}
-            </p>
+        {/* Actions row (above list card) */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
+            <CrawlButton source="saramin" label="사람인 즉시 동기화" />
+            <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />
+            <AiFitButton />
+            <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
+              <HugeiconsIcon icon={Add01Icon} size={15} color="currentColor" strokeWidth={2} />
+              공고 추가
+            </button>
           </div>
-        ) : (
-          <JobsTable jobs={jobs} />
-        )}
+
+          <JobsTable
+            jobs={jobList}
+            sourceHeader={
+              <JobsSourceTabs
+                sourceCounts={sourceCounts}
+                activeStatus={activeStatus}
+                activeSource={activeSource}
+                showRejected={showRejected}
+              />
+            }
+            emptyState={
+              hasJobs ? undefined : (
+              <div className="px-4 py-16 text-center">
+                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <HugeiconsIcon
+                    icon={Briefcase01Icon}
+                    size={28}
+                    color="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </span>
+                <p className="mt-4 text-sm font-medium text-slate-600">
+                  {hideRejectedInList && statusCounts.rejected > 0
+                    ? "보류·승인 공고가 없습니다. 거절만 있는 경우 아래에서 거절 목록을 여세요."
+                    : activeStatus || activeSource
+                      ? "해당 조건의 공고가 없습니다"
+                      : "등록된 공고가 없습니다"}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {hideRejectedInList && statusCounts.rejected > 0 ? (
+                    <>
+                      거절 {statusCounts.rejected}건은 기본 목록에서 숨깁니다.{" "}
+                      <a
+                        className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                        href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+                      >
+                        거절 포함해 보기
+                      </a>
+                      {" · "}
+                      <a
+                        className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                        href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
+                      >
+                        거절됨만 보기
+                      </a>
+                    </>
+                  ) : activeStatus || activeSource ? (
+                    "다른 필터를 선택하거나 크롤러를 실행해 보세요."
+                  ) : (
+                    "크롤러를 실행하거나 직접 공고를 추가해 주세요."
+                  )}
+                </p>
+              </div>
+              )
+            }
+          />
+        </div>
+
       </div>
     </div>
   );

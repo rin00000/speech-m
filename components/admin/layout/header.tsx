@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Notification01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { MobileNavTrigger } from "./admin-shell";
 
 interface HeaderProps {
   title: string;
@@ -7,12 +8,15 @@ interface HeaderProps {
 }
 
 export const Header = ({ title, description }: HeaderProps) => (
-  <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-    <div className="flex flex-col leading-none">
-      <h1 className="text-base font-semibold text-slate-800">{title}</h1>
-      {description && (
-        <p className="mt-0.5 text-xs text-slate-400">{description}</p>
-      )}
+  <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <MobileNavTrigger />
+      <div className="min-w-0 flex flex-col leading-none">
+        <h1 className="truncate text-base font-semibold text-slate-800">{title}</h1>
+        {description && (
+          <p className="mt-0.5 truncate text-xs text-slate-400">{description}</p>
+        )}
+      </div>
     </div>
 
     <div className="flex items-center gap-2">

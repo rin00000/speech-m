@@ -1,0 +1,49 @@
+---
+description: 신규 파일 배치 기준 — app·components·lib·기타 루트 디렉터리
+alwaysApply: true
+---
+
+# 저장소 폴더 구조 (Speech-M)
+
+**Git 병렬 워크트리** 경로·브랜치 소유는 `docs/worktree-parallel-status.md`만 본다. 아래는 **단일 클론 안의 코드 디렉터리** 규약이다.
+
+## 구역별 기준
+
+| 구역 | 넣는 것 | 넣지 않는 것 |
+|------|---------|----------------|
+| `app/` | URL·HTTP 경계: `page.tsx`, `layout.tsx`, Route Handler(`route.ts`), 해당 라우트 전용 Server Action | 순수 유틸·도메인 규칙만 있는 모듈(→ `lib/`) |
+| `components/` | 재사용 UI(클라이언트/서버 컴포넌트). 관리자 전용은 `components/admin/<기능>/` | DB 직접 호출·비밀키·장문의 비즈니스 규칙(→ `lib/`) |
+| `lib/` | 테스트·import 가능한 로직, Supabase/외부 API 헬퍼 | React 컴포넌트(예외: 명시적으로 합의된 경우만) |
+| `types/` | DB·API 공용 타입 | 도메인 로직 |
+| `supabase/migrations/` | 스키마·RLS 마이그레이션 | 앱 런타임 로직 |
+| `scripts/` | CI·로컬 일회성 스크립트 | 프로덕션 import 경로의 핵심 로직 |
+| `data/`, `public/` | 샘플 데이터, 정적 자산 | — |
+
+## 관리자 UI (`components/admin/`)
+
+- `layout/` — 셸·사이드바·헤더 (`admin-shell`, `sidebar`, `header`)
+- `jobs/` — 채용 목록·탭·네이버 공유 링크 등 공고 관리 UI
+- `crawl/` — 크롤 트리거 버튼 등
+- `ai/` — job-fit 등 AI 실행 버튼
+
+새 관리자 조각은 **어느 화면 기능에 속하는지**로 위 폴더 중 하나에만 둔다. 공통이면 `layout/`.
+
+## `lib/` 도메인
+
+- `lib/crawl/` — 파싱·트리거·소스 공통
+- `lib/jobs/` — 공고·공유 URL·purge·상수 등 채용 도메인
+- `lib/ai/job-fit/` — job-fit 파이프라인·정책·벤치
+- `lib/supabase/` — 클라이언트/서버 Supabase 팩토리
+
+## 결정 트리 (요약)
+
+1. 새 **HTTP 엔드포인트** → `app/api/.../route.ts`
+2. 새 **페이지·레이아웃** → `app/...`(라우트 그룹 `(admin)` 등 기존 패턴 유지)
+3. **크롤/수집 로직** → `lib/crawl/` (라우트는 얇게 유지)
+4. **job-fit·LLM 배치** → `lib/ai/job-fit/`
+5. **관리자 화면용 컴포넌트** → `components/admin/<기능>/`
+6. **라우트 한 곳에서만 쓰이는 아주 작은 UI** → 필요 시 `app/.../_components/` co-location 가능(팀과 중복 여부 확인)
+
+## 선택: co-location
+
+여러 라우트에서 재사용되면 `components/admin/<기능>/`. 한 세그먼트에만 묶일 때만 `_components/`를 고려한다.

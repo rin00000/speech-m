@@ -1,26 +1,14 @@
-"use client";
-
 import Link from "next/link";
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import type { JobSource, JobStatus } from "@/types/database.types";
 
-type StatusCounts = Record<"all" | JobStatus, number>;
 type SourceCounts = Record<"all" | JobSource, number>;
 
-type Props = {
-  statusCounts: StatusCounts;
-  /** 기본 목록(거절 숨김)에서 쓰는 보류+승인 합계. */
-  workQueueCount: number;
+export type JobsSourceTabsProps = {
   sourceCounts: SourceCounts;
   activeStatus: JobStatus | null;
   activeSource: JobSource | null;
   showRejected: boolean;
-};
-
-const STATUS_DOT: Record<JobStatus, string> = {
-  pending: "bg-amber-400",
-  approved: "bg-emerald-500",
-  rejected: "bg-red-400",
 };
 
 const STATUS_SCOPE_LABEL: Record<JobStatus, string> = {
@@ -28,12 +16,6 @@ const STATUS_SCOPE_LABEL: Record<JobStatus, string> = {
   approved: "승인됨",
   rejected: "거절됨",
 };
-
-const STATUS_TABS: { key: JobStatus; label: string }[] = [
-  { key: "pending", label: "검토 중" },
-  { key: "approved", label: "승인됨" },
-  { key: "rejected", label: "거절됨" },
-];
 
 const SOURCE_TABS_MEDIAJOB: { key: JobSource; label: string }[] = [
   { key: "mediajob_announcer", label: "아나운서" },
@@ -48,11 +30,10 @@ const SOURCE_TABS_OTHER: { key: JobSource; label: string }[] = [
   { key: "custom", label: "직접입력" },
 ];
 
-const buildHref = (status: JobStatus | null, source: JobSource | null, showRejectedTab?: boolean) =>
+const buildHref = (status: JobStatus | null, source: JobSource | null) =>
   buildJobsAdminHref({
     status: status ?? undefined,
     source: source ?? undefined,
-    showRejected: showRejectedTab ? true : undefined,
   });
 
 const FilterTab = ({
@@ -60,13 +41,11 @@ const FilterTab = ({
   isActive,
   label,
   count,
-  dot,
 }: {
   href: string;
   isActive: boolean;
   label: string;
   count: number;
-  dot?: string;
 }) => (
   <Link
     href={href}
@@ -76,9 +55,6 @@ const FilterTab = ({
         : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
     }`}
   >
-    {dot && (
-      <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot} ${isActive ? "opacity-90" : ""}`} />
-    )}
     {label}
     <span
       className={`inline-flex min-w-[1.1rem] items-center justify-center rounded-full px-1 text-xs tabular-nums ${
@@ -90,64 +66,17 @@ const FilterTab = ({
   </Link>
 );
 
-export const JobsFilter = ({
-  statusCounts,
-  workQueueCount,
+export const JobsSourceTabs = ({
   sourceCounts,
   activeStatus,
   activeSource,
   showRejected,
-}: Props) => {
+}: JobsSourceTabsProps) => {
   const hasFilter = activeStatus !== null || activeSource !== null || showRejected;
 
-  const mainStatusLabel = showRejected ? "전체" : "작업 대상";
-  const mainStatusCount = showRejected ? statusCounts.all : workQueueCount;
-
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-3">
-        <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">상태</p>
-          <div className="flex flex-wrap items-center gap-1">
-            <FilterTab
-              href={buildHref(null, activeSource, showRejected)}
-              isActive={activeStatus === null}
-              label={mainStatusLabel}
-              count={mainStatusCount}
-            />
-            {STATUS_TABS.map(({ key, label }) => (
-              <FilterTab
-                key={key}
-                href={buildHref(key, activeSource)}
-                isActive={activeStatus === key}
-                label={label}
-                count={statusCounts[key]}
-                dot={STATUS_DOT[key]}
-              />
-            ))}
-          </div>
-          {!showRejected && statusCounts.rejected > 0 ? (
-            <p className="mt-1.5 text-[11px] text-slate-500">
-              거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
-              <Link
-                href={buildHref(null, activeSource, true)}
-                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
-              >
-                DB 전체 보기
-              </Link>
-            </p>
-          ) : showRejected ? (
-            <p className="mt-1.5 text-[11px] text-slate-500">
-              <Link
-                href={buildHref(null, activeSource, false)}
-                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
-              >
-                작업 대상만(거절 숨김)
-              </Link>
-            </p>
-          ) : null}
-        </div>
-
         <div>
           <div className="mb-1.5 flex flex-wrap items-baseline gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">출처</p>
@@ -196,7 +125,7 @@ export const JobsFilter = ({
       {hasFilter && (
         <Link
           href="/jobs"
-          className="shrink-0 pt-5 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+          className="shrink-0 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
         >
           초기화
         </Link>

@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
+import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
@@ -18,7 +19,8 @@ const REFERER = `${BASE_URL}/recruit/joblist?menucode=duty`;
 const DUTY_CODES = ["1000395", "1000397", "1000398", "1000399"] as const;
 const CRAWL_PAGES = 2;
 const FETCH_CONCURRENCY = 2;
-const PAGE_SIZE = 40;
+/** Matches JobKorea `orderTab`: 3 = 최신업데이트순 (2 = 등록일순). */
+const PAGE_SIZE = 20;
 
 const buildBody = (page: number) =>
   new URLSearchParams({
@@ -27,7 +29,7 @@ const buildBody = (page: number) =>
     "condition[menucode]": "",
     page: String(page),
     direct: "0",
-    order: "2",
+    order: "3",
     pagesize: String(PAGE_SIZE),
     tabindex: "0",
     onePick: "0",
@@ -145,10 +147,21 @@ export async function POST() {
       );
     }
 
+    const toUpsert = await filterBlockedFromJobs(jobs);
+    const skippedBlocked = jobs.length - toUpsert.length;
+    if (toUpsert.length === 0) {
+      return NextResponse.json({
+        success: true,
+        saved: 0,
+        total: jobs.length,
+        skipped_blocked: skippedBlocked,
+      });
+    }
+
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("job_postings")
-      .upsert(jobs, { onConflict: "source_url", ignoreDuplicates: true })
+      .upsert(toUpsert, { onConflict: "source_url", ignoreDuplicates: true })
       .select("id");
 
     if (error) {
@@ -159,6 +172,7 @@ export async function POST() {
       success: true,
       saved: data?.length ?? 0,
       total: jobs.length,
+      skipped_blocked: skippedBlocked,
     });
   } catch (err) {
     console.error("[crawl/jobkorea]", err);

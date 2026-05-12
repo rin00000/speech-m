@@ -1,5 +1,5 @@
-import { NaverShareIconLink } from "@/components/admin/naver-share-icon-link";
-import { Header } from "@/components/admin/header";
+import { NaverShareIconLink } from "@/components/admin/jobs/naver-share-icon-link";
+import { Header } from "@/components/admin/layout/header";
 import { SOURCE_LABEL } from "@/lib/jobs/constants";
 import { buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";

@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
+import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   BASE_FETCH_HEADERS,
@@ -17,8 +18,9 @@ const FETCH_CONCURRENCY = 2;
 // 기자, 도슨트, 리포터, 기상캐스터, 성우, 쇼호스트, 큐레이터, 아나운서, MC
 const CAT_KEWD = "1295,1283,1284,1290,1294,1289,1285,1322,1307";
 
+/** `sort=RD`: 최신순. `page_count=20`: 20개씩. */
 const buildUrl = (page: number) =>
-  `${BASE_URL}/zf_user/jobs/list/job-category?cat_kewd=${encodeURIComponent(CAT_KEWD)}&panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y&page=${page}&page_count=20`;
+  `${BASE_URL}/zf_user/jobs/list/job-category?cat_kewd=${encodeURIComponent(CAT_KEWD)}&panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y&sort=RD&page=${page}&page_count=20`;
 
 const FETCH_HEADERS = {
   ...BASE_FETCH_HEADERS,
@@ -125,10 +127,21 @@ export async function POST() {
       );
     }
 
+    const toUpsert = await filterBlockedFromJobs(jobs);
+    const skippedBlocked = jobs.length - toUpsert.length;
+    if (toUpsert.length === 0) {
+      return NextResponse.json({
+        success: true,
+        saved: 0,
+        total: jobs.length,
+        skipped_blocked: skippedBlocked,
+      });
+    }
+
     const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("job_postings")
-      .upsert(jobs, { onConflict: "source_url", ignoreDuplicates: true })
+      .upsert(toUpsert, { onConflict: "source_url", ignoreDuplicates: true })
       .select("id");
 
     if (error) {
@@ -139,6 +152,7 @@ export async function POST() {
       success: true,
       saved: data?.length ?? 0,
       total: jobs.length,
+      skipped_blocked: skippedBlocked,
     });
   } catch (err) {
     console.error("[crawl/saramin]", err);

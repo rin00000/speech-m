@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { addBlockedSourceUrls } from "@/lib/crawl/blocked-source-urls";
 import { createAdminClient } from "@/lib/supabase/server";
 import { triggerCrawl, type CrawlSource } from "@/lib/crawl/trigger";
 import {
@@ -131,6 +132,17 @@ export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> =>
   const supabase = createAdminClient();
   for (let i = 0; i < ids.length; i += DELETE_REJECTED_CHUNK) {
     const chunk = ids.slice(i, i + DELETE_REJECTED_CHUNK);
+    const { data: rows, error: selErr } = await supabase
+      .from("job_postings")
+      .select("source_url")
+      .in("id", chunk)
+      .eq("status", "rejected")
+      .returns<{ source_url: string }[]>();
+    if (selErr) throw new Error(selErr.message);
+    const urls = (rows ?? []).map((r) => r.source_url).filter(Boolean);
+    if (urls.length) {
+      await addBlockedSourceUrls(urls, { reason: "manual_delete" });
+    }
     const { error } = await supabase.from("job_postings").delete().in("id", chunk).eq("status", "rejected");
     if (error) throw new Error(error.message);
   }

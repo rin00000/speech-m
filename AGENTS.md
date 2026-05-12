@@ -16,3 +16,4 @@ This file is intentionally minimal for token efficiency.
 ## Notes
 - Keep this file short; move detailed policies to `.cursor/rules/*.mdc`.
 - Parallel worktree source of truth: `docs/worktree-parallel-status.md`.
+- Repo folder placement (app / components / lib): `.cursor/rules/project-structure.mdc`.

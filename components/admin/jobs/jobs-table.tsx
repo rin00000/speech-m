@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -22,7 +23,7 @@ import {
 } from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
-import { NaverShareIconLink } from "@/components/admin/naver-share-icon-link";
+import { NaverShareIconLink } from "./naver-share-icon-link";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";
@@ -219,9 +220,11 @@ const RowActions = ({
 
 type Props = {
   jobs: JobPosting[];
+  sourceHeader?: ReactNode;
+  emptyState?: ReactNode;
 };
 
-export const JobsTable = ({ jobs }: Props) => {
+export const JobsTable = ({ jobs, sourceHeader, emptyState }: Props) => {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkPending, startBulkTransition] = useTransition();
@@ -297,7 +300,10 @@ export const JobsTable = ({ jobs }: Props) => {
     });
   };
 
-  if (jobs.length === 0) return null;
+  if (jobs.length === 0 && !sourceHeader && !emptyState) return null;
+
+  const showToolbar = jobs.length > 0;
+  const showHeaderBlock = Boolean(sourceHeader) || showToolbar;
 
   const cellPaddingClass = density === "compact" ? "px-3 py-2" : "px-4 py-3";
   const toolbarButtonClass =
@@ -305,8 +311,15 @@ export const JobsTable = ({ jobs }: Props) => {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
-      {/* Toolbar: search + bulk actions */}
-      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5">
+      {showHeaderBlock && (
+        <div className="border-b border-slate-100 bg-slate-50/60">
+          {sourceHeader && <div className="px-4 py-2.5">{sourceHeader}</div>}
+          {showToolbar && (
+            <div
+              className={`flex flex-wrap items-center gap-3 px-4 py-2.5 ${
+                sourceHeader ? "border-t border-slate-100" : ""
+              }`}
+            >
         <div className="relative flex-1 max-w-xs">
           <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-slate-400">
             <HugeiconsIcon icon={Search01Icon} size={14} color="currentColor" strokeWidth={2} />
@@ -410,8 +423,12 @@ export const JobsTable = ({ jobs }: Props) => {
             여유
           </button>
         </div>
-      </div>
+            </div>
+          )}
+        </div>
+      )}
 
+      {showToolbar ? (
       <div className="max-h-[70vh] overflow-auto overscroll-contain" tabIndex={0} role="region" aria-label="공고 목록">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
@@ -516,6 +533,9 @@ export const JobsTable = ({ jobs }: Props) => {
           </tbody>
         </table>
       </div>
+      ) : (
+        emptyState
+      )}
     </div>
   );
 };
