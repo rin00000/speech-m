@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { Header } from "@/components/admin/header";
 import { CrawlButton } from "@/components/admin/crawl-button";
 import { AiFitButton } from "@/components/admin/ai-fit-button";
-import { JobsFilter } from "@/components/admin/jobs-filter";
+import { JobsSourceTabs } from "@/components/admin/jobs-source-tabs";
 import { JobsTable } from "@/components/admin/jobs-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -148,6 +148,9 @@ export default async function JobsPage({
     },
   ];
 
+  const jobList = jobs ?? [];
+  const hasJobs = jobList.length > 0;
+
   return (
     <div className="flex flex-col">
       <Header
@@ -208,15 +211,16 @@ export default async function JobsPage({
           ) : null}
         </div>
 
-        {/* Filter + Actions row */}
-        <div className="flex items-start justify-between gap-4">
-          <JobsFilter
-            sourceCounts={sourceCounts}
-            activeStatus={activeStatus}
-            activeSource={activeSource}
-            showRejected={showRejected}
-          />
-          <div className="flex shrink-0 items-center gap-2">
+        {/* Error */}
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            데이터를 불러오는 중 오류가 발생했습니다.
+          </div>
+        )}
+
+        {/* Actions row (above list card) */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
             <CrawlButton source="saramin" label="사람인 즉시 동기화" />
             <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />
@@ -226,61 +230,65 @@ export default async function JobsPage({
               공고 추가
             </button>
           </div>
+
+          <JobsTable
+            jobs={jobList}
+            sourceHeader={
+              <JobsSourceTabs
+                sourceCounts={sourceCounts}
+                activeStatus={activeStatus}
+                activeSource={activeSource}
+                showRejected={showRejected}
+              />
+            }
+            emptyState={
+              hasJobs ? undefined : (
+              <div className="px-4 py-16 text-center">
+                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <HugeiconsIcon
+                    icon={Briefcase01Icon}
+                    size={28}
+                    color="currentColor"
+                    strokeWidth={1.5}
+                  />
+                </span>
+                <p className="mt-4 text-sm font-medium text-slate-600">
+                  {hideRejectedInList && statusCounts.rejected > 0
+                    ? "보류·승인 공고가 없습니다. 거절만 있는 경우 아래에서 거절 목록을 여세요."
+                    : activeStatus || activeSource
+                      ? "해당 조건의 공고가 없습니다"
+                      : "등록된 공고가 없습니다"}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {hideRejectedInList && statusCounts.rejected > 0 ? (
+                    <>
+                      거절 {statusCounts.rejected}건은 기본 목록에서 숨깁니다.{" "}
+                      <a
+                        className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                        href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+                      >
+                        거절 포함해 보기
+                      </a>
+                      {" · "}
+                      <a
+                        className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                        href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
+                      >
+                        거절됨만 보기
+                      </a>
+                    </>
+                  ) : activeStatus || activeSource ? (
+                    "다른 필터를 선택하거나 크롤러를 실행해 보세요."
+                  ) : (
+                    "크롤러를 실행하거나 직접 공고를 추가해 주세요."
+                  )}
+                </p>
+              </div>
+              )
+            }
+          />
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            데이터를 불러오는 중 오류가 발생했습니다.
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!jobs || jobs.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white py-20 text-center shadow-sm">
-            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <HugeiconsIcon
-                icon={Briefcase01Icon}
-                size={28}
-                color="currentColor"
-                strokeWidth={1.5}
-              />
-            </span>
-            <p className="mt-4 text-sm font-medium text-slate-600">
-              {hideRejectedInList && statusCounts.rejected > 0
-                ? "보류·승인 공고가 없습니다. 거절만 있는 경우 아래에서 거절 목록을 여세요."
-                : activeStatus || activeSource
-                  ? "해당 조건의 공고가 없습니다"
-                  : "등록된 공고가 없습니다"}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              {hideRejectedInList && statusCounts.rejected > 0 ? (
-                <>
-                  거절 {statusCounts.rejected}건은 기본 목록에서 숨깁니다.{" "}
-                  <a
-                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
-                    href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
-                  >
-                    거절 포함해 보기
-                  </a>
-                  {" · "}
-                  <a
-                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
-                    href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
-                  >
-                    거절됨만 보기
-                  </a>
-                </>
-              ) : activeStatus || activeSource ? (
-                "다른 필터를 선택하거나 크롤러를 실행해 보세요."
-              ) : (
-                "크롤러를 실행하거나 직접 공고를 추가해 주세요."
-              )}
-            </p>
-          </div>
-        ) : (
-          <JobsTable jobs={jobs} />
-        )}
       </div>
     </div>
   );

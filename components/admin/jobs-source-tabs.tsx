@@ -1,12 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import type { JobSource, JobStatus } from "@/types/database.types";
 
 type SourceCounts = Record<"all" | JobSource, number>;
 
-type Props = {
+export type JobsSourceTabsProps = {
   sourceCounts: SourceCounts;
   activeStatus: JobStatus | null;
   activeSource: JobSource | null;
@@ -68,11 +66,16 @@ const FilterTab = ({
   </Link>
 );
 
-export const JobsFilter = ({ sourceCounts, activeStatus, activeSource, showRejected }: Props) => {
+export const JobsSourceTabs = ({
+  sourceCounts,
+  activeStatus,
+  activeSource,
+  showRejected,
+}: JobsSourceTabsProps) => {
   const hasFilter = activeStatus !== null || activeSource !== null || showRejected;
 
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-3">
         <div>
           <div className="mb-1.5 flex flex-wrap items-baseline gap-2">
