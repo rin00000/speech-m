@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
 import { Header } from "@/components/admin/header";
 import { CrawlButton } from "@/components/admin/crawl-button";
@@ -27,6 +28,25 @@ const VALID_SOURCES = [
   "arang",
   "custom",
 ] as const;
+
+const buildJobsHref = (status: JobStatus | null, source: JobSource | null) => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (source) params.set("source", source);
+  const qs = params.toString();
+  return qs ? `/jobs?${qs}` : "/jobs";
+};
+
+const initialSourceCounts = (): Record<"all" | JobSource, number> => ({
+  all: 0,
+  mediajob_announcer: 0,
+  mediajob_reporter: 0,
+  mediajob_intern: 0,
+  saramin: 0,
+  jobkorea: 0,
+  arang: 0,
+  custom: 0,
+});
 
 export default async function JobsPage({
   searchParams,
@@ -58,34 +78,36 @@ export default async function JobsPage({
   ]);
 
   const rows = allForCounts ?? [];
-  const { statusCounts, sourceCounts } = rows.reduce(
-    (acc, r: { status: JobStatus; source: JobSource }) => {
-      acc.statusCounts[r.status]++;
-      acc.sourceCounts[r.source]++;
+
+  const statusCounts = rows.reduce(
+    (acc, r: { status: JobStatus }) => {
+      acc[r.status]++;
       return acc;
     },
-    {
-      statusCounts: { all: rows.length, pending: 0, approved: 0, rejected: 0 } as Record<"all" | JobStatus, number>,
-      sourceCounts: {
-        all: rows.length,
-        mediajob_announcer: 0,
-        mediajob_reporter: 0,
-        mediajob_intern: 0,
-        saramin: 0,
-        jobkorea: 0,
-        arang: 0,
-        custom: 0,
-      } as Record<"all" | JobSource, number>,
-    },
+    { all: rows.length, pending: 0, approved: 0, rejected: 0 } as Record<"all" | JobStatus, number>,
   );
 
-  const statCards = [
+  const scopedForSource = activeStatus ? rows.filter((r) => r.status === activeStatus) : rows;
+  const sourceCounts = scopedForSource.reduce((acc, r: { source: JobSource }) => {
+    acc[r.source]++;
+    return acc;
+  }, { ...initialSourceCounts(), all: scopedForSource.length });
+
+  const statCards: {
+    label: string;
+    value: number;
+    icon: typeof GridViewIcon;
+    accent: string;
+    bar: string;
+    status: JobStatus | null;
+  }[] = [
     {
       label: "전체",
       value: statusCounts.all,
       icon: GridViewIcon,
       accent: "text-slate-600 bg-slate-100",
       bar: "bg-slate-400",
+      status: null,
     },
     {
       label: "검토 중",
@@ -93,6 +115,7 @@ export default async function JobsPage({
       icon: Clock01Icon,
       accent: "text-amber-600 bg-amber-50",
       bar: "bg-amber-400",
+      status: "pending",
     },
     {
       label: "승인됨",
@@ -100,6 +123,7 @@ export default async function JobsPage({
       icon: CheckmarkCircle01Icon,
       accent: "text-emerald-600 bg-emerald-50",
       bar: "bg-emerald-500",
+      status: "approved",
     },
     {
       label: "거절됨",
@@ -107,6 +131,7 @@ export default async function JobsPage({
       icon: Cancel01Icon,
       accent: "text-red-500 bg-red-50",
       bar: "bg-red-400",
+      status: "rejected",
     },
   ];
 
@@ -120,23 +145,32 @@ export default async function JobsPage({
       <div className="flex-1 space-y-5 p-6">
         {/* Stats cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {statCards.map(({ label, value, icon, accent, bar }) => (
-            <div
-              key={label}
-              className="relative overflow-hidden rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
-            >
-              <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
-              <div className="flex items-center justify-between pl-2">
-                <div>
-                  <p className="text-xs font-medium text-slate-400">{label}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+          {statCards.map(({ label, value, icon, accent, bar, status: cardStatus }) => {
+            const href = buildJobsHref(cardStatus, activeSource);
+            const isActive =
+              (cardStatus === null && activeStatus === null) ||
+              (cardStatus !== null && activeStatus === cardStatus);
+            return (
+              <Link
+                key={label}
+                href={href}
+                className={`relative block overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+                  isActive ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-100"
+                }`}
+              >
+                <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
+                <div className="flex items-center justify-between pl-2">
+                  <div>
+                    <p className="text-xs font-medium text-slate-400">{label}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+                  </div>
+                  <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                    <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
+                  </span>
                 </div>
-                <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
-                  <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
-                </span>
-              </div>
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Filter + Actions row */}

@@ -19,6 +19,12 @@ const STATUS_DOT: Record<JobStatus, string> = {
   rejected: "bg-red-400",
 };
 
+const STATUS_SCOPE_LABEL: Record<JobStatus, string> = {
+  pending: "검토 중",
+  approved: "승인됨",
+  rejected: "거절됨",
+};
+
 const STATUS_TABS: { key: JobStatus; label: string }[] = [
   { key: "pending", label: "검토 중" },
   { key: "approved", label: "승인됨" },
@@ -86,59 +92,87 @@ export const JobsFilter = ({
   sourceCounts,
   activeStatus,
   activeSource,
-}: Props) => (
-  <div className="flex flex-col gap-2">
-    <div className="flex items-center gap-1">
-      <FilterTab
-        href={buildHref(null, activeSource)}
-        isActive={activeStatus === null}
-        label="전체"
-        count={statusCounts.all}
-      />
-      {STATUS_TABS.map(({ key, label }) => (
-        <FilterTab
-          key={key}
-          href={buildHref(key, activeSource)}
-          isActive={activeStatus === key}
-          label={label}
-          count={statusCounts[key]}
-          dot={STATUS_DOT[key]}
-        />
-      ))}
+}: Props) => {
+  const hasFilter = activeStatus !== null || activeSource !== null;
+
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-3">
+        <div>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">상태</p>
+          <div className="flex flex-wrap items-center gap-1">
+            <FilterTab
+              href={buildHref(null, activeSource)}
+              isActive={activeStatus === null}
+              label="전체"
+              count={statusCounts.all}
+            />
+            {STATUS_TABS.map(({ key, label }) => (
+              <FilterTab
+                key={key}
+                href={buildHref(key, activeSource)}
+                isActive={activeStatus === key}
+                label={label}
+                count={statusCounts[key]}
+                dot={STATUS_DOT[key]}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex flex-wrap items-baseline gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">출처</p>
+            {activeStatus !== null && (
+              <span className="text-[11px] text-slate-400">
+                ({STATUS_SCOPE_LABEL[activeStatus]} 기준 건수)
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <FilterTab
+              href={buildHref(activeStatus, null)}
+              isActive={activeSource === null}
+              label="전체"
+              count={sourceCounts.all}
+            />
+
+            <span className="mx-0.5 h-4 w-px shrink-0 bg-slate-200" />
+
+            <span className="select-none text-[11px] font-medium text-slate-400">미디어잡</span>
+            {SOURCE_TABS_MEDIAJOB.map(({ key, label }) => (
+              <FilterTab
+                key={key}
+                href={buildHref(activeStatus, key)}
+                isActive={activeSource === key}
+                label={label}
+                count={sourceCounts[key]}
+              />
+            ))}
+
+            <span className="mx-0.5 h-4 w-px shrink-0 bg-slate-200" />
+
+            {SOURCE_TABS_OTHER.map(({ key, label }) => (
+              <FilterTab
+                key={key}
+                href={buildHref(activeStatus, key)}
+                isActive={activeSource === key}
+                label={label}
+                count={sourceCounts[key]}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {hasFilter && (
+        <Link
+          href="/jobs"
+          className="shrink-0 pt-5 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+        >
+          초기화
+        </Link>
+      )}
     </div>
-
-    <div className="flex items-center gap-1.5">
-      <FilterTab
-        href={buildHref(activeStatus, null)}
-        isActive={activeSource === null}
-        label="전체"
-        count={sourceCounts.all}
-      />
-
-      <span className="mx-0.5 h-4 w-px bg-slate-200" />
-
-      <span className="select-none text-[11px] font-medium text-slate-400">미디어잡</span>
-      {SOURCE_TABS_MEDIAJOB.map(({ key, label }) => (
-        <FilterTab
-          key={key}
-          href={buildHref(activeStatus, key)}
-          isActive={activeSource === key}
-          label={label}
-          count={sourceCounts[key]}
-        />
-      ))}
-
-      <span className="mx-0.5 h-4 w-px bg-slate-200" />
-
-      {SOURCE_TABS_OTHER.map(({ key, label }) => (
-        <FilterTab
-          key={key}
-          href={buildHref(activeStatus, key)}
-          isActive={activeSource === key}
-          label={label}
-          count={sourceCounts[key]}
-        />
-      ))}
-    </div>
-  </div>
-);
+  );
+};
