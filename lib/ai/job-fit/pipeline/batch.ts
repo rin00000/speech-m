@@ -61,10 +61,12 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
       });
 
       if (decision.finalStatus !== "pending") {
-        const { error: updateError } = await supabase
-          .from("job_postings")
-          .update({ status: decision.finalStatus })
-          .eq("id", job.id);
+        const nowIso = new Date().toISOString();
+        const row =
+          decision.finalStatus === "approved"
+            ? { status: "approved" as const, rejected_at: null }
+            : { status: "rejected" as const, published_at: null, rejected_at: nowIso };
+        const { error: updateError } = await supabase.from("job_postings").update(row).eq("id", job.id);
         if (updateError) throw new Error(updateError.message);
       }
 

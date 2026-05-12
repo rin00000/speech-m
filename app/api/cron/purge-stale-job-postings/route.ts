@@ -3,6 +3,7 @@
  * 인증은 일일 전체 크롤(`/api/crawl/all`)과 동일하게 `Authorization: Bearer ${CRON_SECRET}`.
  */
 import { NextResponse } from "next/server";
+import { purgeRejectedPastRetention } from "@/lib/jobs/purge-rejected-ttl";
 import { runStaleListingPurge } from "@/lib/jobs/purge-stale-listings";
 
 const verifyCronRequest = (request: Request): boolean => {
@@ -17,16 +18,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized cron request" }, { status: 401 });
   }
 
-  const result = await runStaleListingPurge();
-  if (!result.success) {
+  const staleListing = await runStaleListingPurge();
+  const rejectedTtl = await purgeRejectedPastRetention();
+
+  if (!staleListing.success) {
     return NextResponse.json(
-      { error: result.error ?? "Purge failed", cutoffIso: result.cutoffIso, deleted: result.deleted },
+      {
+        error: staleListing.error ?? "Stale listing purge failed",
+        staleListing,
+        rejectedTtl,
+      },
+      { status: 500 }
+    );
+  }
+  if (!rejectedTtl.success) {
+    return NextResponse.json(
+      {
+        error: rejectedTtl.error ?? "Rejected TTL purge failed",
+        staleListing,
+        rejectedTtl,
+      },
       { status: 500 }
     );
   }
 
-  console.info("[cron/purge-stale-job-postings]", result);
-  return NextResponse.json(result);
+  const body = { staleListing, rejectedTtl };
+  console.info("[cron/purge-stale-job-postings]", body);
+  return NextResponse.json(body);
 }
 
 export async function POST(request: Request) {

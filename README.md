@@ -69,7 +69,7 @@ npm run dev
 루트 [vercel.json](vercel.json)에 **Cron**이 있어 Vercel 배포를 전제로 합니다. 둘 다 `Authorization: Bearer ${CRON_SECRET}`로 검증합니다.
 
 - `GET /api/crawl/all` — 일일 크롤([app/api/crawl/all/route.ts](app/api/crawl/all/route.ts))  
-- `GET /api/cron/purge-stale-job-postings` — 미디어잡·사람인·잡코리아 등 **리스트형 소스** 중, KST 기준 마감일(`YYYY-MM-DD`)이 **유예일을 뺀 기준일 이전**인 행 삭제([app/api/cron/purge-stale-job-postings/route.ts](app/api/cron/purge-stale-job-postings/route.ts), 로직은 [`lib/jobs/purge-stale-listings.ts`](lib/jobs/purge-stale-listings.ts)). 아랑·`custom`은 대상에서 제외한다.
+- `GET /api/cron/purge-stale-job-postings` — (1) 미디어잡·사람인·잡코리아 등 **리스트형 소스** 중 KST 기준 ISO 마감이 지난 행 삭제([`lib/jobs/purge-stale-listings.ts`](lib/jobs/purge-stale-listings.ts)), (2) **거절** 상태가 `REJECTED_JOB_RETENTION_DAYS`(기본 90일)보다 오래된 행 삭제([`lib/jobs/purge-rejected-ttl.ts`](lib/jobs/purge-rejected-ttl.ts)). 아랑·`custom`은 (1)에서 제외. Supabase에 `rejected_at` 컬럼 추가는 [`supabase/migrations/20260512140000_job_postings_rejected_at.sql`](supabase/migrations/20260512140000_job_postings_rejected_at.sql)를 적용한다.
 
 ### 1) 프로젝트 연결
 
@@ -92,6 +92,7 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 | `CRON_SECRET` | Vercel Cron이 `/api/crawl/all`·`/api/cron/purge-stale-job-postings` 호출 시 Bearer 검증에 필요 |
 | `STALE_LISTING_PURGE_MIN_AGE_DAYS` | (선택) 마감일 이후 며칠 지난 뒤 purge할지. 기본 `1`(KST “어제” 이전 마감까지 삭제) |
 | `STALE_LISTING_PURGE_INCLUDE_PUBLISHED` | (선택) `true`이면 내부 게시(`published_at` 있음) 행도 삭제. 기본은 제외(공유 URL 유지) |
+| `REJECTED_JOB_RETENTION_DAYS` | (선택) 거절 확정 후 며칠 지나면 DB에서 삭제할지. 기본 `90`. `rejected_at` 마이그레이션 필요 |
 | `OPENAI_API_KEY` / `GEMINI_API_KEY` 등 | job-fit 등 LLM 기능 사용 시 |
 
 ### 3) 첫 배포 후 확인
@@ -122,7 +123,7 @@ Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하�
 2. **Logs**에서 `/api/crawl/all` 또는 `purge-stale-job-postings` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼.
 3. **500**과 함께 `CRAWL_API_SECRET` 문구가 보이면 해당 환경 변수 미설정을 확인.
 4. 로컬에서 수동 검증: `curl -sS -H "Authorization: Bearer <CRON_SECRET>" "https://<배포도메인>/api/crawl/all"` (값은 노출되지 않게 터미널 히스토리 주의).
-5. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON의 `cutoffIso`·`deleted`를 확인한다.
+5. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON은 `staleListing`·`rejectedTtl` 객체 각각의 `cutoffIso`·`deleted` 등을 확인한다.
 
 ## 스크립트 · 품질
 

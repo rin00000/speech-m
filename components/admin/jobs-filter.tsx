@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import type { JobSource, JobStatus } from "@/types/database.types";
 
 type StatusCounts = Record<"all" | JobStatus, number>;
@@ -8,9 +9,12 @@ type SourceCounts = Record<"all" | JobSource, number>;
 
 type Props = {
   statusCounts: StatusCounts;
+  /** 기본 목록(거절 숨김)에서 쓰는 보류+승인 합계. */
+  workQueueCount: number;
   sourceCounts: SourceCounts;
   activeStatus: JobStatus | null;
   activeSource: JobSource | null;
+  showRejected: boolean;
 };
 
 const STATUS_DOT: Record<JobStatus, string> = {
@@ -44,13 +48,12 @@ const SOURCE_TABS_OTHER: { key: JobSource; label: string }[] = [
   { key: "custom", label: "직접입력" },
 ];
 
-const buildHref = (status: JobStatus | null, source: JobSource | null) => {
-  const params = new URLSearchParams();
-  if (status) params.set("status", status);
-  if (source) params.set("source", source);
-  const qs = params.toString();
-  return qs ? `/jobs?${qs}` : "/jobs";
-};
+const buildHref = (status: JobStatus | null, source: JobSource | null, showRejectedTab?: boolean) =>
+  buildJobsAdminHref({
+    status: status ?? undefined,
+    source: source ?? undefined,
+    showRejected: showRejectedTab ? true : undefined,
+  });
 
 const FilterTab = ({
   href,
@@ -89,11 +92,16 @@ const FilterTab = ({
 
 export const JobsFilter = ({
   statusCounts,
+  workQueueCount,
   sourceCounts,
   activeStatus,
   activeSource,
+  showRejected,
 }: Props) => {
-  const hasFilter = activeStatus !== null || activeSource !== null;
+  const hasFilter = activeStatus !== null || activeSource !== null || showRejected;
+
+  const mainStatusLabel = showRejected ? "전체" : "작업 대상";
+  const mainStatusCount = showRejected ? statusCounts.all : workQueueCount;
 
   return (
     <div className="flex items-start justify-between gap-4">
@@ -102,10 +110,10 @@ export const JobsFilter = ({
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">상태</p>
           <div className="flex flex-wrap items-center gap-1">
             <FilterTab
-              href={buildHref(null, activeSource)}
+              href={buildHref(null, activeSource, showRejected)}
               isActive={activeStatus === null}
-              label="전체"
-              count={statusCounts.all}
+              label={mainStatusLabel}
+              count={mainStatusCount}
             />
             {STATUS_TABS.map(({ key, label }) => (
               <FilterTab
@@ -118,6 +126,26 @@ export const JobsFilter = ({
               />
             ))}
           </div>
+          {!showRejected && statusCounts.rejected > 0 ? (
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
+              <Link
+                href={buildHref(null, activeSource, true)}
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                DB 전체 보기
+              </Link>
+            </p>
+          ) : showRejected ? (
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              <Link
+                href={buildHref(null, activeSource, false)}
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                작업 대상만(거절 숨김)
+              </Link>
+            </p>
+          ) : null}
         </div>
 
         <div>

@@ -14,6 +14,7 @@ import {
   Clock01Icon,
   GridViewIcon,
 } from "@hugeicons/core-free-icons";
+import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -29,14 +30,6 @@ const VALID_SOURCES = [
   "custom",
 ] as const;
 
-const buildJobsHref = (status: JobStatus | null, source: JobSource | null) => {
-  const params = new URLSearchParams();
-  if (status) params.set("status", status);
-  if (source) params.set("source", source);
-  const qs = params.toString();
-  return qs ? `/jobs?${qs}` : "/jobs";
-};
-
 const initialSourceCounts = (): Record<"all" | JobSource, number> => ({
   all: 0,
   mediajob_announcer: 0,
@@ -51,9 +44,9 @@ const initialSourceCounts = (): Record<"all" | JobSource, number> => ({
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; source?: string }>;
+  searchParams: Promise<{ status?: string; source?: string; showRejected?: string }>;
 }) {
-  const { status: rawStatus, source: rawSource } = await searchParams;
+  const { status: rawStatus, source: rawSource, showRejected: rawShowRejected } = await searchParams;
 
   const activeStatus = VALID_STATUSES.includes(rawStatus as JobStatus)
     ? (rawStatus as JobStatus)
@@ -61,6 +54,8 @@ export default async function JobsPage({
   const activeSource = VALID_SOURCES.includes(rawSource as JobSource)
     ? (rawSource as JobSource)
     : null;
+  const showRejected = rawShowRejected === "1";
+  const hideRejectedInList = activeStatus === null && !showRejected;
 
   const supabase = createAdminClient();
 
@@ -72,6 +67,7 @@ export default async function JobsPage({
         .select("*")
         .order("created_at", { ascending: false });
       if (activeStatus) q = q.eq("status", activeStatus);
+      else if (hideRejectedInList) q = q.neq("status", "rejected");
       if (activeSource) q = q.eq("source", activeSource);
       return q.returns<JobPosting[]>();
     })(),
@@ -87,11 +83,15 @@ export default async function JobsPage({
     { all: rows.length, pending: 0, approved: 0, rejected: 0 } as Record<"all" | JobStatus, number>,
   );
 
-  const scopedForSource = activeStatus ? rows.filter((r) => r.status === activeStatus) : rows;
+  const scopedForSource = activeStatus
+    ? rows.filter((r) => r.status === activeStatus)
+    : rows.filter((r) => !hideRejectedInList || r.status !== "rejected");
   const sourceCounts = scopedForSource.reduce((acc, r: { source: JobSource }) => {
     acc[r.source]++;
     return acc;
   }, { ...initialSourceCounts(), all: scopedForSource.length });
+
+  const workQueueCount = statusCounts.pending + statusCounts.approved;
 
   const statCards: {
     label: string;
@@ -100,14 +100,21 @@ export default async function JobsPage({
     accent: string;
     bar: string;
     status: JobStatus | null;
+    href: string;
+    scope: "work" | "all";
   }[] = [
     {
-      label: "전체",
-      value: statusCounts.all,
+      label: showRejected ? "전체" : "작업 대상",
+      value: showRejected ? statusCounts.all : workQueueCount,
       icon: GridViewIcon,
       accent: "text-slate-600 bg-slate-100",
       bar: "bg-slate-400",
       status: null,
+      href: buildJobsAdminHref({
+        source: activeSource,
+        showRejected: showRejected ? true : undefined,
+      }),
+      scope: showRejected ? "all" : "work",
     },
     {
       label: "검토 중",
@@ -116,6 +123,8 @@ export default async function JobsPage({
       accent: "text-amber-600 bg-amber-50",
       bar: "bg-amber-400",
       status: "pending",
+      href: buildJobsAdminHref({ status: "pending", source: activeSource }),
+      scope: "work",
     },
     {
       label: "승인됨",
@@ -124,6 +133,8 @@ export default async function JobsPage({
       accent: "text-emerald-600 bg-emerald-50",
       bar: "bg-emerald-500",
       status: "approved",
+      href: buildJobsAdminHref({ status: "approved", source: activeSource }),
+      scope: "work",
     },
     {
       label: "거절됨",
@@ -132,6 +143,8 @@ export default async function JobsPage({
       accent: "text-red-500 bg-red-50",
       bar: "bg-red-400",
       status: "rejected",
+      href: buildJobsAdminHref({ status: "rejected", source: activeSource }),
+      scope: "work",
     },
   ];
 
@@ -145,11 +158,11 @@ export default async function JobsPage({
       <div className="flex-1 space-y-5 p-6">
         {/* Stats cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {statCards.map(({ label, value, icon, accent, bar, status: cardStatus }) => {
-            const href = buildJobsHref(cardStatus, activeSource);
+          {statCards.map(({ label, value, icon, accent, bar, status: cardStatus, href, scope }) => {
             const isActive =
-              (cardStatus === null && activeStatus === null) ||
-              (cardStatus !== null && activeStatus === cardStatus);
+              cardStatus === null
+                ? activeStatus === null && (scope === "all" ? showRejected : !showRejected)
+                : activeStatus === cardStatus;
             return (
               <Link
                 key={label}
@@ -177,9 +190,11 @@ export default async function JobsPage({
         <div className="flex items-start justify-between gap-4">
           <JobsFilter
             statusCounts={statusCounts}
+            workQueueCount={workQueueCount}
             sourceCounts={sourceCounts}
             activeStatus={activeStatus}
             activeSource={activeSource}
+            showRejected={showRejected}
           />
           <div className="flex shrink-0 items-center gap-2">
             <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
@@ -212,14 +227,35 @@ export default async function JobsPage({
               />
             </span>
             <p className="mt-4 text-sm font-medium text-slate-600">
-              {activeStatus || activeSource
-                ? "해당 조건의 공고가 없습니다"
-                : "등록된 공고가 없습니다"}
+              {hideRejectedInList && statusCounts.rejected > 0
+                ? "보류·승인 공고가 없습니다. 거절만 있는 경우 아래에서 거절 목록을 여세요."
+                : activeStatus || activeSource
+                  ? "해당 조건의 공고가 없습니다"
+                  : "등록된 공고가 없습니다"}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              {activeStatus || activeSource
-                ? "다른 필터를 선택하거나 크롤러를 실행해 보세요."
-                : "크롤러를 실행하거나 직접 공고를 추가해 주세요."}
+              {hideRejectedInList && statusCounts.rejected > 0 ? (
+                <>
+                  거절 {statusCounts.rejected}건은 기본 목록에서 숨깁니다.{" "}
+                  <a
+                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                    href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+                  >
+                    거절 포함해 보기
+                  </a>
+                  {" · "}
+                  <a
+                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                    href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
+                  >
+                    거절됨만 보기
+                  </a>
+                </>
+              ) : activeStatus || activeSource ? (
+                "다른 필터를 선택하거나 크롤러를 실행해 보세요."
+              ) : (
+                "크롤러를 실행하거나 직접 공고를 추가해 주세요."
+              )}
             </p>
           </div>
         ) : (
