@@ -1,21 +1,19 @@
 ---
-description: End-of-task report and commit message policy
-globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*.{ts,mts,tsx},plan.md
+description: 작업 마무리 보고 및 Git 커밋 메시지 정책(한국어 필수)
+alwaysApply: true
 ---
 
 # End-of-Task Workflow
-- At task completion, provide a brief closing report:
-  - work summary
-  - validation status
-  - git change state (`staged`, `unstaged`, `untracked`)
-  - recommended commit message
+- 작업 완료 시 짧게 마무리 보고: 요약, 검증 여부, git 상태(`staged` / `unstaged` / `untracked`), **권장 커밋 메시지(한국어)**.
 
-# Commit Message Policy
-- Use Conventional Commit type in English.
-- Write commit description in Korean.
-- Title format: `<type>: <한국어 설명>`
-- Body should explain "why" in 1-3 short lines when needed.
+# Commit Message Policy (필수)
+- 에이전트가 `git commit`을 제안·실행할 때 **제목과 본문은 항상 한국어**로 쓴다. 영어만 있는 한 줄 제목(예: `feat: add user delete`)은 **금지**다.
+- **제목 한 줄:** Conventional Commit **type**은 소문자 영문 한 단어(`feat`, `fix`, `chore`, `docs`, `refactor`, `test` 등)만 접두로 허용한다. **콜론 뒤 전체는 한국어**로 무엇을 바꿨는지 쓴다.  
+  - 좋음: `feat: 거절 공고 수동 삭제 추가`  
+  - 나쁨: `feat(admin): manual delete for rejected job postings`
+- **본문:** 필요 시 1~3줄, **전부 한국어**. 변경 이유·주의점 위주.
+- 사용자가 명시적으로 “커밋 메시지는 영어로”라고 하기 전까지, 위 한국어 규칙을 **예외 없이** 적용한다.
 
 # Safety Rules
-- Do not include secrets or credentials in commit candidates.
-- Exclude `.env*` and token/key credential files by default.
+- 커밋 후보에 시크릿·자격 증명을 넣지 않는다.
+- 기본적으로 `.env*` 및 토큰·키 파일은 커밋에서 제외한다.
