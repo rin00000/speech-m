@@ -15,6 +15,7 @@ const BASE_URL = "https://www.mediajob.co.kr";
 const CRAWL_PAGES = 2;
 const FETCH_CONCURRENCY = 3;
 
+/** Site default list order is 수정일 최신순; URLs below do not override sort. */
 type CrawlTarget = {
   label: string;
   source: JobSource;

@@ -17,8 +17,9 @@ const FETCH_CONCURRENCY = 2;
 // 기자, 도슨트, 리포터, 기상캐스터, 성우, 쇼호스트, 큐레이터, 아나운서, MC
 const CAT_KEWD = "1295,1283,1284,1290,1294,1289,1285,1322,1307";
 
+/** `sort=RD`: 최신순. `page_count=20`: 20개씩. */
 const buildUrl = (page: number) =>
-  `${BASE_URL}/zf_user/jobs/list/job-category?cat_kewd=${encodeURIComponent(CAT_KEWD)}&panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y&page=${page}&page_count=20`;
+  `${BASE_URL}/zf_user/jobs/list/job-category?cat_kewd=${encodeURIComponent(CAT_KEWD)}&panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y&sort=RD&page=${page}&page_count=20`;
 
 const FETCH_HEADERS = {
   ...BASE_FETCH_HEADERS,
