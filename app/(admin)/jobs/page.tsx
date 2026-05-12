@@ -156,41 +156,61 @@ export default async function JobsPage({
       />
 
       <div className="flex-1 space-y-5 p-6">
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {statCards.map(({ label, value, icon, accent, bar, status: cardStatus, href, scope }) => {
-            const isActive =
-              cardStatus === null
-                ? activeStatus === null && (scope === "all" ? showRejected : !showRejected)
-                : activeStatus === cardStatus;
-            return (
-              <Link
-                key={label}
-                href={href}
-                className={`relative block overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
-                  isActive ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-100"
-                }`}
-              >
-                <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
-                <div className="flex items-center justify-between pl-2">
-                  <div>
-                    <p className="text-xs font-medium text-slate-400">{label}</p>
-                    <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+        {/* Stats cards + rejected visibility hint (state tabs removed; cards are the primary control) */}
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {statCards.map(({ label, value, icon, accent, bar, status: cardStatus, href, scope }) => {
+              const isActive =
+                cardStatus === null
+                  ? activeStatus === null && (scope === "all" ? showRejected : !showRejected)
+                  : activeStatus === cardStatus;
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  className={`relative block overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+                    isActive ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-100"
+                  }`}
+                >
+                  <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
+                  <div className="flex items-center justify-between pl-2">
+                    <div>
+                      <p className="text-xs font-medium text-slate-400">{label}</p>
+                      <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+                    </div>
+                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                      <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
+                    </span>
                   </div>
-                  <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
-                    <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
-                  </span>
-                </div>
+                </Link>
+              );
+            })}
+          </div>
+          {!showRejected && statusCounts.rejected > 0 ? (
+            <p className="text-[11px] text-slate-500">
+              거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
+              <Link
+                href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                DB 전체 보기
               </Link>
-            );
-          })}
+            </p>
+          ) : showRejected ? (
+            <p className="text-[11px] text-slate-500">
+              <Link
+                href={buildJobsAdminHref({ source: activeSource })}
+                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+              >
+                작업 대상만(거절 숨김)
+              </Link>
+            </p>
+          ) : null}
         </div>
 
         {/* Filter + Actions row */}
         <div className="flex items-start justify-between gap-4">
           <JobsFilter
-            statusCounts={statusCounts}
-            workQueueCount={workQueueCount}
             sourceCounts={sourceCounts}
             activeStatus={activeStatus}
             activeSource={activeSource}
