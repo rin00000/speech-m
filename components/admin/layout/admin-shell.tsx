@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useEffect,
@@ -12,7 +13,7 @@ import {
 import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
-import { AdminSidebarContent } from "@/components/admin/sidebar";
+import { AdminSidebarContent } from "./sidebar";
 
 type AdminMobileNavContextValue = {
   mobileOpen: boolean;
@@ -62,7 +63,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setMobileOpen(false);
+    startTransition(() => {
+      setMobileOpen(false);
+    });
   }, [pathname]);
 
   useEffect(() => {

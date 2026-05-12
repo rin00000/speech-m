@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
-import { Header } from "@/components/admin/header";
-import { CrawlButton } from "@/components/admin/crawl-button";
-import { AiFitButton } from "@/components/admin/ai-fit-button";
-import { JobsSourceTabs } from "@/components/admin/jobs-source-tabs";
-import { JobsTable } from "@/components/admin/jobs-table";
+import { Header } from "@/components/admin/layout/header";
+import { CrawlButton } from "@/components/admin/crawl/crawl-button";
+import { AiFitButton } from "@/components/admin/ai/ai-fit-button";
+import { JobsSourceTabs } from "@/components/admin/jobs/jobs-source-tabs";
+import { JobsTable } from "@/components/admin/jobs/jobs-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,

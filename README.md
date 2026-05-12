@@ -36,12 +36,38 @@ flowchart LR
 | 검증·스키마 | **Zod** |
 | UI 아이콘 | **Hugeicons** (`@hugeicons/react`) |
 
+## 저장소 구조
+
+Git **병렬 워크트리**(여러 클론·브랜치 소유)는 [`docs/worktree-parallel-status.md`](docs/worktree-parallel-status.md)만 본다. 아래는 **단일 클론 안**의 코드 배치 규약이다. 상세·신규 파일 결정 트리는 [`.cursor/rules/project-structure.mdc`](.cursor/rules/project-structure.mdc)를 따른다.
+
+### 루트 디렉터리
+
+| 경로 | 역할 |
+|------|------|
+| `app/` | 페이지·`layout`·Route Handler(`route.ts`)·라우트 전용 Server Action — URL·HTTP 경계 |
+| `components/` | 재사용 UI. 관리자 전용은 `components/admin/<기능>/` |
+| `lib/` | 도메인 로직·외부 연동·DB 헬퍼 (`crawl`, `jobs`, `ai/job-fit`, `supabase` 등) |
+| `types/` | DB·API 공용 타입 |
+| `supabase/migrations/` | 스키마·RLS 마이그레이션 |
+| `scripts/` | CI·로컬 보조 스크립트 |
+| `data/`, `public/` | 샘플 데이터·정적 자산 |
+| `docs/` | 운영·UI 패턴 등 보조 문서 |
+
+### `components/admin/` 하위
+
+| 경로 | 내용 |
+|------|------|
+| `layout/` | 관리자 셸·사이드바·상단 헤더 |
+| `jobs/` | 공고 테이블·소스 탭·네이버 공유 링크 등 채용 관리 UI |
+| `crawl/` | 크롤 동기화 버튼 |
+| `ai/` | job-fit 등 AI 실행 버튼 |
+
 ## 구현 하이라이트
 
 - **관리자 영역** — `app/(admin)/`: 대시보드, 채용공고 목록·필터·테이블, 크롤 트리거, job-fit 실행 버튼 등 운영자 흐름을 한 곳에 모았습니다.  
 - **크롤 API** — `app/api/crawl/*`: 소스별·일괄 동기화 라우트와 공통 트리거 로직(`lib/crawl/`).  
 - **Job-fit** — `lib/ai/job-fit/`: `domain/`·`policy/`·`pipeline/`·`bench/`·`index.ts`로 구역화, 샘플 골든 메트릭과 벤치마크 API(`app/api/admin/benchmark-job-fit`).  
-- **UI 컴포넌트** — `components/admin/`: 사이드바, 테이블, 필터, 크롤/AI 버튼 등 관리자 전용 조각.
+- **UI 컴포넌트** — `components/admin/`을 `layout/`·`jobs/`·`crawl/`·`ai/`로 나누어 사이드바·테이블·필터·크롤/AI 버튼 등 관리자 전용 조각을 둡니다.
 
 ## 로컬에서 실행하기
 
@@ -106,7 +132,7 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 아래는 **배포 URL**에서 재현 가능한 확인 순서입니다. 네이버 서버가 공유 `url`을 가져오려면 공개 HTTPS 랜딩이 필요합니다([네이버 공유하기 개발가이드](https://developers.naver.com/docs/share/navershare/)).
 
 1. **랜딩 단독 확인**: 브라우저에서 `https://<배포도메인>/jobs/<job-id>/share`를 연 뒤, 개발자 도구로 `<title>`·`meta name="description"`·`og:description`이 기대 문구인지 확인([app/jobs/[id]/share/page.tsx](app/jobs/[id]/share/page.tsx)).
-2. **관리자 공고 목록**: 승인 + 내부 게시 확정 행의 네이버 공유 아이콘 클릭([components/admin/jobs-table.tsx](components/admin/jobs-table.tsx)).
+2. **관리자 공고 목록**: 승인 + 내부 게시 확정 행의 네이버 공유 아이콘 클릭([components/admin/jobs/jobs-table.tsx](components/admin/jobs/jobs-table.tsx)).
 3. **대시보드**: **최근 내부 게시 공고** 목록에서 동일하게 네이버 공유 아이콘 클릭([app/(admin)/dashboard/page.tsx](app/(admin)/dashboard/page.tsx)).
 4. 네이버 공유·블로그 편집 화면에서 **제목·요약(스크랩)**이 1번 랜딩 메타와 맞는지 확인.
 5. 불일치 시: `NEXT_PUBLIC_APP_URL`이 실제 접속 도메인과 같은지, 1번 URL이 200인지, Vercel이 가리키는 Supabase에 해당 `job_postings` 행이 있는지 순서로 점검([`lib/jobs/site-url.ts`](lib/jobs/site-url.ts)).

@@ -23,7 +23,7 @@ import {
 } from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
-import { NaverShareIconLink } from "@/components/admin/naver-share-icon-link";
+import { NaverShareIconLink } from "./naver-share-icon-link";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";

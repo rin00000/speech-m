@@ -1,6 +1,6 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Notification01Icon, Search01Icon } from "@hugeicons/core-free-icons";
-import { MobileNavTrigger } from "@/components/admin/admin-shell";
+import { MobileNavTrigger } from "./admin-shell";
 
 interface HeaderProps {
   title: string;
