@@ -1,6 +1,7 @@
 /**
  * `status = rejected`이고 `rejected_at`이 보존 기간보다 오래된 행을 삭제한다.
  * 크롤 `ignoreDuplicates` 해제를 위해 오래된 거절 행을 비우는 용도.
+ * `REJECTED_JOB_RETENTION_DAYS` 미설정 시 기본 **5일**.
  */
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -16,7 +17,7 @@ export type PurgeRejectedPastRetentionResult = {
 const DELETE_CHUNK = 200;
 
 export async function purgeRejectedPastRetention(): Promise<PurgeRejectedPastRetentionResult> {
-  const retentionDays = getEnvInt("REJECTED_JOB_RETENTION_DAYS", 90);
+  const retentionDays = getEnvInt("REJECTED_JOB_RETENTION_DAYS", 5);
   const cutoffMs = Date.now() - retentionDays * 86_400_000;
   const cutoffIso = new Date(cutoffMs).toISOString();
 
