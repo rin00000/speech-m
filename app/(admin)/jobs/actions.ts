@@ -121,6 +121,22 @@ export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
   revalidatePath("/jobs");
 };
 
+const DELETE_REJECTED_CHUNK = 200;
+
+/**
+ * `status === "rejected"`인 행만 하드 삭제한다. id 목록에 다른 상태가 섞여 있어도 DB 조건으로 제외된다.
+ */
+export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> => {
+  if (!ids.length) return;
+  const supabase = createAdminClient();
+  for (let i = 0; i < ids.length; i += DELETE_REJECTED_CHUNK) {
+    const chunk = ids.slice(i, i + DELETE_REJECTED_CHUNK);
+    const { error } = await supabase.from("job_postings").delete().in("id", chunk).eq("status", "rejected");
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath("/jobs");
+};
+
 export type MarkPublishedResult = {
   success: boolean;
   updated?: number;
