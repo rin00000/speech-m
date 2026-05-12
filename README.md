@@ -66,7 +66,10 @@ npm run dev
 
 ## Vercel 배포 (실행 체크리스트)
 
-루트 [vercel.json](vercel.json)에 **Cron**(`GET /api/crawl/all`)이 있어 Vercel 배포를 전제로 합니다. Cron 호출은 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`로 검증합니다.
+루트 [vercel.json](vercel.json)에 **Cron**이 있어 Vercel 배포를 전제로 합니다. 둘 다 `Authorization: Bearer ${CRON_SECRET}`로 검증합니다.
+
+- `GET /api/crawl/all` — 일일 크롤([app/api/crawl/all/route.ts](app/api/crawl/all/route.ts))  
+- `GET /api/cron/purge-stale-job-postings` — 미디어잡·사람인·잡코리아 등 **리스트형 소스** 중, KST 기준 마감일(`YYYY-MM-DD`)이 **유예일을 뺀 기준일 이전**인 행 삭제([app/api/cron/purge-stale-job-postings/route.ts](app/api/cron/purge-stale-job-postings/route.ts), 로직은 [`lib/jobs/purge-stale-listings.ts`](lib/jobs/purge-stale-listings.ts)). 아랑·`custom`은 대상에서 제외한다.
 
 ### 1) 프로젝트 연결
 
@@ -86,7 +89,9 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 | `SUPABASE_SERVICE_ROLE_KEY` | 서버 전용(관리자·`/jobs/[id]/share` 등). Preview에 넣을지는 팀 정책으로 결정 |
 | `NEXT_PUBLIC_APP_URL` | (권장) 공개 사이트 절대 URL. 네이버 공유·OG용으로 [`lib/jobs/site-url.ts`](lib/jobs/site-url.ts)에서 사용. 예: `https://<프로젝트>.vercel.app` 또는 커스텀 도메인 |
 | `CRAWL_API_SECRET` | `/api/crawl/*` 호출 시 내부 트리거에 필요 |
-| `CRON_SECRET` | Vercel Cron이 `/api/crawl/all` 호출 시 Bearer 검증에 필요 |
+| `CRON_SECRET` | Vercel Cron이 `/api/crawl/all`·`/api/cron/purge-stale-job-postings` 호출 시 Bearer 검증에 필요 |
+| `STALE_LISTING_PURGE_MIN_AGE_DAYS` | (선택) 마감일 이후 며칠 지난 뒤 purge할지. 기본 `1`(KST “어제” 이전 마감까지 삭제) |
+| `STALE_LISTING_PURGE_INCLUDE_PUBLISHED` | (선택) `true`이면 내부 게시(`published_at` 있음) 행도 삭제. 기본은 제외(공유 URL 유지) |
 | `OPENAI_API_KEY` / `GEMINI_API_KEY` 등 | job-fit 등 LLM 기능 사용 시 |
 
 ### 3) 첫 배포 후 확인
@@ -111,12 +116,13 @@ Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하�
 
 ### 6) Vercel Cron 실행 점검
 
-일일 크롤은 [vercel.json](vercel.json)의 `GET /api/crawl/all`로 스케줄됩니다. 라우트는 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`을 검증하고, 내부 소스 호출에 `CRAWL_API_SECRET`을 사용합니다.
+[vercel.json](vercel.json)에는 **일일 크롤**(`GET /api/crawl/all`)과 **마감 지난 공고 정리**(`GET /api/cron/purge-stale-job-postings`)가 스케줄되어 있습니다. 크롤 라우트는 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`을 검증하고, 내부 소스 호출에 `CRAWL_API_SECRET`을 사용합니다.
 
 1. Vercel 프로젝트 **Settings → Cron Jobs**(또는 배포 **Functions** 로그)에서 최근 호출 여부 확인.
-2. **Logs**에서 `/api/crawl/all` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼.
+2. **Logs**에서 `/api/crawl/all` 또는 `purge-stale-job-postings` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼.
 3. **500**과 함께 `CRAWL_API_SECRET` 문구가 보이면 해당 환경 변수 미설정을 확인.
 4. 로컬에서 수동 검증: `curl -sS -H "Authorization: Bearer <CRON_SECRET>" "https://<배포도메인>/api/crawl/all"` (값은 노출되지 않게 터미널 히스토리 주의).
+5. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON의 `cutoffIso`·`deleted`를 확인한다.
 
 ## 스크립트 · 품질
 
