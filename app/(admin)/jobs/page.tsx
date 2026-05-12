@@ -15,6 +15,7 @@ import {
   GridViewIcon,
 } from "@hugeicons/core-free-icons";
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
+import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -56,6 +57,7 @@ export default async function JobsPage({
     : null;
   const showRejected = rawShowRejected === "1";
   const hideRejectedInList = activeStatus === null && !showRejected;
+  const rejectedRetentionDays = getRejectedJobRetentionDays();
 
   const supabase = createAdminClient();
 
@@ -209,6 +211,10 @@ export default async function JobsPage({
               </Link>
             </p>
           ) : null}
+          <p className="text-[11px] leading-relaxed text-slate-400">
+            거절 공고는 거절 확정 시각 기준 {rejectedRetentionDays}일이 지나면 정리 크론 실행 시 DB에서
+            자동 삭제됩니다. 수동 삭제와 동일하게 해당 URL은 다시 수집되지 않습니다.
+          </p>
         </div>
 
         {/* Error */}

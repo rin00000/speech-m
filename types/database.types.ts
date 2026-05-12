@@ -46,6 +46,23 @@ export interface Database {
           created_at?: string;
         };
       };
+      crawl_blocked_source_urls: {
+        Row: {
+          source_url: string;
+          created_at: string;
+          reason: string | null;
+        };
+        Insert: {
+          source_url: string;
+          created_at?: string;
+          reason?: string | null;
+        };
+        Update: {
+          source_url?: string;
+          created_at?: string;
+          reason?: string | null;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

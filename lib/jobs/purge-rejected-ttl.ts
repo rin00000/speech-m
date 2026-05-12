@@ -1,8 +1,10 @@
 /**
  * `status = rejected`이고 `rejected_at`이 보존 기간보다 오래된 행을 삭제한다.
  * 크롤 `ignoreDuplicates` 해제를 위해 오래된 거절 행을 비우는 용도.
- * `REJECTED_JOB_RETENTION_DAYS` 미설정 시 기본 **5일**.
+ * 보존 일수: `getRejectedJobRetentionDays()`(기본 10일, `REJECTED_JOB_RETENTION_DAYS`로 변경).
  */
+import { addBlockedSourceUrls } from "@/lib/crawl/blocked-source-urls";
+import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export type PurgeRejectedPastRetentionResult = {
@@ -17,7 +19,7 @@ export type PurgeRejectedPastRetentionResult = {
 const DELETE_CHUNK = 200;
 
 export async function purgeRejectedPastRetention(): Promise<PurgeRejectedPastRetentionResult> {
-  const retentionDays = getEnvInt("REJECTED_JOB_RETENTION_DAYS", 5);
+  const retentionDays = getRejectedJobRetentionDays();
   const cutoffMs = Date.now() - retentionDays * 86_400_000;
   const cutoffIso = new Date(cutoffMs).toISOString();
 
@@ -59,6 +61,43 @@ export async function purgeRejectedPastRetention(): Promise<PurgeRejectedPastRet
     ]),
   ];
 
+  try {
+    const urls: string[] = [];
+    for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
+      const chunk = ids.slice(i, i + DELETE_CHUNK);
+      const { data: rows, error: urlErr } = await supabase
+        .from("job_postings")
+        .select("source_url")
+        .in("id", chunk)
+        .returns<{ source_url: string }[]>();
+      if (urlErr) {
+        return {
+          success: false,
+          retentionDays,
+          cutoffIso,
+          scanned: ids.length,
+          deleted: 0,
+          error: urlErr.message,
+        };
+      }
+      for (const r of rows ?? []) {
+        if (r.source_url) urls.push(r.source_url);
+      }
+    }
+    if (urls.length) {
+      await addBlockedSourceUrls(urls, { reason: "ttl_purge" });
+    }
+  } catch (e) {
+    return {
+      success: false,
+      retentionDays,
+      cutoffIso,
+      scanned: ids.length,
+      deleted: 0,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
   let deleted = 0;
   for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
     const chunk = ids.slice(i, i + DELETE_CHUNK);
@@ -77,11 +116,4 @@ export async function purgeRejectedPastRetention(): Promise<PurgeRejectedPastRet
   }
 
   return { success: true, retentionDays, cutoffIso, scanned: ids.length, deleted };
-}
-
-function getEnvInt(name: string, fallback: number): number {
-  const raw = process.env[name]?.trim();
-  if (!raw) return fallback;
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n >= 1 ? n : fallback;
 }
