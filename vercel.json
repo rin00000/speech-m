@@ -3,6 +3,10 @@
     {
       "path": "/api/crawl/all",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/purge-stale-job-postings",
+      "schedule": "30 1 * * *"
     }
   ]
 }

@@ -33,12 +33,22 @@ export default async function DashboardPage() {
 
   const [
     totalJobsResult,
+    pendingJobsResult,
+    rejectedJobsResult,
     approvedJobsResult,
     publishedJobsResult,
     monthlyPublishedJobsResult,
     recentPublishedJobsResult,
   ] = await Promise.all([
     supabase.from("job_postings").select("id", { count: "exact", head: true }),
+    supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "rejected"),
     supabase
       .from("job_postings")
       .select("id", { count: "exact", head: true })
@@ -66,6 +76,8 @@ export default async function DashboardPage() {
 
   const hasJobsError = [
     totalJobsResult,
+    pendingJobsResult,
+    rejectedJobsResult,
     approvedJobsResult,
     publishedJobsResult,
     monthlyPublishedJobsResult,
@@ -74,11 +86,14 @@ export default async function DashboardPage() {
 
   const recentPublishedJobs = recentPublishedJobsResult.data ?? [];
   const siteOrigin = getPublicSiteOrigin();
+  const pendingCount = pendingJobsResult.count ?? 0;
+  const rejectedCount = rejectedJobsResult.count ?? 0;
+  const workQueueCount = pendingCount + (approvedJobsResult.count ?? 0);
   const statCards = [
     {
       label: "등록된 공고",
       value: formatCount(totalJobsResult.count),
-      sub: "전체 공고 수",
+      sub: `DB 전체 · 운영 대상(보류+승인) ${formatCount(workQueueCount)} · 거절 ${formatCount(rejectedCount)}`,
       icon: Briefcase01Icon,
       color: "text-indigo-500",
       bg: "bg-indigo-50",

@@ -18,6 +18,7 @@ import {
   updateJobStatus,
   bulkUpdateJobStatus,
   markJobsPublished,
+  deleteRejectedJobPostings,
 } from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
@@ -151,6 +152,39 @@ const RowActions = ({
     );
   }
 
+  if (status === "rejected") {
+    const handleDelete = () => {
+      if (!window.confirm("이 거절 공고를 DB에서 삭제할까요? 복구할 수 없습니다.")) return;
+      startTransition(async () => {
+        await deleteRejectedJobPostings([jobId]);
+        router.refresh();
+      });
+    };
+
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => void handleDelete()}
+          disabled={isPending}
+          title="DB에서 삭제"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <HugeiconsIcon icon={Delete01Icon} size={16} color="currentColor" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          onClick={() => void handle("pending")}
+          disabled={isPending}
+          title="재검토"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <HugeiconsIcon icon={ArrowTurnBackwardIcon} size={15} color="currentColor" strokeWidth={1.8} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-1">
       {status === "approved" && !publishedAt && (
@@ -204,6 +238,15 @@ export const JobsTable = ({ jobs }: Props) => {
     );
   }, [jobs, query]);
 
+  const selectionAllRejected = useMemo(() => {
+    if (selectedIds.size === 0) return false;
+    for (const id of selectedIds) {
+      const j = jobs.find((x) => x.id === id);
+      if (!j || j.status !== "rejected") return false;
+    }
+    return true;
+  }, [selectedIds, jobs]);
+
   const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
   const someSelected = selectedIds.size > 0 && !allSelected;
 
@@ -235,6 +278,20 @@ export const JobsTable = ({ jobs }: Props) => {
   const handleBulkPublish = () => {
     startBulkTransition(async () => {
       await markJobsPublished(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      router.refresh();
+    });
+  };
+
+  const handleBulkDeleteRejected = () => {
+    const n = selectedIds.size;
+    if (
+      !window.confirm(`선택한 ${n}건의 거절 공고를 DB에서 삭제할까요? 복구할 수 없습니다.`)
+    ) {
+      return;
+    }
+    startBulkTransition(async () => {
+      await deleteRejectedJobPostings(Array.from(selectedIds));
       setSelectedIds(new Set());
       router.refresh();
     });
@@ -288,6 +345,17 @@ export const JobsTable = ({ jobs }: Props) => {
               <HugeiconsIcon icon={Delete01Icon} size={13} color="currentColor" strokeWidth={2} />
               일괄 거절
             </button>
+            {selectionAllRejected && (
+              <button
+                type="button"
+                onClick={() => void handleBulkDeleteRejected()}
+                disabled={isBulkPending}
+                className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <HugeiconsIcon icon={Delete01Icon} size={13} color="currentColor" strokeWidth={2} />
+                선택 거절 삭제
+              </button>
+            )}
             <button
               onClick={handleBulkPublish}
               disabled={isBulkPending}

@@ -15,6 +15,8 @@ export interface Database {
           status: JobStatus;
           deadline: string | null;
           published_at: string | null;
+          /** `status === "rejected"`로 확정된 시각. 그 외 상태에서는 null. */
+          rejected_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -27,6 +29,7 @@ export interface Database {
           status?: JobStatus;
           deadline?: string | null;
           published_at?: string | null;
+          rejected_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -39,6 +42,7 @@ export interface Database {
           status?: JobStatus;
           deadline?: string | null;
           published_at?: string | null;
+          rejected_at?: string | null;
           created_at?: string;
         };
       };

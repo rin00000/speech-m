@@ -83,12 +83,20 @@ export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
 
 /**
  * HITL: pending = human/AI 미확정, approved/rejected = 검수 확정.
- * 검수 상태가 approved가 아니면 내부 게시 시각(`published_at`)을 비워 일관성을 유지한다.
+ * 검수 상태가 approved가 아니면 내부 게시 시각(`published_at`)을 비운다.
+ * rejected로 확정될 때 `rejected_at`을 채우고, 그 외로 되돌리면 null로 둔다.
  */
-const statusUpdatePayload = (status: JobStatus) =>
-  status === "approved"
-    ? ({ status } as const)
-    : ({ status, published_at: null } as const);
+const nowIso = () => new Date().toISOString();
+
+const statusUpdatePayload = (status: JobStatus) => {
+  if (status === "approved") {
+    return { status, rejected_at: null } as const;
+  }
+  if (status === "rejected") {
+    return { status, published_at: null, rejected_at: nowIso() } as const;
+  }
+  return { status, published_at: null, rejected_at: null } as const;
+};
 
 export const updateJobStatus = async (id: string, status: JobStatus) => {
   const supabase = createAdminClient();
@@ -110,6 +118,22 @@ export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
     .in("id", ids);
 
   if (error) throw new Error(error.message);
+  revalidatePath("/jobs");
+};
+
+const DELETE_REJECTED_CHUNK = 200;
+
+/**
+ * `status === "rejected"`인 행만 하드 삭제한다. id 목록에 다른 상태가 섞여 있어도 DB 조건으로 제외된다.
+ */
+export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> => {
+  if (!ids.length) return;
+  const supabase = createAdminClient();
+  for (let i = 0; i < ids.length; i += DELETE_REJECTED_CHUNK) {
+    const chunk = ids.slice(i, i + DELETE_REJECTED_CHUNK);
+    const { error } = await supabase.from("job_postings").delete().in("id", chunk).eq("status", "rejected");
+    if (error) throw new Error(error.message);
+  }
   revalidatePath("/jobs");
 };
 
