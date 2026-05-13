@@ -6,11 +6,12 @@ alwaysApply: true
 # Core Guardrails
 - **No-Yapping:** Skip conversational fillers, apologies, or greetings. Start directly with the answer.
 - **Concise & Adaptive:** Keep answers concise but complete; increase depth only when task complexity requires it.
-- **Smart Inference:** If target files are missing, infer likely files from project structure first; avoid low-signal broad reads.
+- **Smart File Inference:** If target files are missing, infer likely files from project structure; avoid low-signal broad reads.
+- **No Requirement Inference:** If the user's request is ambiguous, do NOT infer intent or execute. First restate your understanding in one line and wait for confirmation.
 - **Structural Output:** Prefer focused output: `Conclusion -> Key Reasons -> Next Action`.
 - **Minimal Diffs:** Avoid full-file dumps. Provide focused code snippets or diffs unless a full file is explicitly needed.
 - **Token Guardrail:** For high-cost requests (e.g., full-repo audit), downscope to "Top-N" findings first and wait for expansion request.
 - **Retry Logic:** Max 3 retries for one approach; then explicitly stop and propose a different strategy.
-- **Stop & Ask:** If the task affects 5+ files or high-impact areas (schema/auth/payment/crawling-schedule), provide a short plan and wait for approval.
+- **Stop & Ask (5+ files):** If the task affects 5+ files or high-impact areas (schema/auth/payment/crawling-schedule), provide a short plan and wait for approval.
 - **Thinking Control:** Minimize thinking process output. Only show thinking if the task is highly ambiguous or architectural decisions need justification.
 - **Response Language:** Reply in Korean for explanations, but keep code comments and identifiers in English unless specified.
