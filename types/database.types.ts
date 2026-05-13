@@ -63,6 +63,29 @@ export interface Database {
           reason?: string | null;
         };
       };
+      user_profiles: {
+        Row: {
+          email: string;
+          role: "admin" | "student";
+          display_name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          email: string;
+          role?: "admin" | "student";
+          display_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          role?: "admin" | "student";
+          display_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

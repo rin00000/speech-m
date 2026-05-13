@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { AdminSidebarContent } from "./sidebar";
+import type { UserRole } from "@/lib/auth/session";
 
 type AdminMobileNavContextValue = {
   mobileOpen: boolean;
@@ -54,7 +55,15 @@ export function MobileNavTrigger() {
   );
 }
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  userName,
+  userRole,
+}: {
+  children: ReactNode;
+  userName: string | null;
+  userRole: UserRole;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -101,7 +110,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <AdminMobileNavContext.Provider value={ctxValue}>
       <div className="flex h-full overflow-hidden bg-slate-50">
         <aside className="hidden h-full w-[260px] shrink-0 flex-col bg-slate-900 lg:flex">
-          <AdminSidebarContent />
+          <AdminSidebarContent userName={userName} userRole={userRole} />
         </aside>
 
         {mobileOpen ? (
@@ -116,7 +125,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               id="admin-mobile-nav"
               className="fixed inset-y-0 left-0 z-50 flex h-full w-[260px] flex-col bg-slate-900 shadow-xl lg:hidden"
             >
-              <AdminSidebarContent onNavigate={closeMobile} />
+              <AdminSidebarContent onNavigate={closeMobile} userName={userName} userRole={userRole} />
             </aside>
           </>
         ) : null}

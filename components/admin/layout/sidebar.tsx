@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   DashboardSquare01Icon,
@@ -11,6 +12,7 @@ import {
   Settings01Icon,
   Logout01Icon,
 } from "@hugeicons/core-free-icons";
+import type { UserRole } from "@/lib/auth/session";
 
 type IconType = typeof DashboardSquare01Icon;
 
@@ -70,7 +72,7 @@ const NavLink = ({
     }`}
   >
     <span
-      className={`flex-shrink-0 transition-colors ${
+      className={`shrink-0 transition-colors ${
         isActive ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"
       }`}
     >
@@ -90,10 +92,15 @@ const NavLink = ({
 
 export function AdminSidebarContent({
   onNavigate,
+  userName,
+  userRole,
 }: {
   onNavigate?: () => void;
+  userName: string | null;
+  userRole: UserRole;
 }) {
   const pathname = usePathname();
+  const menuItems = userRole === "admin" ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== "/jobs");
 
   const isActive = (href: string) =>
     href === "/dashboard"
@@ -102,7 +109,7 @@ export function AdminSidebarContent({
 
   return (
     <>
-      <div className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-800 px-5">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-800 px-5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 shadow-lg shadow-indigo-500/30">
           <span className="text-xs font-bold text-white">SM</span>
         </div>
@@ -116,7 +123,7 @@ export function AdminSidebarContent({
         <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
           메뉴
         </p>
-        {NAV_ITEMS.map((item) => (
+        {menuItems.map((item) => (
           <NavLink
             key={item.href}
             item={item}
@@ -126,7 +133,7 @@ export function AdminSidebarContent({
         ))}
       </nav>
 
-      <div className="flex-shrink-0 border-t border-slate-800 px-3 py-4">
+      <div className="shrink-0 border-t border-slate-800 px-3 py-4">
         <div className="flex flex-col gap-1">
           {BOTTOM_ITEMS.map((item) => (
             <NavLink
@@ -138,10 +145,13 @@ export function AdminSidebarContent({
           ))}
           <button
             type="button"
-            onClick={onNavigate}
+            onClick={async () => {
+              onNavigate?.();
+              await signOut({ callbackUrl: "/login" });
+            }}
             className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition-all duration-150 hover:bg-slate-800/60 hover:text-rose-400"
           >
-            <span className="flex-shrink-0 text-slate-500 transition-colors group-hover:text-rose-400">
+            <span className="shrink-0 text-slate-500 transition-colors group-hover:text-rose-400">
               <HugeiconsIcon
                 icon={Logout01Icon}
                 size={18}
@@ -154,12 +164,14 @@ export function AdminSidebarContent({
         </div>
 
         <div className="mt-4 flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-800/40 px-3 py-2.5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-semibold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-xs font-semibold text-white">
             원
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-200">원장님</p>
-            <p className="truncate text-[11px] text-slate-500">관리자</p>
+            <p className="truncate text-sm font-medium text-slate-200">{userName ?? "사용자"}</p>
+            <p className="truncate text-[11px] text-slate-500">
+              {userRole === "admin" ? "관리자" : "학생"}
+            </p>
           </div>
         </div>
       </div>

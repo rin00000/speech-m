@@ -17,6 +17,7 @@ import {
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
+import { requireAdmin } from "@/lib/auth/session";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
@@ -47,6 +48,7 @@ export default async function JobsPage({
 }: {
   searchParams: Promise<{ status?: string; source?: string; showRejected?: string }>;
 }) {
+  await requireAdmin();
   const { status: rawStatus, source: rawSource, showRejected: rawShowRejected } = await searchParams;
 
   const activeStatus = VALID_STATUSES.includes(rawStatus as JobStatus)
