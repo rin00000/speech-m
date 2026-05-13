@@ -1,7 +1,8 @@
+import { AiPostPromptCopyButton } from "@/components/admin/jobs/ai-post-prompt-copy-button";
 import { NaverShareIconLink } from "@/components/admin/jobs/naver-share-icon-link";
 import { Header } from "@/components/admin/layout/header";
 import { SOURCE_LABEL } from "@/lib/jobs/constants";
-import { buildNaverShareUrl } from "@/lib/jobs/naver-share";
+import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { relativeTime } from "@/lib/jobs/utils";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -225,20 +226,30 @@ export default async function DashboardPage() {
                           },
                           siteOrigin,
                         )}
-                        title="네이버 공유하기"
-                        iconType="c"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-opacity hover:bg-emerald-50 hover:opacity-90"
+                        title={`네이버 공유하기\n\n${buildBlogContent({
+                          title: job.title,
+                          company: job.company,
+                          location: job.location,
+                          deadline: job.deadline,
+                          source: job.source,
+                          source_url: job.source_url,
+                        })}`}
+                        iconType="a"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:bg-emerald-50 hover:opacity-90"
                       />
                     ) : null}
-                    <a
-                      href={job.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-500"
-                      title="원문 보기"
-                    >
-                      <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.6} />
-                    </a>
+                    <AiPostPromptCopyButton jobId={job.id} />
+                    {job.source_url ? (
+                      <a
+                        href={job.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-500"
+                        title="원문 보기"
+                      >
+                        <HugeiconsIcon icon={LinkSquare01Icon} size={16} color="currentColor" strokeWidth={1.6} />
+                      </a>
+                    ) : null}
                   </div>
                 </div>
               ))}

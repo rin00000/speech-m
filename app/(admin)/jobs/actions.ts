@@ -11,6 +11,7 @@ import {
   type BenchmarkMetrics,
   type BenchmarkResult,
 } from "@/lib/ai/job-fit";
+import { buildJobPostDraftPrompt } from "@/lib/ai/post/prompt";
 import type { JobStatus } from "@/types/database.types";
 export type { CrawlSource } from "@/lib/crawl/trigger";
 
@@ -191,4 +192,33 @@ export const markJobsPublished = async (ids: string[]): Promise<MarkPublishedRes
   }
   revalidatePath("/jobs");
   return { success: true, updated: eligible.length };
+};
+
+export type JobPostDraftPromptResult =
+  | { success: true; prompt: string }
+  | { success: false; error: string };
+
+/** 승인·내부 게시 확정 공고만: 외부 LLM에 붙일 초안용 한국어 프롬프트 문자열을 반환한다. */
+export const getJobPostDraftPrompt = async (id: string): Promise<JobPostDraftPromptResult> => {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("job_postings")
+    .select("id,title,company,location,deadline,source,source_url,status,published_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  if (!data) {
+    return { success: false, error: "공고를 찾을 수 없습니다." };
+  }
+  if (data.status !== "approved" || !data.published_at) {
+    return { success: false, error: "승인되고 내부 게시가 확정된 공고만 사용할 수 있습니다." };
+  }
+
+  return {
+    success: true,
+    prompt: buildJobPostDraftPrompt(data),
+  };
 };

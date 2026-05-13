@@ -23,6 +23,7 @@ import {
 } from "@/app/(admin)/jobs/actions";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
+import { AiPostPromptCopyButton } from "./ai-post-prompt-copy-button";
 import { NaverShareIconLink } from "./naver-share-icon-link";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
@@ -206,6 +207,7 @@ const RowActions = ({
           className="inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity hover:bg-emerald-50 hover:opacity-90"
         />
       )}
+      {canShareToNaver && <AiPostPromptCopyButton jobId={jobId} />}
       <button
         onClick={() => void handle("pending")}
         disabled={isPending}
