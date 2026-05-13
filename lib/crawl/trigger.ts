@@ -41,9 +41,17 @@ export const triggerCrawl = async (
   const startedAt = Date.now();
 
   try {
+    const headers: Record<string, string> = {
+      "x-crawl-secret": options.secret,
+    };
+    const protectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
+    if (protectionBypass) {
+      headers["x-vercel-protection-bypass"] = protectionBypass;
+    }
+
     const response = await fetch(`${options.baseUrl}/api/crawl/${source}`, {
       method: "POST",
-      headers: { "x-crawl-secret": options.secret },
+      headers,
       cache: "no-store",
     });
 

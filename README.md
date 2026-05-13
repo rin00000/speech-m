@@ -85,6 +85,7 @@ npm run dev
 - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, 서버용 `SUPABASE_SERVICE_ROLE_KEY`  
 - 배포 도메인(네이버 공유·OG용 절대 URL): `NEXT_PUBLIC_APP_URL` (예: `https://your-domain.com`) — 미설정 시 로컬은 `http://localhost:3000`, Vercel은 `VERCEL_URL` 기반으로 보완  
 - 크롤/관리 API 보호: `CRAWL_API_SECRET`, (스케줄용) `CRON_SECRET`  
+- Vercel **Deployment Protection** 사용 시: 대시보드 **Protection Bypass for Automation**으로 발급한 값이 배포에 `VERCEL_AUTOMATION_BYPASS_SECRET`로 들어가며, [`lib/crawl/trigger.ts`](lib/crawl/trigger.ts) 내부 `fetch`에 `x-vercel-protection-bypass`로 붙습니다.  
 - LLM: `OPENAI_API_KEY`, `GEMINI_API_KEY`, 선택 `JOB_FIT_MODEL_OPENAI`, `JOB_FIT_MODEL_GEMINI`  
 - 배포/CI 벤치마크 스크립트: `BENCHMARK_BASE_URL`, 선택 `JOB_FIT_METRICS_PATH`
 
@@ -116,6 +117,7 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 | `NEXT_PUBLIC_APP_URL` | (권장) 공개 사이트 절대 URL. 네이버 공유·OG용으로 [`lib/jobs/site-url.ts`](lib/jobs/site-url.ts)에서 사용. 예: `https://<프로젝트>.vercel.app` 또는 커스텀 도메인 |
 | `CRAWL_API_SECRET` | `/api/crawl/*` 호출 시 내부 트리거에 필요 |
 | `CRON_SECRET` | Vercel Cron이 `/api/crawl/all`·`/api/cron/purge-stale-job-postings` 호출 시 Bearer 검증에 필요 |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | (선택) **Vercel Authentication** 등 배포 보호가 켜져 있을 때만. 대시보드에서 Automation Bypass 시크릿을 추가하면 주입되며, `/api/crawl/all` → 소스별 `POST /api/crawl/*` 내부 호출에 우회 헤더로 사용됨 |
 | `STALE_LISTING_PURGE_MIN_AGE_DAYS` | (선택) 마감일 이후 며칠 지난 뒤 purge할지. 기본 `1`(KST “어제” 이전 마감까지 삭제) |
 | `STALE_LISTING_PURGE_INCLUDE_PUBLISHED` | (선택) `true`이면 내부 게시(`published_at` 있음) 행도 삭제. 기본은 제외(공유 URL 유지) |
 | `REJECTED_JOB_RETENTION_DAYS` | (선택) 거절 확정 후 며칠 지나면 DB에서 삭제할지. 기본 `10`. `rejected_at` 마이그레이션 필요 |
@@ -146,7 +148,7 @@ Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하�
 [vercel.json](vercel.json)에는 **일일 크롤**(`GET /api/crawl/all`)과 **마감 지난 공고 정리**(`GET /api/cron/purge-stale-job-postings`)가 스케줄되어 있습니다. 크롤 라우트는 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`을 검증하고, 내부 소스 호출에 `CRAWL_API_SECRET`을 사용합니다.
 
 1. Vercel 프로젝트 **Settings → Cron Jobs**(또는 배포 **Functions** 로그)에서 최근 호출 여부 확인.
-2. **Logs**에서 `/api/crawl/all` 또는 `purge-stale-job-postings` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼.
+2. **Logs**에서 `/api/crawl/all` 또는 `purge-stale-job-postings` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼. `GET /api/crawl/all`은 **200/207**인데 **External APIs**에서 동일 호스트로 `POST /api/crawl/*`만 **401**이면 **Deployment Protection**(Vercel Authentication)에 막힌 경우가 많음 — **Protection Bypass for Automation**을 켜고 재배포해 `VERCEL_AUTOMATION_BYPASS_SECRET`이 주입되는지 확인.
 3. **500**과 함께 `CRAWL_API_SECRET` 문구가 보이면 해당 환경 변수 미설정을 확인.
 4. 로컬에서 수동 검증: `curl -sS -H "Authorization: Bearer <CRON_SECRET>" "https://<배포도메인>/api/crawl/all"` (값은 노출되지 않게 터미널 히스토리 주의).
 5. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON은 `staleListing`·`rejectedTtl` 객체 각각의 `cutoffIso`·`deleted` 등을 확인한다.
