@@ -54,12 +54,17 @@ export const buildBlogContent = (job: NaverSharePayload): string => {
   return lines.join("\n");
 };
 
+/**
+ * Naver shareView `url` = 본문에 삽입되는 링크. 원문 채용 페이지(`source_url`)를 쓴다.
+ * `source_url`이 비어 있을 때만 내부 `/jobs/[id]/share` 랜딩으로 폴백한다.
+ */
 export const buildNaverShareUrl = (job: NaverShareJob, siteOrigin: string): string => {
   const origin = siteOrigin.replace(/\/$/, "");
   const landingUrl = `${origin}${buildJobSharePagePath(job.id)}`;
+  const bodyLink = job.source_url?.trim() ? job.source_url.trim() : landingUrl;
   const title = buildJobShareTitle(job);
   const params = new URLSearchParams({
-    url: landingUrl,
+    url: bodyLink,
     title,
   });
   return `${NAVER_SHARE_BASE_URL}?${params.toString()}`;

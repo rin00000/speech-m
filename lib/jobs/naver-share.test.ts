@@ -18,19 +18,27 @@ const sample = {
 };
 
 describe("buildNaverShareUrl", () => {
-  it("uses share landing URL and encodes title for naver share endpoint", () => {
+  it("uses source_url as Naver body link and encodes title", () => {
     const shareUrl = buildNaverShareUrl(sample, "https://app.speech-m.example");
     expect(shareUrl.startsWith("https://share.naver.com/web/shareView?")).toBe(true);
     expect(shareUrl).toContain(
-      "url=https%3A%2F%2Fapp.speech-m.example%2Fjobs%2Fjob-uuid-1%2Fshare",
+      "url=https%3A%2F%2Fexample.com%2Fjobs%2F1%3Ffoo%3Dbar%26baz%3D1",
     );
     expect(shareUrl).toContain(
       "title=%5B%EC%B1%84%EC%9A%A9%5D+%EC%8A%A4%ED%94%BC%EC%B9%98%EB%AF%B8%EB%94%94%EC%96%B4+%EC%95%84%EB%82%98%EC%9A%B4%EC%84%9C+%EA%B3%B5%EA%B0%9C%EC%B1%84%EC%9A%A9",
     );
   });
 
-  it("strips trailing slash from site origin", () => {
+  it("strips trailing slash from site origin (used only for landing fallback)", () => {
     const shareUrl = buildNaverShareUrl(sample, "https://app.example.com/");
+    expect(shareUrl).toContain("url=https%3A%2F%2Fexample.com%2Fjobs%2F1%3Ffoo%3Dbar%26baz%3D1");
+  });
+
+  it("falls back to internal share landing when source_url is empty", () => {
+    const shareUrl = buildNaverShareUrl(
+      { ...sample, source_url: "   " },
+      "https://app.example.com",
+    );
     expect(shareUrl).toContain("url=https%3A%2F%2Fapp.example.com%2Fjobs%2Fjob-uuid-1%2Fshare");
   });
 });
