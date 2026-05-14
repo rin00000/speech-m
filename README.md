@@ -86,7 +86,7 @@ npm run dev
 - 배포 도메인(네이버 공유·OG용 절대 URL): `NEXT_PUBLIC_APP_URL` (예: `https://your-domain.com`) — 미설정 시 로컬은 `http://localhost:3000`, Vercel은 `VERCEL_URL` 기반으로 보완  
 - 크롤/관리 API 보호: `CRAWL_API_SECRET`, (스케줄용) `CRON_SECRET`, 선택 `CRAWL_MAX_CONSECUTIVE_DUPLICATES`  
 - Vercel **Deployment Protection** 사용 시: 대시보드 **Protection Bypass for Automation**으로 발급한 값이 배포에 `VERCEL_AUTOMATION_BYPASS_SECRET`로 들어가며, [`lib/crawl/trigger.ts`](lib/crawl/trigger.ts) 내부 `fetch`에 `x-vercel-protection-bypass`로 붙습니다.  
-- LLM: `OPENAI_API_KEY`, `GEMINI_API_KEY`, 선택 `JOB_FIT_MODEL_OPENAI`, `JOB_FIT_MODEL_GEMINI`  
+- LLM(job-fit): `GEMINI_API_KEY`, 선택 `JOB_FIT_MODEL_GEMINI`  
 - 배포/CI 벤치마크 스크립트: `BENCHMARK_BASE_URL`, 선택 `JOB_FIT_METRICS_PATH`
 
 실제 키·URL은 저장소에 커밋하지 마세요.
@@ -132,7 +132,7 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 | `STALE_LISTING_PURGE_INCLUDE_PUBLISHED` | (선택) `true`이면 내부 게시(`published_at` 있음) 행도 삭제. 기본은 제외(공유 URL 유지) |
 | `REJECTED_JOB_RETENTION_DAYS` | (선택) 거절 확정 후 며칠 지나면 DB에서 삭제할지. 기본 `10`. `rejected_at` 마이그레이션 필요 |
 | `CRAWL_MAX_CONSECUTIVE_DUPLICATES` | (선택) 조기 중단 시 “DB에 이미 있는 URL”이 **연속 몇 번** 나오면 다음 페이지를 안 가져올지. 기본 `5` |
-| `OPENAI_API_KEY` / `GEMINI_API_KEY` 등 | job-fit 등 LLM 기능 사용 시 |
+| `GEMINI_API_KEY` 등 | job-fit LLM 기능 사용 시 |
 
 ### 3) 첫 배포 후 확인
 

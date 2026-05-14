@@ -1,13 +1,12 @@
 export const JOB_FIT_CONFIG = {
   productionModel: "gemini-2.5-flash",
-  backupModel: "gpt-4.1-mini",
   policy: {
     costPriority: true,
     // approved: score >= 60, rejected: score <= 44, otherwise pending
     pendingRange: [45, 59] as const,
   },
   switchRule:
-    "골든셋에서 동일 오탐/미탐 임계치를 만족하면 더 저렴한 모델로 교체(기본: Gemini 우선)",
+    "골든셋에서 오탐/미탐 임계치를 만족하는 한 비용 효율적인 Gemini 모델을 유지한다",
 } as const;
 
 export type BenchmarkThresholdConfig = {

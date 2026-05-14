@@ -22,10 +22,8 @@ type BenchResult = {
   accuracy: number;
 };
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.JOB_FIT_MODEL_GEMINI ?? "gemini-2.5-flash";
-const OPENAI_MODEL = process.env.JOB_FIT_MODEL_OPENAI ?? "gpt-4.1-mini";
 
 const rowToInput = (row: GoldenRow): JobFitInput => ({
   id: row.id,
@@ -48,35 +46,6 @@ const parseJobFitLabel = (text: string): "approved" | "rejected" => {
   const json = extractJsonObject(text);
   const parsed = jobFitResultSchema.parse(json);
   return parsed.label;
-};
-
-const callOpenAI = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
-  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY missing");
-  const input = rowToInput(row);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: buildSystemPrompt(input.source) },
-        {
-          role: "user",
-          content: buildUserPrompt(input),
-        },
-      ],
-    }),
-  });
-  const json = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const text = json.choices?.[0]?.message?.content ?? "";
-  return parseJobFitLabel(text);
 };
 
 const callGemini = async (row: GoldenRow): Promise<"approved" | "rejected"> => {
@@ -158,21 +127,10 @@ const main = async () => {
 
   const results: BenchResult[] = [];
 
-  if (GEMINI_API_KEY) {
-    results.push(await evaluate(GEMINI_MODEL, rows, callGemini));
-  } else {
-    console.warn("skip Gemini benchmark: GEMINI_API_KEY missing");
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is required for bench:job-fit.");
   }
-
-  if (OPENAI_API_KEY) {
-    results.push(await evaluate(OPENAI_MODEL, rows, callOpenAI));
-  } else {
-    console.warn("skip OpenAI benchmark: OPENAI_API_KEY missing");
-  }
-
-  if (results.length === 0) {
-    throw new Error("No benchmark run. Set GEMINI_API_KEY or OPENAI_API_KEY.");
-  }
+  results.push(await evaluate(GEMINI_MODEL, rows, callGemini));
 
   console.log(JSON.stringify({ results }, null, 2));
 };
