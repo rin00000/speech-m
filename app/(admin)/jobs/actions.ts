@@ -18,6 +18,8 @@ export type { CrawlSource } from "@/lib/crawl/trigger";
 export type RunCrawlResult = {
   success: boolean;
   saved?: number;
+  inserted?: number;
+  updated?: number;
   total?: number;
   error?: string;
 };
@@ -64,7 +66,13 @@ export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => 
     }
 
     revalidatePath("/jobs");
-    return { success: true, saved: result.saved ?? 0, total: result.total ?? 0 };
+    return {
+      success: true,
+      saved: result.saved ?? 0,
+      inserted: result.inserted ?? 0,
+      updated: result.updated ?? 0,
+      total: result.total ?? 0,
+    };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }

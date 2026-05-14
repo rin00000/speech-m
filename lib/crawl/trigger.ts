@@ -4,6 +4,8 @@ export type CrawlRunResult = {
   source: CrawlSource;
   success: boolean;
   saved?: number;
+  inserted?: number;
+  updated?: number;
   total?: number;
   error?: string;
   durationMs: number;
@@ -20,15 +22,17 @@ type TriggerOptions = {
   secret: string;
 };
 
-const readJson = async (
-  response: Response
-): Promise<{ saved?: number; total?: number; error?: string }> => {
+type CrawlApiJson = {
+  saved?: number;
+  inserted?: number;
+  updated?: number;
+  total?: number;
+  error?: string;
+};
+
+const readJson = async (response: Response): Promise<CrawlApiJson> => {
   try {
-    return (await response.json()) as {
-      saved?: number;
-      total?: number;
-      error?: string;
-    };
+    return (await response.json()) as CrawlApiJson;
   } catch {
     return {};
   }
@@ -69,6 +73,8 @@ export const triggerCrawl = async (
       source,
       success: true,
       saved: json.saved ?? 0,
+      inserted: json.inserted ?? 0,
+      updated: json.updated ?? 0,
       total: json.total ?? 0,
       durationMs: Date.now() - startedAt,
     };

@@ -34,7 +34,13 @@ export const CrawlButton = ({ source, label }: Props) => {
         return;
       }
       setState("success");
-      setMessage(`${result.saved ?? 0}건 저장`);
+      const inserted = result.inserted ?? 0;
+      const updated = result.updated ?? 0;
+      const parts = [`신규 ${inserted}건`];
+      if (updated > 0) {
+        parts.push(`메타 갱신 ${updated}건`);
+      }
+      setMessage(parts.join(" · "));
       router.refresh();
       setTimeout(() => setState("idle"), 4000);
     });

@@ -4,6 +4,7 @@ import { CRAWL_SOURCES, triggerCrawl } from "@/lib/crawl/trigger";
 type Summary = {
   success: boolean;
   totalSaved: number;
+  totalInserted: number;
   totalParsed: number;
   durationMs: number;
 };
@@ -39,6 +40,7 @@ const runAllSources = async (request: Request) => {
   const summary: Summary = {
     success: results.every((result) => result.success),
     totalSaved: results.reduce((acc, result) => acc + (result.saved ?? 0), 0),
+    totalInserted: results.reduce((acc, result) => acc + (result.inserted ?? 0), 0),
     totalParsed: results.reduce((acc, result) => acc + (result.total ?? 0), 0),
     durationMs: Date.now() - startedAt,
   };
