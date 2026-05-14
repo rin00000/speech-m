@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
-import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
+import { collectJobsWithConsecutiveDupStop } from "@/lib/crawl/incremental-pages";
+import { persistCrawlBatch } from "@/lib/crawl/persist-crawl-batch";
 import { createAdminClient } from "@/lib/supabase/server";
-import { poolAllSettled } from "@/lib/async/pool-all-settled";
 import {
   BASE_FETCH_HEADERS,
   fetchWithRetry,
@@ -16,7 +16,12 @@ const BASE_URL = "https://www.mediajob.co.kr";
 const CRAWL_PAGES = 2;
 const FETCH_CONCURRENCY = 3;
 
-/** Site default list order is 수정일 최신순; URLs below do not override sort. */
+/**
+ * 목록 정렬: 리스트 폼의 `SF=upd_date`(수정일순) + 페이지 이동 시와 동일하게 `moveTo=Y`.
+ * 사이트 JS `sort('upd_date','ASC')`와 동일 계열.
+ */
+const LIST_SORT_QUERY = "SF=upd_date&moveTo=Y" as const;
+
 type CrawlTarget = {
   label: string;
   source: JobSource;
@@ -27,17 +32,20 @@ const CRAWL_TARGETS: CrawlTarget[] = [
   {
     label: "아나운서",
     source: "mediajob_announcer",
-    buildUrl: (page) => `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=2&page=${page}`,
+    buildUrl: (page) =>
+      `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=2&page=${page}&${LIST_SORT_QUERY}`,
   },
   {
     label: "기자",
     source: "mediajob_reporter",
-    buildUrl: (page) => `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=3&page=${page}`,
+    buildUrl: (page) =>
+      `${BASE_URL}/recruit/recruit.htm?ctg=exp&exp_lv=3&page=${page}&${LIST_SORT_QUERY}`,
   },
   {
     label: "인턴",
     source: "mediajob_intern",
-    buildUrl: (page) => `${BASE_URL}/recruit/recruit.htm?ctg=intern&page=${page}`,
+    buildUrl: (page) =>
+      `${BASE_URL}/recruit/recruit.htm?ctg=intern&page=${page}&${LIST_SORT_QUERY}`,
   },
 ];
 
@@ -85,57 +93,50 @@ function parseJobsFromHtml(html: string, seenRecIdx: Set<string>, source: JobSou
   return jobs;
 }
 
-type MediajobFetchTask = {
-  target: CrawlTarget;
-  page: number;
-  url: string;
-};
-
 export async function POST() {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const supabase = createAdminClient();
     const seenRecIdx = new Set<string>();
-
-    const tasks: MediajobFetchTask[] = CRAWL_TARGETS.flatMap((target) =>
-      Array.from({ length: CRAWL_PAGES }, (_, i) => {
-        const page = i + 1;
-        return {
-          target,
-          page,
-          url: target.buildUrl(page),
-        };
-      })
-    );
-
     const inFlight = new Map<string, Promise<Response>>();
-    const results = await poolAllSettled(tasks, FETCH_CONCURRENCY, (task) =>
-      shareInFlightPromise(inFlight, task.url, () =>
-        fetchWithRetry(task.url, {
-          headers: FETCH_HEADERS,
-          cache: "no-store",
-        })
-      )
-    );
+    const pageNumbers = Array.from({ length: CRAWL_PAGES }, (_, i) => i + 1);
+
+    const crawlOneTarget = async (target: (typeof CRAWL_TARGETS)[number]) => {
+      return collectJobsWithConsecutiveDupStop(supabase, {
+        pageNumbers,
+        loadPage: async (page) => {
+          const url = target.buildUrl(page);
+          const result = await shareInFlightPromise(inFlight, url, () =>
+            fetchWithRetry(url, {
+              headers: FETCH_HEADERS,
+              cache: "no-store",
+            })
+          );
+
+          if (!result.ok) {
+            console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패: HTTP ${result.status}`);
+            return [];
+          }
+
+          const html = await result.text();
+          return parseJobsFromHtml(html, seenRecIdx, target.source, today);
+        },
+      });
+    };
+
+    const targetChunks: CrawlTarget[][] = [];
+    for (let i = 0; i < CRAWL_TARGETS.length; i += FETCH_CONCURRENCY) {
+      targetChunks.push(CRAWL_TARGETS.slice(i, i + FETCH_CONCURRENCY));
+    }
 
     const jobs: JobInsert[] = [];
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const { target, page } = tasks[i];
-
-      if (result.status === "rejected") {
-        console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패:`, result.reason);
-        continue;
+    for (const chunk of targetChunks) {
+      const parts = await Promise.all(chunk.map((t) => crawlOneTarget(t)));
+      for (const part of parts) {
+        jobs.push(...part);
       }
-      if (!result.value.ok) {
-        console.warn(`[crawl/mediajob] ${target.label} page ${page} 요청 실패: HTTP ${result.value.status}`);
-        continue;
-      }
-
-      const html = await result.value.text();
-      const pageJobs = parseJobsFromHtml(html, seenRecIdx, target.source, today);
-      jobs.push(...pageJobs);
     }
 
     if (jobs.length === 0) {
@@ -145,32 +146,17 @@ export async function POST() {
       );
     }
 
-    const toUpsert = await filterBlockedFromJobs(jobs);
-    const skippedBlocked = jobs.length - toUpsert.length;
-    if (toUpsert.length === 0) {
-      return NextResponse.json({
-        success: true,
-        saved: 0,
-        total: jobs.length,
-        skipped_blocked: skippedBlocked,
-      });
-    }
-
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("job_postings")
-      .upsert(toUpsert, { onConflict: "source_url", ignoreDuplicates: true })
-      .select("id");
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const persist = await persistCrawlBatch(supabase, jobs);
+    const saved = persist.inserted + persist.updated;
 
     return NextResponse.json({
       success: true,
-      saved: data?.length ?? 0,
+      saved,
+      inserted: persist.inserted,
+      updated: persist.updated,
       total: jobs.length,
-      skipped_blocked: skippedBlocked,
+      skipped_blocked: persist.skipped_blocked,
+      skipped_fingerprint_dup: persist.skipped_fingerprint_dup,
     });
   } catch (err) {
     console.error("[crawl/mediajob]", err);

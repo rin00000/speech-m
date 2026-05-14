@@ -1,3 +1,11 @@
+type DbJson =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: DbJson | undefined }
+  | DbJson[];
+
 export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "saramin" | "jobkorea" | "custom";
 export type JobStatus = "pending" | "approved" | "rejected";
 
@@ -18,6 +26,8 @@ export interface Database {
           /** `status === "rejected"`로 확정된 시각. 그 외 상태에서는 null. */
           rejected_at: string | null;
           created_at: string;
+          fingerprint: string | null;
+          last_seen_at: string | null;
         };
         Insert: {
           id?: string;
@@ -31,6 +41,8 @@ export interface Database {
           published_at?: string | null;
           rejected_at?: string | null;
           created_at?: string;
+          fingerprint?: string | null;
+          last_seen_at?: string | null;
         };
         Update: {
           id?: string;
@@ -44,8 +56,11 @@ export interface Database {
           published_at?: string | null;
           rejected_at?: string | null;
           created_at?: string;
+          fingerprint?: string | null;
+          last_seen_at?: string | null;
         };
-      };
+        Relationships: [];
+      },
       crawl_blocked_source_urls: {
         Row: {
           source_url: string;
@@ -62,7 +77,8 @@ export interface Database {
           created_at?: string;
           reason?: string | null;
         };
-      };
+        Relationships: [];
+      },
       user_profiles: {
         Row: {
           email: string;
@@ -85,10 +101,20 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+        Relationships: [];
+      },
+    },
+    Views: Record<string, never>,
+    Functions: {
+      batch_update_job_posting_crawl_meta: {
+        Args: { p_rows: DbJson };
+        Returns: undefined;
+      },
+      purge_stale_job_listings: {
+        Args: { p_cutoff_iso: string; p_include_published?: boolean };
+        Returns: number;
+      },
+    },
     Enums: Record<string, never>;
   };
 }

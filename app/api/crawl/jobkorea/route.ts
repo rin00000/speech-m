@@ -1,8 +1,7 @@
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
-import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
-import { createAdminClient } from "@/lib/supabase/server";
-import { poolAllSettled } from "@/lib/async/pool-all-settled";
+import { collectJobsWithConsecutiveDupStop } from "@/lib/crawl/incremental-pages";
+import { persistCrawlBatch } from "@/lib/crawl/persist-crawl-batch";
 import {
   BASE_FETCH_HEADERS,
   fetchWithRetry,
@@ -10,6 +9,7 @@ import {
   shareInFlightPromise,
   type JobInsert,
 } from "@/lib/crawl/shared";
+import { createAdminClient } from "@/lib/supabase/server";
 
 const BASE_URL = "https://www.jobkorea.co.kr";
 const ENDPOINT = `${BASE_URL}/Recruit/Home/_GI_List/`;
@@ -101,41 +101,35 @@ export async function POST() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const supabase = createAdminClient();
     const seenGno = new Set<string>();
     const inFlight = new Map<string, Promise<Response>>();
-    const pages = Array.from({ length: CRAWL_PAGES }, (_, i) => i + 1);
+    const pageNumbers = Array.from({ length: CRAWL_PAGES }, (_, i) => i + 1);
 
-    const results = await poolAllSettled(pages, FETCH_CONCURRENCY, (page) =>
-      shareInFlightPromise(inFlight, `POST:${ENDPOINT}:page=${page}`, () =>
-        fetchWithRetry(ENDPOINT, {
-          method: "POST",
-          headers: FETCH_HEADERS,
-          body: buildBody(page),
-          cache: "no-store",
-        })
-      )
-    );
-
-    const jobs: JobInsert[] = [];
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const page = i + 1;
-
-      if (result.status === "rejected") {
-        console.warn(`[crawl/jobkorea] page ${page} 요청 실패:`, result.reason);
-        continue;
-      }
-      if (!result.value.ok) {
-        console.warn(
-          `[crawl/jobkorea] page ${page} 요청 실패: HTTP ${result.value.status}`
+    const jobs = await collectJobsWithConsecutiveDupStop(supabase, {
+      pageNumbers,
+      loadPage: async (page) => {
+        const result = await shareInFlightPromise(
+          inFlight,
+          `POST:${ENDPOINT}:page=${page}`,
+          () =>
+            fetchWithRetry(ENDPOINT, {
+              method: "POST",
+              headers: FETCH_HEADERS,
+              body: buildBody(page),
+              cache: "no-store",
+            })
         );
-        continue;
-      }
 
-      const html = await result.value.text();
-      const pageJobs = parseJobsFromHtml(html, seenGno, today);
-      jobs.push(...pageJobs);
-    }
+        if (!result.ok) {
+          console.warn(`[crawl/jobkorea] page ${page} 요청 실패: HTTP ${result.status}`);
+          return [];
+        }
+
+        const html = await result.text();
+        return parseJobsFromHtml(html, seenGno, today);
+      },
+    });
 
     if (jobs.length === 0) {
       return NextResponse.json(
@@ -147,32 +141,17 @@ export async function POST() {
       );
     }
 
-    const toUpsert = await filterBlockedFromJobs(jobs);
-    const skippedBlocked = jobs.length - toUpsert.length;
-    if (toUpsert.length === 0) {
-      return NextResponse.json({
-        success: true,
-        saved: 0,
-        total: jobs.length,
-        skipped_blocked: skippedBlocked,
-      });
-    }
-
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("job_postings")
-      .upsert(toUpsert, { onConflict: "source_url", ignoreDuplicates: true })
-      .select("id");
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const persist = await persistCrawlBatch(supabase, jobs);
+    const saved = persist.inserted + persist.updated;
 
     return NextResponse.json({
       success: true,
-      saved: data?.length ?? 0,
+      saved,
+      inserted: persist.inserted,
+      updated: persist.updated,
       total: jobs.length,
-      skipped_blocked: skippedBlocked,
+      skipped_blocked: persist.skipped_blocked,
+      skipped_fingerprint_dup: persist.skipped_fingerprint_dup,
     });
   } catch (err) {
     console.error("[crawl/jobkorea]", err);

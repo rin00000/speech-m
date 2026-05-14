@@ -1,7 +1,8 @@
 /**
  * 리스트형 채용 사이트(미디어잡·사람인·잡코리아) 공고는 마감 후 원문 목록에서 사라지는 경우가 많다.
- * 크롤 결과와 DB를 매번 diff하기보다, 파싱된 ISO 마감일(`YYYY-MM-DD`)과 KST 기준 일자로 “마감+유예일”이 지난 행을 삭제한다.
- * `published_at`이 있는 승인 공고는 내부 공유 URL을 깨지 않도록 기본적으로 제외한다.
+ * 파싱된 ISO 마감일(`YYYY-MM-DD`)과 KST 기준 일자로 “마감+유예일”이 지난 행을 삭제한다.
+ * 삭제 전 `source_url`을 `crawl_blocked_source_urls`에 넣어 재수집을 막는다(RPC 단일 트랜잭션).
+ * `published_at`이 있는 승인 공고는 기본적으로 제외한다.
  */
 import { createAdminClient } from "@/lib/supabase/server";
 import type { JobSource } from "@/types/database.types";
@@ -45,12 +46,9 @@ export type RunStaleListingPurgeResult = {
   error?: string;
 };
 
-const DELETE_CHUNK = 200;
-
 /**
  * 마감일(`deadline`)이 `cutoffIso` 이하인 ISO 날짜 행만 삭제 후보로 본다.
- * `deadline`이 `상시채용` 등 텍스트인 행은 `lte(cutoff)`에 걸리지 않는 경우가 대부분이며,
- * 최종적으로 ISO 패턴만 통과시켜 오삭제를 막는다.
+ * `deadline`이 `상시채용` 등 텍스트인 행은 RPC `WHERE deadline ~ ISO`에 걸리지 않아 오삭제되지 않는다.
  */
 export async function runStaleListingPurge(
   options: RunStaleListingPurgeOptions = {}
@@ -64,48 +62,29 @@ export async function runStaleListingPurge(
 
   const supabase = createAdminClient();
 
-  let q = supabase
-    .from("job_postings")
-    .select("id,deadline")
-    .in("source", [...STALE_PURGE_LISTING_SOURCES])
-    .lte("deadline", cutoffIso);
+  const { data, error } = await supabase.rpc("purge_stale_job_listings", {
+    p_cutoff_iso: cutoffIso,
+    p_include_published: includePublished,
+  });
 
-  if (!includePublished) {
-    q = q.is("published_at", null);
-  }
-
-  const { data: rows, error: selErr } = await q.returns<{ id: string; deadline: string | null }[]>();
-  if (selErr) {
+  if (error) {
     return {
       success: false,
       cutoffIso,
       scanned: 0,
       deleted: 0,
-      error: selErr.message,
+      error: error.message,
     };
   }
 
-  const ids = (rows ?? [])
-    .filter((r) => r.deadline != null && ISO_DATE.test(r.deadline))
-    .map((r) => r.id);
+  const deleted = typeof data === "number" && Number.isFinite(data) ? data : Number(data ?? 0);
 
-  let deleted = 0;
-  for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
-    const chunk = ids.slice(i, i + DELETE_CHUNK);
-    const { error: delErr } = await supabase.from("job_postings").delete().in("id", chunk);
-    if (delErr) {
-      return {
-        success: false,
-        cutoffIso,
-        scanned: ids.length,
-        deleted,
-        error: delErr.message,
-      };
-    }
-    deleted += chunk.length;
-  }
-
-  return { success: true, cutoffIso, scanned: ids.length, deleted };
+  return {
+    success: true,
+    cutoffIso,
+    scanned: deleted,
+    deleted,
+  };
 }
 
 function getEnvInt(name: string, fallback: number): number {
@@ -114,3 +93,6 @@ function getEnvInt(name: string, fallback: number): number {
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
+
+/** @deprecated ISO 패턴 검사는 purge RPC 내부에서 수행한다. 테스트·호환용으로 유지. */
+export const staleListingIsoDeadlinePattern = ISO_DATE;

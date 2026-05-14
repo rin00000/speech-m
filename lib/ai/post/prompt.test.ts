@@ -8,7 +8,7 @@ describe("buildJobPostDraftPrompt", () => {
       company: "테스트방송",
       location: "서울",
       deadline: "2026-12-31",
-      source: "mediajob",
+      source: "mediajob_announcer",
       source_url: "https://example.com/job/1",
     });
     expect(prompt).toContain("에디터");
