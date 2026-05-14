@@ -73,11 +73,11 @@ const AiRejectReasonCell = ({
   job: JobPosting;
   cellPaddingClass: string;
 }) => {
-  if (job.status !== "rejected") {
-    return <td className={`${cellPaddingClass} text-slate-300`}>—</td>;
-  }
   const snap = parseAiFitSnapshot(job.ai_fit_snapshot);
   if (!snap) {
+    if (job.status === "pending") {
+      return <td className={`${cellPaddingClass} text-slate-300`}>—</td>;
+    }
     return (
       <td className={`${cellPaddingClass} max-w-56 text-xs text-slate-400`}>
         AI 기록 없음
@@ -255,7 +255,7 @@ const RowActions = ({
 
 type Props = {
   jobs: JobPosting[];
-  /** 거절 탭 또는 거절이 섞인 전체 보기에서만 AI 거절 사유 컬럼 표시 */
+  /** 대기(pending) 탭 제외: AI 적합도 스냅샷 사유 컬럼 표시 */
   showAiRejectReasons?: boolean;
   sourceHeader?: ReactNode;
   emptyState?: ReactNode;
