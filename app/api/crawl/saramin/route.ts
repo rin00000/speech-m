@@ -2,11 +2,11 @@ import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
 import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
 import { createAdminClient } from "@/lib/supabase/server";
+import { poolAllSettled } from "@/lib/async/pool-all-settled";
 import {
   BASE_FETCH_HEADERS,
   fetchWithRetry,
   parseDeadline,
-  poolAllSettled,
   shareInFlightPromise,
   type JobInsert,
 } from "@/lib/crawl/shared";
