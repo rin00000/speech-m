@@ -2,12 +2,21 @@ import { z } from "zod";
 
 export const jobFitLabelSchema = z.enum(["approved", "rejected"]);
 
-export const jobFitResultSchema = z.object({
+/** When the LLM omits or empties `matched_rules`, parsing substitutes this tag for observability. */
+export const LLM_MATCHED_RULES_FALLBACK = "llm_matched_rules_fallback" as const;
+
+const jobFitLlmRowSchema = z.object({
   label: jobFitLabelSchema,
   score: z.number().min(0).max(100),
   reasons: z.array(z.string().min(1)).min(1).max(5),
-  matched_rules: z.array(z.string().min(1)).min(1).max(8),
+  matched_rules: z.array(z.string().min(1)).max(8).optional().default([]),
 });
+
+export const jobFitResultSchema = jobFitLlmRowSchema.transform((row) => ({
+  ...row,
+  matched_rules:
+    row.matched_rules.length > 0 ? row.matched_rules : [LLM_MATCHED_RULES_FALLBACK],
+}));
 
 export type JobFitResult = z.infer<typeof jobFitResultSchema>;
 

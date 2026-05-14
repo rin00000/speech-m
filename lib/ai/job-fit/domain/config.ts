@@ -1,3 +1,11 @@
+/** Gemini `generateContent` HTTP: total attempts, backoff, per-request timeout. Env overrides in `providers.ts`. */
+export const JOB_FIT_GEMINI_RETRY_DEFAULTS = {
+  maxAttempts: 5,
+  baseDelayMs: 500,
+  maxDelayMs: 10_000,
+  timeoutMs: 60_000,
+} as const;
+
 export const JOB_FIT_CONFIG = {
   productionModel: "gemini-2.5-flash",
   policy: {

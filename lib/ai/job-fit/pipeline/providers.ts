@@ -1,4 +1,5 @@
-import { JOB_FIT_CONFIG } from "../domain/config";
+import { fetchWithExponentialBackoff } from "@/lib/async/fetch-with-exponential-backoff";
+import { JOB_FIT_CONFIG, JOB_FIT_GEMINI_RETRY_DEFAULTS } from "../domain/config";
 import { jobFitResultSchema, type JobFitInput, type JobFitResult } from "../domain/schema";
 import { buildSystemPrompt, buildUserPrompt } from "../policy/rules";
 
@@ -10,6 +11,31 @@ type ProviderResult = {
 
 const GEMINI_MODEL_PRIMARY =
   process.env.JOB_FIT_MODEL_GEMINI ?? JOB_FIT_CONFIG.productionModel;
+
+const parseEnvInt = (raw: string | undefined, fallback: number, min: number): number => {
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= min ? n : fallback;
+};
+
+const resolveGeminiFetchRetryOptions = () => ({
+  maxAttempts: parseEnvInt(process.env.JOB_FIT_GEMINI_MAX_ATTEMPTS, JOB_FIT_GEMINI_RETRY_DEFAULTS.maxAttempts, 1),
+  baseDelayMs: parseEnvInt(
+    process.env.JOB_FIT_GEMINI_BACKOFF_BASE_MS,
+    JOB_FIT_GEMINI_RETRY_DEFAULTS.baseDelayMs,
+    0
+  ),
+  maxDelayMs: parseEnvInt(
+    process.env.JOB_FIT_GEMINI_BACKOFF_MAX_MS,
+    JOB_FIT_GEMINI_RETRY_DEFAULTS.maxDelayMs,
+    0
+  ),
+  timeoutMs: parseEnvInt(
+    process.env.JOB_FIT_GEMINI_TIMEOUT_MS,
+    JOB_FIT_GEMINI_RETRY_DEFAULTS.timeoutMs,
+    1000
+  ),
+});
 
 const extractJson = (text: string): unknown => {
   const trimmed = text.trim();
@@ -37,23 +63,27 @@ const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> =
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL_PRIMARY)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      generationConfig: {
-        temperature: 0,
-        responseMimeType: "application/json",
-      },
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${buildSystemPrompt(input.source)}\n\n${buildUserPrompt(input)}` }],
+  const response = await fetchWithExponentialBackoff(
+    endpoint,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        generationConfig: {
+          temperature: 0,
+          responseMimeType: "application/json",
         },
-      ],
-    }),
-    cache: "no-store",
-  });
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${buildSystemPrompt(input.source)}\n\n${buildUserPrompt(input)}` }],
+          },
+        ],
+      }),
+      cache: "no-store",
+    },
+    resolveGeminiFetchRetryOptions()
+  );
 
   if (!response.ok) {
     throw new Error(`Gemini API failed: HTTP ${response.status}`);

@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { toFinalStatus } from "./schema";
+import { jobFitResultSchema, LLM_MATCHED_RULES_FALLBACK, toFinalStatus } from "./schema";
+
+describe("jobFitResultSchema", () => {
+  it("fills matched_rules when the LLM returns an empty array", () => {
+    const parsed = jobFitResultSchema.parse({
+      label: "rejected",
+      score: 40,
+      reasons: ["x"],
+      matched_rules: [],
+    });
+    expect(parsed.matched_rules).toEqual([LLM_MATCHED_RULES_FALLBACK]);
+  });
+
+  it("fills matched_rules when the field is omitted", () => {
+    const parsed = jobFitResultSchema.parse({
+      label: "approved",
+      score: 80,
+      reasons: ["y"],
+    });
+    expect(parsed.matched_rules).toEqual([LLM_MATCHED_RULES_FALLBACK]);
+  });
+});
 
 describe("toFinalStatus", () => {
   it("auto-approves high-score approved label", () => {
