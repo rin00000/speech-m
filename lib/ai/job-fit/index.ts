@@ -26,6 +26,13 @@ export {
 } from "./domain/schema";
 
 export {
+  aiFitSnapshotStoredSchema,
+  buildAiFitSnapshotPayload,
+  parseAiFitSnapshot,
+  type AiFitSnapshotStored,
+} from "./domain/ai-fit-snapshot";
+
+export {
   JOB_FIT_PROMPT_VERSION,
   JOB_FIT_INTERN_SOURCE,
   JOB_FIT_INTERN_ALLOWED_KEYWORDS,

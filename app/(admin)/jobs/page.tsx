@@ -241,6 +241,9 @@ export default async function JobsPage({
 
           <JobsTable
             jobs={jobList}
+            showAiRejectReasons={
+              activeStatus === "rejected" || (activeStatus === null && showRejected)
+            }
             sourceHeader={
               <JobsSourceTabs
                 sourceCounts={sourceCounts}

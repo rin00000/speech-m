@@ -10,6 +10,7 @@
 import { poolAllSettled } from "@/lib/async/pool-all-settled";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
+import { buildAiFitSnapshotPayload } from "../domain/ai-fit-snapshot";
 import { evaluateJobFit } from "./evaluate";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -75,10 +76,20 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
 
       if (decision.finalStatus !== "pending") {
         const nowIso = new Date().toISOString();
+        const snapshot = buildAiFitSnapshotPayload(decision);
         const row =
           decision.finalStatus === "approved"
-            ? { status: "approved" as const, rejected_at: null }
-            : { status: "rejected" as const, published_at: null, rejected_at: nowIso };
+            ? {
+                status: "approved" as const,
+                rejected_at: null,
+                ai_fit_snapshot: snapshot,
+              }
+            : {
+                status: "rejected" as const,
+                published_at: null,
+                rejected_at: nowIso,
+                ai_fit_snapshot: snapshot,
+              };
         const { error: updateError } = await supabase.from("job_postings").update(row).eq("id", job.id);
         if (updateError) {
           console.error("[job-fit] evaluation failed", {

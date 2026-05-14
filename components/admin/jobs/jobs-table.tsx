@@ -21,6 +21,7 @@ import {
   markJobsPublished,
   deleteRejectedJobPostings,
 } from "@/app/(admin)/jobs/actions";
+import { parseAiFitSnapshot } from "@/lib/ai/job-fit/domain/ai-fit-snapshot";
 import type { Database, JobStatus } from "@/types/database.types";
 import { SOURCE_LABEL, STATUS_STYLE } from "@/lib/jobs/constants";
 import { AiPostPromptCopyButton } from "./ai-post-prompt-copy-button";
@@ -63,6 +64,38 @@ const DeadlineBadge = ({ deadline }: { deadline: string | null }) => {
     );
   }
   return <span className="text-xs text-slate-500">{deadline}</span>;
+};
+
+const AiRejectReasonCell = ({
+  job,
+  cellPaddingClass,
+}: {
+  job: JobPosting;
+  cellPaddingClass: string;
+}) => {
+  if (job.status !== "rejected") {
+    return <td className={`${cellPaddingClass} text-slate-300`}>—</td>;
+  }
+  const snap = parseAiFitSnapshot(job.ai_fit_snapshot);
+  if (!snap) {
+    return (
+      <td className={`${cellPaddingClass} max-w-56 text-xs text-slate-400`}>
+        AI 기록 없음
+      </td>
+    );
+  }
+  return (
+    <td className={`${cellPaddingClass} max-w-72 align-top text-xs text-slate-600`}>
+      <ul className="list-inside list-disc space-y-0.5 leading-snug">
+        {snap.reasons.map((r, i) => (
+          <li key={i}>{r}</li>
+        ))}
+      </ul>
+      <p className="mt-1.5 tabular-nums text-[11px] text-slate-400">
+        {snap.score}점 · {snap.model}
+      </p>
+    </td>
+  );
 };
 
 const RowActions = ({
@@ -222,11 +255,13 @@ const RowActions = ({
 
 type Props = {
   jobs: JobPosting[];
+  /** 거절 탭 또는 거절이 섞인 전체 보기에서만 AI 거절 사유 컬럼 표시 */
+  showAiRejectReasons?: boolean;
   sourceHeader?: ReactNode;
   emptyState?: ReactNode;
 };
 
-export const JobsTable = ({ jobs, sourceHeader, emptyState }: Props) => {
+export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emptyState }: Props) => {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkPending, startBulkTransition] = useTransition();
@@ -306,6 +341,7 @@ export const JobsTable = ({ jobs, sourceHeader, emptyState }: Props) => {
 
   const showToolbar = jobs.length > 0;
   const showHeaderBlock = Boolean(sourceHeader) || showToolbar;
+  const tableColSpan = showAiRejectReasons ? 11 : 10;
 
   const cellPaddingClass = density === "compact" ? "px-3 py-2" : "px-4 py-3";
   const toolbarButtonClass =
@@ -451,6 +487,9 @@ export const JobsTable = ({ jobs, sourceHeader, emptyState }: Props) => {
               <th className={cellPaddingClass}>소스</th>
               <th className={cellPaddingClass}>마감일</th>
               <th className={cellPaddingClass}>상태</th>
+              {showAiRejectReasons && (
+                <th className={cellPaddingClass}>AI 사유</th>
+              )}
               <th className={cellPaddingClass}>내부 게시 시각</th>
               <th className={cellPaddingClass}>수집일</th>
               <th className={cellPaddingClass}>링크</th>
@@ -460,7 +499,7 @@ export const JobsTable = ({ jobs, sourceHeader, emptyState }: Props) => {
           <tbody className="divide-y divide-slate-50">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-sm text-slate-400">
+                <td colSpan={tableColSpan} className="py-12 text-center text-sm text-slate-400">
                   &ldquo;{query}&rdquo; 에 해당하는 공고가 없습니다.
                 </td>
               </tr>
@@ -499,6 +538,9 @@ export const JobsTable = ({ jobs, sourceHeader, emptyState }: Props) => {
                         {statusStyle.label}
                       </span>
                     </td>
+                    {showAiRejectReasons && (
+                      <AiRejectReasonCell job={job} cellPaddingClass={cellPaddingClass} />
+                    )}
                     <td className={`${cellPaddingClass} text-xs text-slate-400`} title={job.published_at ?? undefined}>
                       {job.published_at ? relativeTime(job.published_at) : "—"}
                     </td>

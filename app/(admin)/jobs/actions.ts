@@ -91,13 +91,14 @@ export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
 const nowIso = () => new Date().toISOString();
 
 const statusUpdatePayload = (status: JobStatus) => {
+  const clearAiSnapshot = { ai_fit_snapshot: null };
   if (status === "approved") {
-    return { status, rejected_at: null } as const;
+    return { status, rejected_at: null, ...clearAiSnapshot };
   }
   if (status === "rejected") {
-    return { status, published_at: null, rejected_at: nowIso() } as const;
+    return { status, published_at: null, rejected_at: nowIso(), ...clearAiSnapshot };
   }
-  return { status, published_at: null, rejected_at: null } as const;
+  return { status, published_at: null, rejected_at: null, ...clearAiSnapshot };
 };
 
 export const updateJobStatus = async (id: string, status: JobStatus) => {
