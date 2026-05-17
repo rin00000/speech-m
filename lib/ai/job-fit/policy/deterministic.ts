@@ -1,6 +1,7 @@
 import type { JobFitInput, JobFitResult } from "../domain/schema";
 import {
   isInternetSmallNewspaperCompany,
+  titleHasInternReporterRole,
   titleHasTargetBroadcastRole,
 } from "./company-newspaper";
 import {
@@ -81,6 +82,33 @@ const hitsAbsoluteExclude = (input: JobFitInput): JobFitResult | null => {
 const hitsTitleHardExclude = (input: JobFitInput): boolean =>
   titleMatchesAnyKeyword(input.title, JOB_FIT_TITLE_HARD_EXCLUDE);
 
+const hitsTargetBroadcasterApprove = (input: JobFitInput): JobFitResult | null => {
+  if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+    return null;
+  }
+  return synthetic({
+    label: "approved",
+    score: 85,
+    reasons: ["Company matches target broadcasters (deterministic)."],
+    matched_rules: ["target_broadcasters"],
+  });
+};
+
+const hitsExclusionKeywordsReject = (input: JobFitInput): JobFitResult | null => {
+  const combined = `${input.title}\n${input.company ?? ""}`;
+  for (const kw of JOB_FIT_RULES.exclusionKeywords) {
+    if (fieldTextMatches(combined, kw)) {
+      return synthetic({
+        label: "rejected",
+        score: 18,
+        reasons: [`Exclusion keyword matched: ${kw}.`],
+        matched_rules: ["exclusion_keywords"],
+      });
+    }
+  }
+  return null;
+};
+
 const hitsInternetNewspaperRoleGate = (input: JobFitInput): JobFitResult | null => {
   if (!isInternetSmallNewspaperCompany(input.company)) {
     return null;
@@ -105,6 +133,21 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
   const abs = hitsAbsoluteExclude(input);
   if (abs) return abs;
 
+  const broadcasterApprove = hitsTargetBroadcasterApprove(input);
+  if (broadcasterApprove) return broadcasterApprove;
+
+  const exclusionReject = hitsExclusionKeywordsReject(input);
+  if (exclusionReject) return exclusionReject;
+
+  if (titleHasInternReporterRole(input.title)) {
+    return synthetic({
+      label: "approved",
+      score: 72,
+      reasons: ["Title indicates intern reporter role (cross-source)."],
+      matched_rules: ["intern_reporter_title"],
+    });
+  }
+
   if (input.source === JOB_FIT_INTERN_SOURCE) {
     if (!internHasAllowedKeyword(input)) {
       return synthetic({
@@ -114,10 +157,6 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
         matched_rules: ["intern_allowed_keywords"],
       });
     }
-    return null;
-  }
-
-  if (companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
     return null;
   }
 

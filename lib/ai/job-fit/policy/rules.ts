@@ -1,4 +1,4 @@
-export const JOB_FIT_PROMPT_VERSION = "v2.1.0";
+export const JOB_FIT_PROMPT_VERSION = "v2.3.0";
 
 export const JOB_FIT_INTERN_SOURCE = "mediajob_intern";
 
@@ -40,7 +40,7 @@ export const JOB_FIT_BLOCK_COMPANIES = [
   "더리브스",
   "스틸앤스틸",
   "나무신문사",
-  "당진신",
+  "당진신문",
 ] as const;
 
 export const JOB_FIT_TITLE_HARD_EXCLUDE = [
@@ -65,7 +65,7 @@ export const JOB_FIT_TITLE_HARD_EXCLUDE = [
   "라이브방송",
   "SNS",
   "의류",
-  "라이브 커머스",
+  "라이브커머스",
   "판매",
 ] as const;
 
@@ -124,13 +124,15 @@ const FINANCIAL_POLICY_LINES = [
 ];
 
 const PRIORITY_LINES = [
-  "규칙 우선순위: (1) company를 먼저 본다. (2) company가 targetBroadcasters에 부분일치하면 방송사 신호 — 취재·보도·기자 직무도 포함 후보(자동 거절 금지). (3) ELSE company가 신문/일보/뉴스/저널 마커 또는 internetNewspaperCompanies 목록이면 인터넷/중소 신문사 — title에 targetRoleKeywords만 평가 대상, 그 외(기자·취재·불명확)는 rejected. (4) 무조건 제외 회사·제목 차단·유튜버/강사·엔터. (5) 제목 한경은 (4)에 걸리지 않을 때만.",
+  "규칙 우선순위 (최상위 deterministic): (1) company가 targetBroadcasters에 부분일치 → 무조건 approved(LLM 없음). exclusionKeywords가 있어도 방송사 승인이 우선. (2) ELSE title/company에 exclusionKeywords → 무조건 rejected(LLM 없음). (3) ELSE 신문사·인턴기자·인턴소스 등 하위 규칙. (4) 무조건 제외 회사·유튜버/강사·엔터는 (1)보다 먼저.",
 ];
 
 const REPORTER_POLICY_LINES = [
   "기자·취재 직무 분기:",
+  "- IF company ∈ targetBroadcasters → approved(서버 처리, 직무 무관).",
+  "- IF title에 인턴+기자(인턴 기자·인턴기자 또는 세그먼트 인턴·기자) → source 무관 승인 후보(서버 deterministic approved 가능).",
   "- IF source가 mediajob_intern AND title/company에 기자·아나운서·리포터 중 하나 → 인턴 포함 후보(무조건 넣음).",
-  "- ELSE IF company ∈ targetBroadcasters AND title에 취재기자·보도기자·취재·기자 → 방송사 취재·기자 포함 후보(자동 거절 금지).",
+  "- ELSE IF title/company에 exclusionKeywords → rejected(비방송사, 서버 deterministic).",
   "- ELSE IF 인터넷/중소 신문사 AND title에 취재기자·보도기자·기자·취재 → rejected.",
   "- ELSE IF 인터넷/중소 신문사 AND title에 targetRoleKeywords → 평가(approved/pending 가능).",
   "- ELSE IF 인터넷/중소 신문사 AND 그 외 → rejected.",
@@ -139,11 +141,12 @@ const REPORTER_POLICY_LINES = [
 
 const FEW_SHOT_ANNOUNCER = [
   'Example (approved): title=KBS 아나운서 공채, company=KBS → {"label":"approved","score":92,"reasons":["지상파 아나운서 공채","회사가 targetBroadcasters"],"matched_rules":["targetBroadcasters","targetRoles"]}',
-  'Example (approved): title=취재기자 모집, company=JTV → {"label":"approved","score":78,"reasons":["지역방송사 취재기자","targetBroadcasters"],"matched_rules":["targetBroadcasters","broadcaster_reporter"]}',
+  'Example (approved): title=헬스조선 취재팀 인턴 기자 채용, company=㈜헬스조선 → {"label":"approved","score":72,"reasons":["제목 인턴 기자","cross-source"],"matched_rules":["intern_reporter_title"]}',
+  'Example (approved): title=취재기자 모집, company=JTV → {"label":"approved","score":85,"reasons":["Company matches target broadcasters"],"matched_rules":["target_broadcasters"]}',
   'Example (rejected): title=경제·금융 경력 기자, company=(주)뉴스포스트신문사 → {"label":"rejected","score":15,"reasons":["인터넷 신문사 기자직"],"matched_rules":["internet_newspaper_non_target_role"]}',
   'Example (rejected): title=채용 담당, company=○○일보 → {"label":"rejected","score":12,"reasons":["신문사 비대상 직무"],"matched_rules":["internet_newspaper_non_target_role"]}',
   'Example (pending-ish): title=아나운서 모집, company=○○신문사 → {"label":"approved","score":58,"reasons":["신문사이나 아나운서 직무"],"matched_rules":["targetRoleKeywords"]}',
-  'Example (rejected): title=유튜브 전속 크리에이터, company=스타트업 → {"label":"rejected","score":18,"reasons":["유튜브 전용 채널 성격"],"matched_rules":["exclusionKeywords"]}',
+  'Example (rejected): title=유튜브 전속 크리에이터, company=스타트업 → {"label":"rejected","score":18,"reasons":["Exclusion keyword matched: 유튜브 전용"],"matched_rules":["exclusion_keywords"]}',
   'Example (pending-ish): title=금융기관 라이브 진행, company=핀테크X → {"label":"rejected","score":52,"reasons":["은행·증권사 미특정"],"matched_rules":["financial_ambiguous"]}',
 ].join("\n");
 
@@ -210,7 +213,7 @@ export function buildUserPrompt(job: {
     `internetNewspaperCompanies: ${JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES.join(", ")}`,
     `targetBroadcasters (company substring match, case-insensitive Latin): ${JOB_FIT_RULES.targetBroadcasters.join(", ")}`,
     `positiveSignals (boost when present in title/company): ${JOB_FIT_POSITIVE_SIGNALS.join(", ")}`,
-    `exclusionKeywords (soft / contextual): ${JOB_FIT_RULES.exclusionKeywords.join(", ")}`,
+    `exclusionKeywords (hard / deterministic when company not in targetBroadcasters): ${JOB_FIT_RULES.exclusionKeywords.join(", ")}`,
     "제목에 한경이 포함되면 승인 후보 신호로 보되, 위 차단·우선순위에 이미 걸리면 적용하지 않는다.",
     "",
     "참고 예시 (형식만 참고, 실제 입력은 위 블록):",

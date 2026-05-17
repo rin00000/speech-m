@@ -53,6 +53,7 @@ export { tryDeterministicDecision } from "./policy/deterministic";
 
 export {
   isInternetSmallNewspaperCompany,
+  titleHasInternReporterRole,
   titleHasTargetBroadcastRole,
 } from "./policy/company-newspaper";
 
