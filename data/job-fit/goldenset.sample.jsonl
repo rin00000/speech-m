@@ -10,3 +10,7 @@
 {"id":"g10","title":"MC/행사 진행자 단기 계약","company":"소형 에이전시C","location":"서울","source":"custom","source_url":"https://example.com/10","expected_label":"rejected"}
 {"id":"g11","title":"아나운서 공개채용","company":"원투원TV","location":"서울","source":"custom","source_url":"https://example.com/11","expected_label":"rejected"}
 {"id":"g12","title":"취재기자 모집","company":"JTV","location":"부산","source":"mediajob_intern","source_url":"https://example.com/12","expected_label":"rejected"}
+{"id":"g13","title":"신입 기자 모집","company":"(주)뉴스포스트신문사","location":"서울","source":"mediajob_intern","source_url":"https://example.com/13","expected_label":"approved"}
+{"id":"g14","title":"취재기자 모집","company":"JTV","location":"부산","source":"custom","source_url":"https://example.com/14","expected_label":"approved"}
+{"id":"g15","title":"경제·금융 경력 기자 모집","company":"(주)뉴스포스트신문사","location":"서울","source":"custom","source_url":"https://example.com/15","expected_label":"rejected"}
+{"id":"g16","title":"아나운서 모집","company":"○○신문사","location":"서울","source":"custom","source_url":"https://example.com/16","expected_label":"approved"}

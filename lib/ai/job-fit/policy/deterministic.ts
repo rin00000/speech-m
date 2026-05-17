@@ -1,5 +1,9 @@
 import type { JobFitInput, JobFitResult } from "../domain/schema";
 import {
+  isInternetSmallNewspaperCompany,
+  titleHasTargetBroadcastRole,
+} from "./company-newspaper";
+import {
   companyMatchesBlocklist,
   companyMatchesBroadcaster,
   fieldTextMatches,
@@ -77,6 +81,23 @@ const hitsAbsoluteExclude = (input: JobFitInput): JobFitResult | null => {
 const hitsTitleHardExclude = (input: JobFitInput): boolean =>
   titleMatchesAnyKeyword(input.title, JOB_FIT_TITLE_HARD_EXCLUDE);
 
+const hitsInternetNewspaperRoleGate = (input: JobFitInput): JobFitResult | null => {
+  if (!isInternetSmallNewspaperCompany(input.company)) {
+    return null;
+  }
+  if (titleHasTargetBroadcastRole(input.title)) {
+    return null;
+  }
+  return synthetic({
+    label: "rejected",
+    score: 15,
+    reasons: [
+      "Internet/small newspaper company: only announcer-style roles go to review; reporter and other roles are excluded.",
+    ],
+    matched_rules: ["internet_newspaper_non_target_role"],
+  });
+};
+
 /**
  * Deterministic gate before LLM. Returns null when the case should go to the model.
  */
@@ -93,10 +114,18 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
         matched_rules: ["intern_allowed_keywords"],
       });
     }
+    return null;
   }
 
-  const broadcasterHit = companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters);
-  if (!broadcasterHit && hitsTitleHardExclude(input)) {
+  if (companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+    return null;
+  }
+
+  const newspaperGate = hitsInternetNewspaperRoleGate(input);
+  if (newspaperGate) return newspaperGate;
+
+  const targetRoleInTitle = titleHasTargetBroadcastRole(input.title);
+  if (!targetRoleInTitle && hitsTitleHardExclude(input)) {
     return synthetic({
       label: "rejected",
       score: 12,

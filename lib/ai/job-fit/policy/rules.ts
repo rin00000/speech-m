@@ -1,8 +1,34 @@
-export const JOB_FIT_PROMPT_VERSION = "v2.0.0";
+export const JOB_FIT_PROMPT_VERSION = "v2.1.0";
 
 export const JOB_FIT_INTERN_SOURCE = "mediajob_intern";
 
 export const JOB_FIT_INTERN_ALLOWED_KEYWORDS = ["기자", "아나운서", "리포터"] as const;
+
+/** Company-name markers for internet/small newspaper (after broadcaster check). */
+export const JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS = [
+  "신문",
+  "일보",
+  "뉴스",
+  "저널",
+] as const;
+
+/** Known internet/small newspaper companies (substring match). */
+export const JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES = [
+  "뉴스포스트",
+  "뉴스포스트신문사",
+] as const;
+
+/** Whitelist roles at internet/small newspaper — only these go to LLM. */
+export const JOB_FIT_TARGET_ROLE_KEYWORDS = [
+  "아나운서",
+  "앵커",
+  "MC",
+  "진행자",
+  "기상캐스터",
+  "캐스터",
+  "쇼호스트",
+  "성우",
+] as const;
 
 export const JOB_FIT_BLOCK_COMPANIES = [
   "206",
@@ -58,6 +84,7 @@ export const JOB_FIT_RULES = {
     "쇼호스트",
     "MC",
     "성우",
+    "기자",
   ],
   targetBroadcasters: [
     "KBS",
@@ -82,7 +109,6 @@ export const JOB_FIT_RULES = {
     "OBS",
   ],
   exclusionKeywords: [
-    "취재기자",
     "보도기자",
     "유튜브 전용",
     "1인 미디어",
@@ -98,11 +124,25 @@ const FINANCIAL_POLICY_LINES = [
 ];
 
 const PRIORITY_LINES = [
-  "규칙 우선순위: (1) 회사명이 targetBroadcasters 목록의 어느 값과도 부분 일치(대소문자 무시)하면 방송사 신호가 강함. (2) 무조건 제외 회사·제목 차단 키워드·유튜버/강사·엔터테인먼트 등 차단 규칙. (3) 제목에 한경이 있으면 승인 후보나 (2)의 차단·인턴 조건에 걸리면 한경은 적용하지 않음.",
+  "규칙 우선순위: (1) company를 먼저 본다. (2) company가 targetBroadcasters에 부분일치하면 방송사 신호 — 취재·보도·기자 직무도 포함 후보(자동 거절 금지). (3) ELSE company가 신문/일보/뉴스/저널 마커 또는 internetNewspaperCompanies 목록이면 인터넷/중소 신문사 — title에 targetRoleKeywords만 평가 대상, 그 외(기자·취재·불명확)는 rejected. (4) 무조건 제외 회사·제목 차단·유튜버/강사·엔터. (5) 제목 한경은 (4)에 걸리지 않을 때만.",
+];
+
+const REPORTER_POLICY_LINES = [
+  "기자·취재 직무 분기:",
+  "- IF source가 mediajob_intern AND title/company에 기자·아나운서·리포터 중 하나 → 인턴 포함 후보(무조건 넣음).",
+  "- ELSE IF company ∈ targetBroadcasters AND title에 취재기자·보도기자·취재·기자 → 방송사 취재·기자 포함 후보(자동 거절 금지).",
+  "- ELSE IF 인터넷/중소 신문사 AND title에 취재기자·보도기자·기자·취재 → rejected.",
+  "- ELSE IF 인터넷/중소 신문사 AND title에 targetRoleKeywords → 평가(approved/pending 가능).",
+  "- ELSE IF 인터넷/중소 신문사 AND 그 외 → rejected.",
+  "인터넷/중소 신문사 맥락에서는 targetRoles의 기자 항목을 적용하지 않는다.",
 ];
 
 const FEW_SHOT_ANNOUNCER = [
   'Example (approved): title=KBS 아나운서 공채, company=KBS → {"label":"approved","score":92,"reasons":["지상파 아나운서 공채","회사가 targetBroadcasters"],"matched_rules":["targetBroadcasters","targetRoles"]}',
+  'Example (approved): title=취재기자 모집, company=JTV → {"label":"approved","score":78,"reasons":["지역방송사 취재기자","targetBroadcasters"],"matched_rules":["targetBroadcasters","broadcaster_reporter"]}',
+  'Example (rejected): title=경제·금융 경력 기자, company=(주)뉴스포스트신문사 → {"label":"rejected","score":15,"reasons":["인터넷 신문사 기자직"],"matched_rules":["internet_newspaper_non_target_role"]}',
+  'Example (rejected): title=채용 담당, company=○○일보 → {"label":"rejected","score":12,"reasons":["신문사 비대상 직무"],"matched_rules":["internet_newspaper_non_target_role"]}',
+  'Example (pending-ish): title=아나운서 모집, company=○○신문사 → {"label":"approved","score":58,"reasons":["신문사이나 아나운서 직무"],"matched_rules":["targetRoleKeywords"]}',
   'Example (rejected): title=유튜브 전속 크리에이터, company=스타트업 → {"label":"rejected","score":18,"reasons":["유튜브 전용 채널 성격"],"matched_rules":["exclusionKeywords"]}',
   'Example (pending-ish): title=금융기관 라이브 진행, company=핀테크X → {"label":"rejected","score":52,"reasons":["은행·증권사 미특정"],"matched_rules":["financial_ambiguous"]}',
 ].join("\n");
@@ -112,18 +152,19 @@ export function buildSystemPrompt(source: string): string {
     return [
       "너는 방송아카데미 인턴 채용관의 1차 서류 큐레이터다.",
       `목표: 공고 제목·회사 등에 다음 키워드 중 하나 이상이 있을 때만 승인 후보로 본다: ${JOB_FIT_INTERN_ALLOWED_KEYWORDS.join(", ")}.`,
-      "위 키워드가 하나도 없으면 rejected.",
-      "다른 채널(아나운서 큐레이터) 규칙은 적용하지 않는다. 기자 직무가 인턴 허용 키워드에 포함된다.",
+      "위 키워드가 하나도 없으면 rejected. 인턴 기자는 무조건 포함 후보.",
+      "다른 채널(아나운서 큐레이터) 규칙은 적용하지 않는다.",
       "반드시 JSON으로만 응답하고, 불확실하면 보수적으로 낮은 점수를 준다.",
     ].join("\n");
   }
 
   return [
     "너는 방송아카데미 원장님의 채용 큐레이터다.",
-    "목표: 공고가 아나운서/앵커/기상캐스터 중심인지 판단한다.",
+    "목표: 공고가 아나운서/앵커/기상캐스터 중심인지 판단한다. company를 먼저 본다.",
     "승인 우선 대상: 지상파/종편/보도/지역/케이블 방송사 또는 동등 수준 미디어 기업의 관련 직무.",
-    "제외: 취재·보도 중심 기자직, 유튜브 전용 채널, 신뢰도 낮은 소형 에이전시.",
+    "제외: 인터넷/중소 신문사의 기자·취재 직무, 유튜브 전용 채널, 신뢰도 낮은 소형 에이전시.",
     ...PRIORITY_LINES,
+    ...REPORTER_POLICY_LINES,
     ...FINANCIAL_POLICY_LINES,
     "반드시 JSON으로만 응답하고, 불확실하면 보수적으로 낮은 점수를 준다.",
   ].join("\n");
@@ -163,7 +204,10 @@ export function buildUserPrompt(job: {
   return [
     ...commonHead,
     "판정 기준:",
-    `targetRoles: ${JOB_FIT_RULES.targetRoles.join(", ")}`,
+    `targetRoles (방송사·일반 맥락; 신문사 맥락에서는 기자 미적용): ${JOB_FIT_RULES.targetRoles.join(", ")}`,
+    `targetRoleKeywords (신문사 화이트리스트): ${JOB_FIT_TARGET_ROLE_KEYWORDS.join(", ")}`,
+    `internetNewspaperCompanyMarkers: ${JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS.join(", ")}`,
+    `internetNewspaperCompanies: ${JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES.join(", ")}`,
     `targetBroadcasters (company substring match, case-insensitive Latin): ${JOB_FIT_RULES.targetBroadcasters.join(", ")}`,
     `positiveSignals (boost when present in title/company): ${JOB_FIT_POSITIVE_SIGNALS.join(", ")}`,
     `exclusionKeywords (soft / contextual): ${JOB_FIT_RULES.exclusionKeywords.join(", ")}`,

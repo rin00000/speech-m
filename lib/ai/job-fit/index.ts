@@ -36,6 +36,9 @@ export {
   JOB_FIT_PROMPT_VERSION,
   JOB_FIT_INTERN_SOURCE,
   JOB_FIT_INTERN_ALLOWED_KEYWORDS,
+  JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
+  JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES,
+  JOB_FIT_TARGET_ROLE_KEYWORDS,
   JOB_FIT_BLOCK_COMPANIES,
   JOB_FIT_TITLE_HARD_EXCLUDE,
   JOB_FIT_KEYWORD_HARD_EXCLUDE,
@@ -47,6 +50,11 @@ export {
 } from "./policy/rules";
 
 export { tryDeterministicDecision } from "./policy/deterministic";
+
+export {
+  isInternetSmallNewspaperCompany,
+  titleHasTargetBroadcastRole,
+} from "./policy/company-newspaper";
 
 export {
   foldCase,
