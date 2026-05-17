@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chunkForInQuery, BLOCKED_URL_IN_QUERY_CHUNK } from "@/lib/crawl/blocked-source-urls";
-import { FINGERPRINT_IN_QUERY_CHUNK } from "@/lib/crawl/fingerprint";
+import { FINGERPRINT_IN_QUERY_CHUNK, isDeadlineActiveForDedup } from "@/lib/crawl/fingerprint";
+import type { CrossSourceDedupJob } from "@/lib/crawl/cross-source-dedup";
 import type { Database, JobStatus } from "@/types/database.types";
+
+const COMPANY_IN_QUERY_CHUNK = 40;
+const CROSS_SOURCE_DEDUP_LOOKBACK_DAYS = 30;
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -96,5 +100,62 @@ export async function fetchJobRowsByFingerprints(
       out.push({ fingerprint: row.fingerprint, deadline: row.deadline });
     }
   }
+  return out;
+}
+
+export type CrossSourceDedupCandidate = CrossSourceDedupJob & {
+  deadline: string | null;
+  created_at: string;
+};
+
+/**
+ * 교차 소스 fuzzy 중복 비교용 후보.
+ * 전 status, `created_at` 30일 이내 또는 유효 마감만 포함.
+ */
+export async function fetchCrossSourceDedupCandidates(
+  supabase: AdminClient,
+  companies: readonly string[],
+  now: Date = new Date()
+): Promise<CrossSourceDedupCandidate[]> {
+  const unique = [...new Set(companies.map((c) => c.trim()).filter(Boolean))];
+  if (!unique.length) return [];
+
+  const lookback = new Date(now);
+  lookback.setDate(lookback.getDate() - CROSS_SOURCE_DEDUP_LOOKBACK_DAYS);
+  const lookbackIso = lookback.toISOString();
+
+  const out: CrossSourceDedupCandidate[] = [];
+
+  for (const chunk of chunkForInQuery(unique, COMPANY_IN_QUERY_CHUNK)) {
+    const { data, error } = await supabase
+      .from("job_postings")
+      .select("company, title, location, source_url, deadline, created_at")
+      .in("company", chunk)
+      .returns<
+        Pick<
+          Database["public"]["Tables"]["job_postings"]["Row"],
+          "company" | "title" | "location" | "source_url" | "deadline" | "created_at"
+        >[]
+      >();
+
+    if (error) throw new Error(error.message);
+
+    for (const row of data ?? []) {
+      if (!row.title?.trim() || !row.source_url?.trim()) continue;
+      const recentEnough = row.created_at >= lookbackIso;
+      const deadlineActive = isDeadlineActiveForDedup(row.deadline);
+      if (!recentEnough && !deadlineActive) continue;
+
+      out.push({
+        company: row.company,
+        title: row.title,
+        location: row.location,
+        source_url: row.source_url,
+        deadline: row.deadline,
+        created_at: row.created_at,
+      });
+    }
+  }
+
   return out;
 }

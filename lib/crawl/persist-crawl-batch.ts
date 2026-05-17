@@ -1,9 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { filterBlockedFromJobs } from "@/lib/crawl/blocked-source-urls";
 import {
+  fetchCrossSourceDedupCandidates,
   fetchExistingJobRowsBySourceUrl,
   fetchJobRowsByFingerprints,
 } from "@/lib/crawl/crawl-db-lookup";
+import {
+  isCrossSourceDuplicate,
+  type CrossSourceDedupJob,
+} from "@/lib/crawl/cross-source-dedup";
 import { computeJobFingerprint, isDeadlineActiveForDedup } from "@/lib/crawl/fingerprint";
 import type { JobInsert } from "@/lib/crawl/shared";
 import type { Database } from "@/types/database.types";
@@ -18,6 +23,7 @@ export type PersistCrawlBatchResult = {
   updated: number;
   skipped_blocked: number;
   skipped_fingerprint_dup: number;
+  skipped_cross_source_dup: number;
   total_input: number;
 };
 
@@ -48,6 +54,7 @@ export async function persistCrawlBatch(
       updated: 0,
       skipped_blocked: 0,
       skipped_fingerprint_dup: 0,
+      skipped_cross_source_dup: 0,
       total_input: 0,
     };
   }
@@ -67,15 +74,43 @@ export async function persistCrawlBatch(
   const dbActiveFp = buildActiveFingerprintCollisionSet(fpRows);
   const localFp = new Set(dbActiveFp);
 
-  const afterDedup: typeof withFp = [];
+  const afterExactDedup: typeof withFp = [];
   let skipped_fingerprint_dup = 0;
   for (const row of withFp) {
     if (localFp.has(row.fingerprint)) {
       skipped_fingerprint_dup += 1;
       continue;
     }
-    afterDedup.push(row);
+    afterExactDedup.push(row);
     localFp.add(row.fingerprint);
+  }
+
+  const companies = [
+    ...new Set(
+      afterExactDedup.map((j) => j.company?.trim()).filter((c): c is string => Boolean(c))
+    ),
+  ];
+  const crossSourceCandidates = await fetchCrossSourceDedupCandidates(supabase, companies);
+  const localCrossSource: CrossSourceDedupJob[] = [];
+
+  const afterDedup: typeof withFp = [];
+  let skipped_cross_source_dup = 0;
+  for (const row of afterExactDedup) {
+    const job: CrossSourceDedupJob = {
+      title: row.title,
+      company: row.company,
+      location: row.location,
+      source_url: row.source_url,
+    };
+    const isDup =
+      crossSourceCandidates.some((c) => isCrossSourceDuplicate(job, c)) ||
+      localCrossSource.some((c) => isCrossSourceDuplicate(job, c));
+    if (isDup) {
+      skipped_cross_source_dup += 1;
+      continue;
+    }
+    afterDedup.push(row);
+    localCrossSource.push(job);
   }
 
   if (afterDedup.length === 0) {
@@ -84,6 +119,7 @@ export async function persistCrawlBatch(
       updated: 0,
       skipped_blocked,
       skipped_fingerprint_dup,
+      skipped_cross_source_dup,
       total_input,
     };
   }
@@ -187,6 +223,7 @@ export async function persistCrawlBatch(
     updated,
     skipped_blocked,
     skipped_fingerprint_dup,
+    skipped_cross_source_dup,
     total_input,
   };
 }
