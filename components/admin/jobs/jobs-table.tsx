@@ -76,7 +76,11 @@ const AiRejectReasonCell = ({
   const snap = parseAiFitSnapshot(job.ai_fit_snapshot);
   if (!snap) {
     if (job.status === "pending") {
-      return <td className={`${cellPaddingClass} text-slate-300`}>—</td>;
+      return (
+        <td className={`${cellPaddingClass} max-w-56 text-xs text-slate-400`}>
+          AI 미실행
+        </td>
+      );
     }
     return (
       <td className={`${cellPaddingClass} max-w-56 text-xs text-slate-400`}>
@@ -255,7 +259,7 @@ const RowActions = ({
 
 type Props = {
   jobs: JobPosting[];
-  /** 대기(pending) 탭 제외: AI 적합도 스냅샷 사유 컬럼 표시 */
+  /** AI 적합도 스냅샷 사유 컬럼 표시 */
   showAiRejectReasons?: boolean;
   sourceHeader?: ReactNode;
   emptyState?: ReactNode;

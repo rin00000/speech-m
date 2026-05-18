@@ -74,9 +74,22 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
         sourceUrl: job.source_url,
       });
 
-      if (decision.finalStatus !== "pending") {
+      const snapshot = buildAiFitSnapshotPayload(decision);
+
+      if (decision.finalStatus === "pending") {
+        const { error: updateError } = await supabase
+          .from("job_postings")
+          .update({ ai_fit_snapshot: snapshot })
+          .eq("id", job.id);
+        if (updateError) {
+          console.error("[job-fit] evaluation failed", {
+            id: job.id,
+            error: updateError.message,
+          });
+          return "failed";
+        }
+      } else {
         const nowIso = new Date().toISOString();
-        const snapshot = buildAiFitSnapshotPayload(decision);
         const row =
           decision.finalStatus === "approved"
             ? {
