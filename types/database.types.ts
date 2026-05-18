@@ -28,7 +28,7 @@ export interface Database {
           created_at: string;
           fingerprint: string | null;
           last_seen_at: string | null;
-          /** runJobFitBatch 자동 판정 스냅샷. 수동 상태 변경 시 null. */
+          /** runJobFitBatch 판정 스냅샷(보류 포함). 수동 상태 변경 시 null. */
           ai_fit_snapshot: DbJson | null;
         };
         Insert: {
