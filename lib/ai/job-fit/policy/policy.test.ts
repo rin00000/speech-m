@@ -312,6 +312,51 @@ describe("tryDeterministicDecision", () => {
     expect(toFinalStatus(r!)).toBe("pending");
   });
 
+  it("defers 연합뉴스TV 영상 편집 to pending", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "영상 편집 PD 채용",
+      company: "연합뉴스TV",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.score).toBe(52);
+    expect(r?.matched_rules).toContain("broadcaster_pending_role");
+    expect(toFinalStatus(r!)).toBe("pending");
+  });
+
+  it("defers 연합뉴스TV 비디오 to pending", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "비디오 제작 담당 채용",
+      company: "연합뉴스TV",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("broadcaster_pending_role");
+    expect(toFinalStatus(r!)).toBe("pending");
+  });
+
+  it("defers 현대 모터스튜디오 도슨트 to pending (before title hard exclude)", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "도슨트(진행자) 채용",
+      company: "현대 모터스튜디오",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.score).toBe(52);
+    expect(r?.matched_rules).toContain("motor_studio_docent_pending");
+    expect(toFinalStatus(r!)).toBe("pending");
+  });
+
+  it("defers motor studio with 편집 in title to pending (hard exclude bypass)", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "영상 편집·도슨트 모집",
+      company: "현대 모터스튜디오",
+    });
+    expect(r?.matched_rules).toContain("motor_studio_docent_pending");
+    expect(toFinalStatus(r!)).toBe("pending");
+  });
+
   it("does not homeshopping-reject when title has 쇼호스트", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),

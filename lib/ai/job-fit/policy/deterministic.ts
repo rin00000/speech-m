@@ -2,6 +2,7 @@ import type { JobFitInput, JobFitResult } from "../domain/schema";
 import {
   isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
+  isMotorStudioCompanyOrTitle,
   titleHasBroadcasterPendingRole,
   titleHasBroadcasterRejectRole,
   titleHasHomeshoppingApproveRole,
@@ -101,9 +102,33 @@ const hitsHomeshoppingReject = (input: JobFitInput): JobFitResult | null => {
   });
 };
 
+const hitsMotorStudioPending = (input: JobFitInput): JobFitResult | null => {
+  if (!isMotorStudioCompanyOrTitle(input.company, input.title)) {
+    return null;
+  }
+  return synthetic({
+    label: "rejected",
+    score: 52,
+    reasons: [
+      "Motor studio / auto exhibition company — docent or presenter roles may apply; defer to admin review.",
+    ],
+    matched_rules: ["motor_studio_docent_pending"],
+  });
+};
+
 const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
   if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
     return null;
+  }
+  if (titleHasBroadcasterPendingRole(input.title)) {
+    return synthetic({
+      label: "rejected",
+      score: 52,
+      reasons: [
+        "Target broadcaster company but production/VJ/video-edit role — defer to admin review.",
+      ],
+      matched_rules: ["broadcaster_pending_role"],
+    });
   }
   if (titleHasBroadcasterRejectRole(input.title)) {
     return synthetic({
@@ -113,16 +138,6 @@ const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
         "Target broadcaster company but admin/production-office role (행정, 제작) — out of scope.",
       ],
       matched_rules: ["broadcaster_non_target_role"],
-    });
-  }
-  if (titleHasBroadcasterPendingRole(input.title)) {
-    return synthetic({
-      label: "rejected",
-      score: 52,
-      reasons: [
-        "Target broadcaster company but production/VJ role (영상취재, VJ, etc.) — defer to admin review.",
-      ],
-      matched_rules: ["broadcaster_pending_role"],
     });
   }
   return synthetic({
@@ -174,6 +189,9 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
 
   const homeshoppingReject = hitsHomeshoppingReject(input);
   if (homeshoppingReject) return homeshoppingReject;
+
+  const motorStudioPending = hitsMotorStudioPending(input);
+  if (motorStudioPending) return motorStudioPending;
 
   const broadcasterGate = hitsBroadcasterRoleGate(input);
   if (broadcasterGate) return broadcasterGate;

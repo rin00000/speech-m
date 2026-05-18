@@ -42,6 +42,7 @@ export {
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
   JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS,
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,
+  JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS,
   JOB_FIT_TARGET_BROADCASTERS,
   JOB_FIT_TARGET_ROLE_KEYWORDS,
   JOB_FIT_BLOCK_COMPANIES,
@@ -59,6 +60,7 @@ export { tryDeterministicDecision } from "./policy/deterministic";
 export {
   isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
+  isMotorStudioCompanyOrTitle,
   titleHasBroadcasterRejectRole,
   titleHasBroadcasterPendingRole,
   titleHasHomeshoppingApproveRole,

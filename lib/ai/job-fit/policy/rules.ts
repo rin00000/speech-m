@@ -1,4 +1,4 @@
-export const JOB_FIT_PROMPT_VERSION = "v2.5.0";
+export const JOB_FIT_PROMPT_VERSION = "v2.6.0";
 
 /** Home shopping: only show-host roles are in scope. */
 export const JOB_FIT_HOMESHOPPING_MARKERS = [
@@ -17,7 +17,7 @@ export const JOB_FIT_HOMESHOPPING_APPROVE_ROLES = ["쇼호스트"] as const;
 /** At target broadcasters: admin/back-office roles are always rejected (no HITL). */
 export const JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS = ["행정", "제작"] as const;
 
-/** At target broadcasters: production/VJ roles go to HITL (pending), not auto-approve. */
+/** At target broadcasters: production/VJ/video-edit roles go to HITL (pending), not auto-approve. */
 export const JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS = [
   "VJ",
   "vj",
@@ -26,6 +26,17 @@ export const JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS = [
   "ENG",
   "6mm",
   "카메라",
+  "비디오",
+  "video",
+  "영상 편집",
+  "영상편집",
+] as const;
+
+/** Auto exhibition / motor studio — docent roles may be in scope; defer to admin (pending). */
+export const JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS = [
+  "모터스튜디오",
+  "현대 모터스튜디오",
+  "motor studio",
 ] as const;
 
 export const JOB_FIT_INTERN_SOURCE = "mediajob_intern";
@@ -238,10 +249,11 @@ const PRIORITY_LINES = [
   "### [규칙 우선순위 (매우 중요)]",
   "1. [블랙리스트 최우선]: blocklist·유튜버/강사·엔터테인먼트 → 직무/회사 불문 rejected.",
   "2. [홈쇼핑 특례]: 홈쇼핑 마커인데 제목에 쇼호스트 없음 → rejected.",
-  "3. [방송사 비대상 직무]: company ∈ targetBroadcasters AND title에 행정·제작 → rejected (HITL 없음).",
-  "4. [방송사 예외 보류]: company ∈ targetBroadcasters AND VJ·영상취재·ENG·카메라 등 → label rejected, score 52 → pending(HITL).",
-  "5. [방송사 프리패스]: 위 3~4에 해당하지 않는 targetBroadcasters → approved; exclusionKeywords 있어도 방송사 우선.",
-  "6. [비방송사]: exclusionKeywords → rejected. 신문사·인턴기자·금융 등 하위 규칙 적용.",
+  "3. [모터스튜디오 도슨트 보류]: company/title에 모터스튜디오·motor studio 등 자동차 전시관 → approved/rejected 즉시 확정 금지, score 45~59(rejected 라벨 가능) → pending, 원장님 HITL.",
+  "4. [방송사 비대상 직무]: company ∈ targetBroadcasters AND title에 행정·제작(단독) → rejected (HITL 없음). 영상 편집은 (5)로 pending.",
+  "5. [방송사 영상/편집 보류]: company ∈ targetBroadcasters AND 제목/직무에 VJ·영상취재·비디오·영상 편집·ENG·카메라 등 → approved/rejected 확정 금지, score 45~59 → pending(HITL).",
+  "6. [방송사 프리패스]: 위 3~5에 해당하지 않는 targetBroadcasters → approved; exclusionKeywords 있어도 방송사 우선.",
+  "7. [비방송사]: exclusionKeywords → rejected. 신문사·인턴기자·금융 등 하위 규칙 적용.",
 ];
 
 const REPORTER_POLICY_LINES = [
@@ -259,6 +271,8 @@ const FEW_SHOT_ANNOUNCER = [
   'Example (rejected): title=2026년 공영홈쇼핑 NCS 블라인드 채용, company=공영홈쇼핑 → {"label":"rejected","score":15,"reasons":["홈쇼핑은 쇼호스트만"],"matched_rules":["homeshopping_non_showhost"]}',
   'Example (rejected): title=행정직 채용, company=KBS → {"label":"rejected","score":12,"reasons":["방송사이나 행정 직무"],"matched_rules":["broadcaster_non_target_role"]}',
   'Example (pending-ish): title=[VJ/취재기자] 영상취재부/VJ/카메라, company=연합뉴스TV → {"label":"rejected","score":52,"reasons":["방송사이나 VJ·영상취재"],"matched_rules":["broadcaster_pending_role"]}',
+  'Example (pending-ish): title=영상 편집 PD 채용, company=연합뉴스TV → {"label":"rejected","score":55,"reasons":["방송사이나 영상·편집 직무","원장님 확인"],"matched_rules":["broadcaster_pending_role"]}',
+  'Example (pending-ish): title=도슨트(진행자) 채용, company=현대 모터스튜디오 → {"label":"rejected","score":52,"reasons":["자동차 전시관 도슨트 가능성","HITL"],"matched_rules":["motor_studio_docent_pending"]}',
   'Example (approved): title=취재기자 모집, company=JTV → {"label":"approved","score":85,"reasons":["Company matches target broadcasters"],"matched_rules":["target_broadcasters"]}',
   'Example (rejected): title=경제·금융 경력 기자, company=(주)뉴스포스트신문사 → {"label":"rejected","score":15,"reasons":["인터넷 신문사 기자직"],"matched_rules":["internet_newspaper_non_target_role"]}',
   'Example (rejected): title=채용 담당, company=○○일보 → {"label":"rejected","score":12,"reasons":["신문사 비대상 직무"],"matched_rules":["internet_newspaper_non_target_role"]}',
@@ -330,7 +344,8 @@ export function buildUserPrompt(job: {
     `internetNewspaperCompanies: ${JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES.join(", ")}`,
     `homeshoppingMarkers (쇼호스트 직무만 승인): ${JOB_FIT_HOMESHOPPING_MARKERS.join(", ")}`,
     `broadcasterRejectRoles (방송사인데 무조건 rejected): ${JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS.join(", ")}`,
-    `broadcasterPendingRoles (방송사인데 HITL): ${JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS.join(", ")}`,
+    `broadcasterPendingRoles (방송사인데 HITL, score 45~59): ${JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS.join(", ")}`,
+    `motorStudioMarkers (전시관·도슨트 HITL, score 45~59): ${JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS.join(", ")}`,
     `targetBroadcasters (company substring match, case-insensitive Latin): ${JOB_FIT_RULES.targetBroadcasters.join(", ")}`,
     `positiveSignals (boost when present in title/company): ${JOB_FIT_POSITIVE_SIGNALS.join(", ")}`,
     `exclusionKeywords (hard / deterministic when company not in targetBroadcasters): ${JOB_FIT_RULES.exclusionKeywords.join(", ")}`,

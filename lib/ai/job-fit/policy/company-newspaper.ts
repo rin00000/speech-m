@@ -10,6 +10,7 @@ import {
   JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS,
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
   JOB_FIT_HOMESHOPPING_MARKERS,
+  JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES,
   JOB_FIT_RULES,
@@ -63,6 +64,15 @@ export const isHomeshoppingCompanyOrTitle = (
 
 export const titleHasHomeshoppingApproveRole = (title: string): boolean =>
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES.some((kw) => fieldTextMatches(title, kw));
+
+export const isMotorStudioCompanyOrTitle = (
+  company: string | null | undefined,
+  title: string
+): boolean => {
+  const combined = `${title}\n${company ?? ""}`.normalize("NFKC");
+  const folded = foldCase(combined);
+  return JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS.some((m) => folded.includes(foldCase(m)));
+};
 
 /** Admin / production-office roles at broadcasters → always rejected. */
 export const titleHasBroadcasterRejectRole = (title: string): boolean =>
