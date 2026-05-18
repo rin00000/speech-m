@@ -97,7 +97,7 @@ npm run dev
 |------|------|
 | **목록 정렬** | 사람인: `sort=MD`(수정순·끌어올림 반영). 미디어잡: `SF=upd_date&moveTo=Y`(수정일 기준, 페이지네이션과 동일). 잡코리아: AJAX 본문 `order=3`(최신업데이트순). |
 | **조기 중단** | 한 소스에서 DB에 이미 있는 `source_url`이 **연속 N번**(기본 5, `CRAWL_MAX_CONSECUTIVE_DUPLICATES`) 나오면 **그다음 페이지는 요청하지 않음**. 현재 페이지는 끝까지 파싱. |
-| **교차 중복** | 정규화된 회사명+제목 **지문(`fingerprint`)**으로 배치 조회 후, 유효한 `pending`/`approved`와 겹치면 스킵(LLM 전 비용 절감). |
+| **교차 중복** | (1) 정규화 `company\|title` **지문** exact 매칭 — 유효 `pending`/`approved`. (2) 동일 회사·**직무 core 토큰 유사도** fuzzy — 전 status, `created_at` 30일 이내 또는 유효 마감. 채용 관용구(`모집`·`신입` 등) strip 후 비교. |
 | **병합** | `source_url`이 있으면 **insert 대신** 제목·마감·지문·`last_seen_at`만 갱신(RPC `batch_update_job_posting_crawl_meta`). `status`·`rejected_at`는 유지. |
 | **스키마** | [`supabase/migrations/20260514120000_job_postings_fingerprint_meta_purge_rpc.sql`](supabase/migrations/20260514120000_job_postings_fingerprint_meta_purge_rpc.sql) — `fingerprint`, `last_seen_at`, `source_url` 유니크, 위 RPC·purge RPC. 프로덕션 Supabase에 **반드시 적용**. |
 
@@ -163,7 +163,7 @@ Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하�
 3. **500**과 함께 `CRAWL_API_SECRET` 문구가 보이면 해당 환경 변수 미설정을 확인.
 4. 로컬에서 수동 검증: `curl -sS -H "Authorization: Bearer <CRON_SECRET>" "https://<배포도메인>/api/crawl/all"` (값은 노출되지 않게 터미널 히스토리 주의).
 5. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON은 `staleListing`·`rejectedTtl` 객체 각각의 `cutoffIso`·`deleted` 등을 확인한다. (stale 쪽은 RPC 적용 후 `deleted`가 곧 처리 건수.)
-6. 크롤 단독 검증(선택): 관리자 또는 `x-crawl-secret`으로 `POST /api/crawl/saramin` 등 — 응답에 `inserted`·`updated`·`skipped_fingerprint_dup` 등이 포함되는지 확인. 마이그레이션 미적용 시 500이 날 수 있음.
+6. 크롤 단독 검증(선택): 관리자 또는 `x-crawl-secret`으로 `POST /api/crawl/saramin` 등 — 응답에 `inserted`·`updated`·`skipped_fingerprint_dup`·`skipped_cross_source_dup` 등이 포함되는지 확인. 마이그레이션 미적용 시 500이 날 수 있음.
 
 ## 스크립트 · 품질
 

@@ -128,6 +128,7 @@ export async function POST() {
       total: jobs.length,
       skipped_blocked: persist.skipped_blocked,
       skipped_fingerprint_dup: persist.skipped_fingerprint_dup,
+      skipped_cross_source_dup: persist.skipped_cross_source_dup,
     });
   } catch (err) {
     console.error("[crawl/saramin]", err);
