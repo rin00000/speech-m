@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { JobFitInput } from "../domain/schema";
+import { toFinalStatus, type JobFitInput } from "../domain/schema";
 import { tryDeterministicDecision } from "./deterministic";
 import {
   companyMatchesBlocklist,
@@ -256,6 +256,37 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("rejected");
     expect(r?.matched_rules).toContain("exclusion_keywords");
+  });
+
+  it("rejects 공영홈쇼핑 NCS blind hire without show-host", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "2026년 공영홈쇼핑 NCS기반 블라인드 채용 (채용형 청년인턴/무기계약직)",
+      company: "㈜공영홈쇼핑",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("homeshopping_non_showhost");
+  });
+
+  it("defers 연합뉴스TV VJ 영상취재 to pending via score band", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "[VJ/취재기자/연합뉴스TV] 영상취재부/VJ/카메라/ENG/6mm",
+      company: "연합뉴스TV",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.score).toBe(52);
+    expect(r?.matched_rules).toContain("broadcaster_pending_role");
+    expect(toFinalStatus(r!)).toBe("pending");
+  });
+
+  it("does not homeshopping-reject when title has 쇼호스트", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "쇼호스트 신입 공개채용",
+      company: "공영홈쇼핑",
+    });
+    expect(r === null || !r.matched_rules.includes("homeshopping_non_showhost")).toBe(true);
   });
 });
 

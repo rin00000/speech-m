@@ -6,6 +6,9 @@ import {
   isShortAsciiKeyword,
 } from "./keyword-match";
 import {
+  JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,
+  JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
+  JOB_FIT_HOMESHOPPING_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES,
   JOB_FIT_RULES,
@@ -47,6 +50,22 @@ export const titleHasInternReporterRole = (title: string): boolean => {
   const hasReporter = splitSegments(title).some((seg) => normalizeSegment(seg) === "기자");
   return hasIntern && hasReporter;
 };
+
+export const isHomeshoppingCompanyOrTitle = (
+  company: string | null | undefined,
+  title: string
+): boolean => {
+  const combined = `${title}\n${company ?? ""}`;
+  const folded = foldCase(combined);
+  return JOB_FIT_HOMESHOPPING_MARKERS.some((m) => folded.includes(foldCase(m)));
+};
+
+export const titleHasHomeshoppingApproveRole = (title: string): boolean =>
+  JOB_FIT_HOMESHOPPING_APPROVE_ROLES.some((kw) => fieldTextMatches(title, kw));
+
+/** VJ / video production roles at broadcasters → HITL pending, not auto-approve. */
+export const titleHasBroadcasterPendingRole = (title: string): boolean =>
+  JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS.some((kw) => fieldTextMatches(title, kw));
 
 /** Title matches announcer-style TARGET_ROLE (whitelist for newspaper gate). */
 export const titleHasTargetBroadcastRole = (title: string): boolean => {

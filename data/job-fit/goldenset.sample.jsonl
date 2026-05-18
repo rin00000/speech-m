@@ -15,3 +15,5 @@
 {"id":"g15","title":"경제·금융 경력 기자 모집","company":"(주)뉴스포스트신문사","location":"서울","source":"custom","source_url":"https://example.com/15","expected_label":"rejected"}
 {"id":"g16","title":"아나운서 모집","company":"○○신문사","location":"서울","source":"custom","source_url":"https://example.com/16","expected_label":"approved"}
 {"id":"g17","title":"헬스조선 취재팀 인턴 기자 채용(5월 31일 마감)","company":"㈜헬스조선","location":"서울","source":"jobkorea","source_url":"https://example.com/17","expected_label":"approved"}
+{"id":"g18","title":"2026년 공영홈쇼핑 NCS기반 블라인드 채용 (채용형 청년인턴/무기계약직)","company":"㈜공영홈쇼핑","location":"서울","source":"jobkorea","source_url":"https://example.com/18","expected_label":"rejected"}
+{"id":"g19","title":"[VJ/취재기자/연합뉴스TV] 영상취재부/VJ/카메라/ENG/6mm","company":"연합뉴스TV","location":"서울","source":"custom","source_url":"https://example.com/19","expected_label":"rejected"}

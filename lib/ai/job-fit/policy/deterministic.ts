@@ -1,6 +1,9 @@
 import type { JobFitInput, JobFitResult } from "../domain/schema";
 import {
+  isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
+  titleHasBroadcasterPendingRole,
+  titleHasHomeshoppingApproveRole,
   titleHasInternReporterRole,
   titleHasTargetBroadcastRole,
 } from "./company-newspaper";
@@ -82,9 +85,34 @@ const hitsAbsoluteExclude = (input: JobFitInput): JobFitResult | null => {
 const hitsTitleHardExclude = (input: JobFitInput): boolean =>
   titleMatchesAnyKeyword(input.title, JOB_FIT_TITLE_HARD_EXCLUDE);
 
-const hitsTargetBroadcasterApprove = (input: JobFitInput): JobFitResult | null => {
+const hitsHomeshoppingReject = (input: JobFitInput): JobFitResult | null => {
+  if (!isHomeshoppingCompanyOrTitle(input.company, input.title)) {
+    return null;
+  }
+  if (titleHasHomeshoppingApproveRole(input.title)) {
+    return null;
+  }
+  return synthetic({
+    label: "rejected",
+    score: 15,
+    reasons: ["Home shopping posting: only show-host (쇼호스트) roles are in scope."],
+    matched_rules: ["homeshopping_non_showhost"],
+  });
+};
+
+const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
   if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
     return null;
+  }
+  if (titleHasBroadcasterPendingRole(input.title)) {
+    return synthetic({
+      label: "rejected",
+      score: 52,
+      reasons: [
+        "Target broadcaster company but production/VJ role (영상취재, VJ, etc.) — defer to admin review.",
+      ],
+      matched_rules: ["broadcaster_pending_role"],
+    });
   }
   return synthetic({
     label: "approved",
@@ -133,8 +161,11 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
   const abs = hitsAbsoluteExclude(input);
   if (abs) return abs;
 
-  const broadcasterApprove = hitsTargetBroadcasterApprove(input);
-  if (broadcasterApprove) return broadcasterApprove;
+  const homeshoppingReject = hitsHomeshoppingReject(input);
+  if (homeshoppingReject) return homeshoppingReject;
+
+  const broadcasterGate = hitsBroadcasterRoleGate(input);
+  if (broadcasterGate) return broadcasterGate;
 
   const exclusionReject = hitsExclusionKeywordsReject(input);
   if (exclusionReject) return exclusionReject;
