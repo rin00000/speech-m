@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { scheduleJobFitCronKick } from "@/lib/cron/kick-job-fit";
 import { CRAWL_SOURCES, triggerCrawl } from "@/lib/crawl/trigger";
 
 type Summary = {
@@ -59,7 +60,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized cron request" }, { status: 401 });
   }
 
-  return runAllSources(request);
+  const response = await runAllSources(request);
+  scheduleJobFitCronKick(buildBaseUrl(request));
+  return response;
 }
 
 export async function POST(request: Request) {
