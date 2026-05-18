@@ -7,6 +7,7 @@ import {
 } from "./keyword-match";
 import {
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,
+  JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS,
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
   JOB_FIT_HOMESHOPPING_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
@@ -62,6 +63,10 @@ export const isHomeshoppingCompanyOrTitle = (
 
 export const titleHasHomeshoppingApproveRole = (title: string): boolean =>
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES.some((kw) => fieldTextMatches(title, kw));
+
+/** Admin / production-office roles at broadcasters → always rejected. */
+export const titleHasBroadcasterRejectRole = (title: string): boolean =>
+  JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS.some((kw) => fieldTextMatches(title, kw));
 
 /** VJ / video production roles at broadcasters → HITL pending, not auto-approve. */
 export const titleHasBroadcasterPendingRole = (title: string): boolean =>

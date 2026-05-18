@@ -3,6 +3,7 @@ import {
   isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
   titleHasBroadcasterPendingRole,
+  titleHasBroadcasterRejectRole,
   titleHasHomeshoppingApproveRole,
   titleHasInternReporterRole,
   titleHasTargetBroadcastRole,
@@ -103,6 +104,16 @@ const hitsHomeshoppingReject = (input: JobFitInput): JobFitResult | null => {
 const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
   if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
     return null;
+  }
+  if (titleHasBroadcasterRejectRole(input.title)) {
+    return synthetic({
+      label: "rejected",
+      score: 12,
+      reasons: [
+        "Target broadcaster company but admin/production-office role (행정, 제작) — out of scope.",
+      ],
+      matched_rules: ["broadcaster_non_target_role"],
+    });
   }
   if (titleHasBroadcasterPendingRole(input.title)) {
     return synthetic({
