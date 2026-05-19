@@ -132,14 +132,15 @@ describe("tryDeterministicDecision", () => {
     expect(r).toBeNull();
   });
 
-  it("returns null for intern with 기자 at internet newspaper company", () => {
+  it("rejects intern channel at non-target broadcaster", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       source: JOB_FIT_INTERN_SOURCE,
       title: "신입 기자 모집",
       company: "(주)뉴스포스트신문사",
     });
-    expect(r).toBeNull();
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("intern_channel_not_target_broadcaster");
   });
 
   it("approves broadcaster 취재기자 (main channel)", () => {
@@ -203,16 +204,38 @@ describe("tryDeterministicDecision", () => {
     expect(r?.matched_rules).toContain("target_roles");
   });
 
-  it("approves cross-source intern reporter by title (헬스조선)", () => {
+  it("rejects cross-source intern reporter at non-target broadcaster (헬스조선)", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       source: "jobkorea",
       title: "헬스조선 취재팀 인턴 기자 채용(5월 31일 마감)",
       company: "㈜헬스조선",
     });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("intern_reporter_not_target_broadcaster");
+  });
+
+  it("rejects intern reporter at non-target broadcaster (뉴스트리)", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      source: JOB_FIT_INTERN_SOURCE,
+      title: "뉴스트리 채용연계형 인턴기자 모집",
+      company: "(주)뉴스트리",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("intern_reporter_not_target_broadcaster");
+  });
+
+  it("approves intern reporter at target broadcaster (JTV)", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      source: "jobkorea",
+      title: "JTV 인턴기자 공개 채용",
+      company: "JTV",
+    });
     expect(r?.label).toBe("approved");
-    expect(r?.score).toBeGreaterThanOrEqual(60);
     expect(r?.matched_rules).toContain("intern_reporter_title");
+    expect(r?.matched_rules).toContain("target_broadcasters");
   });
 
   it("does not approve 경력 기자 without intern signal at newspaper", () => {

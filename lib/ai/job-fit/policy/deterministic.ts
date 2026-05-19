@@ -124,6 +124,26 @@ const hitsShowhostScopeGate = (input: JobFitInput): JobFitResult | null => {
   });
 };
 
+const hitsInternReporterScopeGate = (input: JobFitInput): JobFitResult | null => {
+  if (!titleHasInternReporterRole(input.title)) {
+    return null;
+  }
+  if (companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+    return synthetic({
+      label: "approved",
+      score: 72,
+      reasons: ["Intern reporter role at target broadcaster (deterministic)."],
+      matched_rules: ["intern_reporter_title", "target_broadcasters"],
+    });
+  }
+  return synthetic({
+    label: "rejected",
+    score: 15,
+    reasons: ["Intern reporter roles are in scope only at target broadcasters."],
+    matched_rules: ["intern_reporter_not_target_broadcaster"],
+  });
+};
+
 const hitsMotorStudioPending = (input: JobFitInput): JobFitResult | null => {
   if (!isMotorStudioCompanyOrTitle(input.company, input.title)) {
     return null;
@@ -224,6 +244,9 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
   const showhostGate = hitsShowhostScopeGate(input);
   if (showhostGate) return showhostGate;
 
+  const internReporterGate = hitsInternReporterScopeGate(input);
+  if (internReporterGate) return internReporterGate;
+
   const motorStudioPending = hitsMotorStudioPending(input);
   if (motorStudioPending) return motorStudioPending;
 
@@ -236,15 +259,6 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
   const exclusionReject = hitsExclusionKeywordsReject(input);
   if (exclusionReject) return exclusionReject;
 
-  if (titleHasInternReporterRole(input.title)) {
-    return synthetic({
-      label: "approved",
-      score: 72,
-      reasons: ["Title indicates intern reporter role (cross-source)."],
-      matched_rules: ["intern_reporter_title"],
-    });
-  }
-
   if (input.source === JOB_FIT_INTERN_SOURCE) {
     if (!internHasAllowedKeyword(input)) {
       return synthetic({
@@ -252,6 +266,14 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
         score: 15,
         reasons: ["Intern channel requires at least one of: 기자, 아나운서, 리포터 in title or company."],
         matched_rules: ["intern_allowed_keywords"],
+      });
+    }
+    if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+      return synthetic({
+        label: "rejected",
+        score: 15,
+        reasons: ["Intern channel postings require a target broadcaster company."],
+        matched_rules: ["intern_channel_not_target_broadcaster"],
       });
     }
     return null;

@@ -1,4 +1,4 @@
-export const JOB_FIT_PROMPT_VERSION = "v2.7.0";
+export const JOB_FIT_PROMPT_VERSION = "v2.8.0";
 
 /** Major home-shopping companies: show-host roles may be approved only here. */
 export const JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES = [
@@ -268,6 +268,7 @@ const PRIORITY_LINES = [
   "1. [블랙리스트 최우선]: blocklist·유튜버/강사·엔터테인먼트 → 직무/회사 불문 rejected.",
   "2. [홈쇼핑 특례]: 홈쇼핑 마커인데 제목에 쇼호스트 없음 → rejected.",
   "2b. [쇼호스트 한정]: 제목에 쇼호스트 → company가 majorHomeshoppingCompanies에만 approved; 지역·케이블 방송사 등 그 외 rejected.",
+  "2c. [인턴기자 한정]: 제목에 인턴기자(인턴+기자) → company ∈ targetBroadcasters에만 approved; 비방송사 rejected.",
   "3. [모터스튜디오 도슨트 보류]: company/title에 모터스튜디오·motor studio 등 자동차 전시관 → approved/rejected 즉시 확정 금지, score 45~59(rejected 라벨 가능) → pending, 원장님 HITL.",
   "4. [행정·제작 제외]: 제목에 행정·제작 → rejected (HITL 없음).",
   "5. [방송사 VJ·영상 보류]: company ∈ targetBroadcasters AND 제목에 VJ·영상취재·비디오·영상 편집·ENG·카메라 등 → score 45~59 → pending(HITL).",
@@ -277,8 +278,9 @@ const PRIORITY_LINES = [
 
 const REPORTER_POLICY_LINES = [
   "- [기자·취재 직무 분기]:",
-  "  * title에 인턴+기자(인턴 기자·인턴기자·세그먼트 인턴·기자) → 승인 후보.",
-  "  * source가 mediajob_intern AND title/company에 기자·아나운서·리포터 → 승인 후보.",
+  "  * title에 인턴+기자(인턴 기자·인턴기자) AND company ∈ targetBroadcasters → 승인.",
+  "  * source가 mediajob_intern → company ∈ targetBroadcasters 필수; 비방송사 rejected.",
+  "  * mediajob_intern AND title/company에 기자·아나운서·리포터 AND targetBroadcasters → 승인 후보.",
   "  * 인터넷/중소 신문사 AND title에 취재/기자 중심 직무 → rejected.",
   "  * 인터넷/중소 신문사 AND title에 targetRoleKeywords → 평가(approved/pending 가능).",
   "인터넷/중소 신문사 맥락에서는 targetRoles의 기자 항목을 적용하지 않는다.",
@@ -286,7 +288,8 @@ const REPORTER_POLICY_LINES = [
 
 const FEW_SHOT_ANNOUNCER = [
   'Example (approved): title=KBS 아나운서 공채, company=KBS → {"label":"approved","score":92,"reasons":["지상파 아나운서 공채","회사가 target_broadcasters"],"matched_rules":["target_broadcasters","target_roles"]}',
-  'Example (approved): title=헬스조선 취재팀 인턴 기자 채용, company=㈜헬스조선 → {"label":"approved","score":72,"reasons":["제목 인턴 기자","cross-source"],"matched_rules":["intern_reporter_title"]}',
+  'Example (rejected): title=헬스조선 취재팀 인턴 기자 채용, company=㈜헬스조선 → {"label":"rejected","score":15,"reasons":["인턴기자는 타겟 방송사만"],"matched_rules":["intern_reporter_not_target_broadcaster"]}',
+  'Example (rejected): title=뉴스트리 채용연계형 인턴기자 모집, company=(주)뉴스트리 → {"label":"rejected","score":15,"reasons":["비방송사 인턴기자"],"matched_rules":["intern_reporter_not_target_broadcaster"]}',
   'Example (rejected): title=2026년 공영홈쇼핑 NCS 블라인드 채용, company=공영홈쇼핑 → {"label":"rejected","score":15,"reasons":["홈쇼핑은 쇼호스트만"],"matched_rules":["homeshopping_non_showhost"]}',
   'Example (rejected): title=행정직 채용, company=KBS → {"label":"rejected","score":12,"reasons":["방송사이나 행정 직무"],"matched_rules":["broadcaster_non_target_role"]}',
   'Example (pending-ish): title=[VJ/취재기자] 영상취재부/VJ/카메라, company=연합뉴스TV → {"label":"rejected","score":52,"reasons":["방송사이나 VJ·영상취재"],"matched_rules":["broadcaster_pending_role"]}',
@@ -307,7 +310,7 @@ export function buildSystemPrompt(source: string): string {
     return [
       "너는 방송아카데미 인턴 채용관의 1차 서류 큐레이터다.",
       `목표: 공고 제목·회사 등에 다음 키워드 중 하나 이상이 있을 때만 승인 후보로 본다: ${JOB_FIT_INTERN_ALLOWED_KEYWORDS.join(", ")}.`,
-      "위 키워드가 하나도 없으면 rejected. 인턴 기자는 무조건 포함 후보.",
+      "위 키워드가 하나도 없으면 rejected. company가 targetBroadcasters(지상파·지역·케이블 방송사 등)에 해당할 때만 승인 후보.",
       "다른 채널(아나운서 큐레이터) 규칙은 적용하지 않는다.",
       "반드시 JSON으로만 응답하고, 불확실하면 보수적으로 score 45~59를 준다.",
     ].join("\n");
