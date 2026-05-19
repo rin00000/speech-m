@@ -1,5 +1,6 @@
 import type { JobFitInput, JobFitResult } from "../domain/schema";
 import {
+  companyMatchesMajorHomeshopping,
   isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
   isMotorStudioCompanyOrTitle,
@@ -7,6 +8,7 @@ import {
   titleHasBroadcasterRejectRole,
   titleHasHomeshoppingApproveRole,
   titleHasInternReporterRole,
+  titleHasJobFitTargetRole,
   titleHasTargetBroadcastRole,
 } from "./company-newspaper";
 import {
@@ -102,6 +104,46 @@ const hitsHomeshoppingReject = (input: JobFitInput): JobFitResult | null => {
   });
 };
 
+const hitsShowhostScopeGate = (input: JobFitInput): JobFitResult | null => {
+  if (!titleHasHomeshoppingApproveRole(input.title)) {
+    return null;
+  }
+  if (companyMatchesMajorHomeshopping(input.company)) {
+    return synthetic({
+      label: "approved",
+      score: 88,
+      reasons: ["Show-host role at major home-shopping company (deterministic)."],
+      matched_rules: ["major_homeshopping_showhost"],
+    });
+  }
+  return synthetic({
+    label: "rejected",
+    score: 15,
+    reasons: ["Show-host roles are in scope only at major home-shopping companies."],
+    matched_rules: ["showhost_not_major_homeshopping"],
+  });
+};
+
+const hitsInternReporterScopeGate = (input: JobFitInput): JobFitResult | null => {
+  if (!titleHasInternReporterRole(input.title)) {
+    return null;
+  }
+  if (companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+    return synthetic({
+      label: "approved",
+      score: 72,
+      reasons: ["Intern reporter role at target broadcaster (deterministic)."],
+      matched_rules: ["intern_reporter_title", "target_broadcasters"],
+    });
+  }
+  return synthetic({
+    label: "rejected",
+    score: 15,
+    reasons: ["Intern reporter roles are in scope only at target broadcasters."],
+    matched_rules: ["intern_reporter_not_target_broadcaster"],
+  });
+};
+
 const hitsMotorStudioPending = (input: JobFitInput): JobFitResult | null => {
   if (!isMotorStudioCompanyOrTitle(input.company, input.title)) {
     return null;
@@ -113,6 +155,22 @@ const hitsMotorStudioPending = (input: JobFitInput): JobFitResult | null => {
       "Motor studio / auto exhibition company — docent or presenter roles may apply; defer to admin review.",
     ],
     matched_rules: ["motor_studio_docent_pending"],
+  });
+};
+
+/** 행정·제작 — rejected (no HITL). 영상/VJ 맥락의 제작은 pending 게이트로 넘긴다. */
+const hitsAdminProductionReject = (input: JobFitInput): JobFitResult | null => {
+  if (!titleHasBroadcasterRejectRole(input.title)) {
+    return null;
+  }
+  if (titleHasBroadcasterPendingRole(input.title)) {
+    return null;
+  }
+  return synthetic({
+    label: "rejected",
+    score: 12,
+    reasons: ["Admin or production-office role (행정, 제작) — out of scope."],
+    matched_rules: ["broadcaster_non_target_role"],
   });
 };
 
@@ -130,21 +188,14 @@ const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
       matched_rules: ["broadcaster_pending_role"],
     });
   }
-  if (titleHasBroadcasterRejectRole(input.title)) {
-    return synthetic({
-      label: "rejected",
-      score: 12,
-      reasons: [
-        "Target broadcaster company but admin/production-office role (행정, 제작) — out of scope.",
-      ],
-      matched_rules: ["broadcaster_non_target_role"],
-    });
+  if (!titleHasJobFitTargetRole(input.title)) {
+    return null;
   }
   return synthetic({
     label: "approved",
     score: 85,
-    reasons: ["Company matches target broadcasters (deterministic)."],
-    matched_rules: ["target_broadcasters"],
+    reasons: ["Target broadcaster company and target role in title (deterministic)."],
+    matched_rules: ["target_broadcasters", "target_roles"],
   });
 };
 
@@ -190,23 +241,23 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
   const homeshoppingReject = hitsHomeshoppingReject(input);
   if (homeshoppingReject) return homeshoppingReject;
 
+  const showhostGate = hitsShowhostScopeGate(input);
+  if (showhostGate) return showhostGate;
+
+  const internReporterGate = hitsInternReporterScopeGate(input);
+  if (internReporterGate) return internReporterGate;
+
   const motorStudioPending = hitsMotorStudioPending(input);
   if (motorStudioPending) return motorStudioPending;
+
+  const adminProductionReject = hitsAdminProductionReject(input);
+  if (adminProductionReject) return adminProductionReject;
 
   const broadcasterGate = hitsBroadcasterRoleGate(input);
   if (broadcasterGate) return broadcasterGate;
 
   const exclusionReject = hitsExclusionKeywordsReject(input);
   if (exclusionReject) return exclusionReject;
-
-  if (titleHasInternReporterRole(input.title)) {
-    return synthetic({
-      label: "approved",
-      score: 72,
-      reasons: ["Title indicates intern reporter role (cross-source)."],
-      matched_rules: ["intern_reporter_title"],
-    });
-  }
 
   if (input.source === JOB_FIT_INTERN_SOURCE) {
     if (!internHasAllowedKeyword(input)) {
@@ -215,6 +266,14 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
         score: 15,
         reasons: ["Intern channel requires at least one of: 기자, 아나운서, 리포터 in title or company."],
         matched_rules: ["intern_allowed_keywords"],
+      });
+    }
+    if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+      return synthetic({
+        label: "rejected",
+        score: 15,
+        reasons: ["Intern channel postings require a target broadcaster company."],
+        matched_rules: ["intern_channel_not_target_broadcaster"],
       });
     }
     return null;

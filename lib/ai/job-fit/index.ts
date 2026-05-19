@@ -38,7 +38,9 @@ export {
   JOB_FIT_INTERN_ALLOWED_KEYWORDS,
   JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES,
+  JOB_FIT_HOMESHOPPING_DETECT_MARKERS,
   JOB_FIT_HOMESHOPPING_MARKERS,
+  JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES,
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
   JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS,
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,
@@ -58,12 +60,14 @@ export {
 export { tryDeterministicDecision } from "./policy/deterministic";
 
 export {
+  companyMatchesMajorHomeshopping,
   isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
   isMotorStudioCompanyOrTitle,
   titleHasBroadcasterRejectRole,
   titleHasBroadcasterPendingRole,
   titleHasHomeshoppingApproveRole,
+  titleHasJobFitTargetRole,
   titleHasInternReporterRole,
   titleHasTargetBroadcastRole,
 } from "./policy/company-newspaper";

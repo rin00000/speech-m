@@ -9,7 +9,8 @@ import {
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,
   JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS,
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
-  JOB_FIT_HOMESHOPPING_MARKERS,
+  JOB_FIT_HOMESHOPPING_DETECT_MARKERS,
+  JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES,
   JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES,
@@ -59,11 +60,21 @@ export const isHomeshoppingCompanyOrTitle = (
 ): boolean => {
   const combined = `${title}\n${company ?? ""}`;
   const folded = foldCase(combined);
-  return JOB_FIT_HOMESHOPPING_MARKERS.some((m) => folded.includes(foldCase(m)));
+  return JOB_FIT_HOMESHOPPING_DETECT_MARKERS.some((m) => folded.includes(foldCase(m)));
 };
+
+export const companyMatchesMajorHomeshopping = (
+  company: string | null | undefined
+): boolean => companyMatchesBroadcaster(company ?? null, JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES);
 
 export const titleHasHomeshoppingApproveRole = (title: string): boolean =>
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES.some((kw) => fieldTextMatches(title, kw));
+
+/** targetRoles for broadcaster approve; show-host handled by major homeshopping gate. */
+export const titleHasJobFitTargetRole = (title: string): boolean =>
+  JOB_FIT_RULES.targetRoles
+    .filter((role) => role !== "쇼호스트")
+    .some((kw) => fieldTextMatches(title, kw));
 
 export const isMotorStudioCompanyOrTitle = (
   company: string | null | undefined,
