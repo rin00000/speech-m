@@ -235,6 +235,7 @@ export const JOB_FIT_TARGET_BROADCASTERS = [
   "기독교TV",
   "원음방송",
   "평화방송",
+  "헬스조선"
 ] as const;
 
 export const JOB_FIT_RULES = {
