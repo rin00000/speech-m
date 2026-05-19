@@ -79,6 +79,7 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
   });
 
   it("approves broadcaster when intern segment 기자 is present", () => {
@@ -90,6 +91,7 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
   });
 
   it("approves broadcaster and skips title hard exclude", () => {
@@ -100,6 +102,16 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
+  });
+
+  it("returns null for broadcaster without target role in title", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "2026 신입 공개 채용",
+      company: "KBS",
+    });
+    expect(r).toBeNull();
   });
 
   it("applies title hard exclude without broadcaster or target role", () => {
@@ -138,6 +150,7 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
   });
 
   it("rejects internet newspaper reporter role", () => {
@@ -187,6 +200,7 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
   });
 
   it("approves cross-source intern reporter by title (헬스조선)", () => {
@@ -248,6 +262,27 @@ describe("tryDeterministicDecision", () => {
     });
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
+  });
+
+  it("rejects show-host at regional broadcaster", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "쇼호스트 신입 공개채용",
+      company: "KNN",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("showhost_not_major_homeshopping");
+  });
+
+  it("approves show-host at major homeshopping company", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "쇼호스트 신입 공개채용",
+      company: "㈜공영홈쇼핑",
+    });
+    expect(r?.label).toBe("approved");
+    expect(r?.matched_rules).toContain("major_homeshopping_showhost");
   });
 
   it("rejects 유튜브 전용 on non-broadcaster", () => {
@@ -357,13 +392,15 @@ describe("tryDeterministicDecision", () => {
     expect(toFinalStatus(r!)).toBe("pending");
   });
 
-  it("does not homeshopping-reject when title has 쇼호스트", () => {
+  it("approves homeshopping show-host via major company gate", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       title: "쇼호스트 신입 공개채용",
       company: "공영홈쇼핑",
     });
-    expect(r === null || !r.matched_rules.includes("homeshopping_non_showhost")).toBe(true);
+    expect(r?.label).toBe("approved");
+    expect(r?.matched_rules).toContain("major_homeshopping_showhost");
+    expect(r?.matched_rules).not.toContain("homeshopping_non_showhost");
   });
 });
 

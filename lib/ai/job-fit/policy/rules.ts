@@ -1,16 +1,34 @@
-export const JOB_FIT_PROMPT_VERSION = "v2.6.0";
+export const JOB_FIT_PROMPT_VERSION = "v2.7.0";
 
-/** Home shopping: only show-host roles are in scope. */
-export const JOB_FIT_HOMESHOPPING_MARKERS = [
-  "홈쇼핑",
-  "공영홈쇼핑",
-  "gs홈쇼핑",
+/** Major home-shopping companies: show-host roles may be approved only here. */
+export const JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES = [
+  "CJ온스타일",
   "GS홈쇼핑",
+  "GS shop",
+  "gs홈쇼핑",
   "현대홈쇼핑",
   "롯데홈쇼핑",
-  "CJ온스타일",
+  "NS홈쇼핑",
   "ns홈쇼핑",
+  "홈앤쇼핑",
+  "공영홈쇼핑",
+  "공영쇼핑",
+  "SK스토아",
+  "KT알파",
+  "KT알파쇼핑",
+  "신세계쇼핑",
+  "쇼핑엔티",
+  "W쇼핑",
 ] as const;
+
+/** Home-shopping context detection (reject non–show-host postings). */
+export const JOB_FIT_HOMESHOPPING_DETECT_MARKERS = [
+  "홈쇼핑",
+  ...JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES,
+] as const;
+
+/** @deprecated Use {@link JOB_FIT_HOMESHOPPING_DETECT_MARKERS}. */
+export const JOB_FIT_HOMESHOPPING_MARKERS = JOB_FIT_HOMESHOPPING_DETECT_MARKERS;
 
 export const JOB_FIT_HOMESHOPPING_APPROVE_ROLES = ["쇼호스트"] as const;
 
@@ -249,10 +267,11 @@ const PRIORITY_LINES = [
   "### [규칙 우선순위 (매우 중요)]",
   "1. [블랙리스트 최우선]: blocklist·유튜버/강사·엔터테인먼트 → 직무/회사 불문 rejected.",
   "2. [홈쇼핑 특례]: 홈쇼핑 마커인데 제목에 쇼호스트 없음 → rejected.",
+  "2b. [쇼호스트 한정]: 제목에 쇼호스트 → company가 majorHomeshoppingCompanies에만 approved; 지역·케이블 방송사 등 그 외 rejected.",
   "3. [모터스튜디오 도슨트 보류]: company/title에 모터스튜디오·motor studio 등 자동차 전시관 → approved/rejected 즉시 확정 금지, score 45~59(rejected 라벨 가능) → pending, 원장님 HITL.",
-  "4. [방송사 비대상 직무]: company ∈ targetBroadcasters AND title에 행정·제작(단독) → rejected (HITL 없음). 영상 편집은 (5)로 pending.",
-  "5. [방송사 영상/편집 보류]: company ∈ targetBroadcasters AND 제목/직무에 VJ·영상취재·비디오·영상 편집·ENG·카메라 등 → approved/rejected 확정 금지, score 45~59 → pending(HITL).",
-  "6. [방송사 프리패스]: 위 3~5에 해당하지 않는 targetBroadcasters → approved; exclusionKeywords 있어도 방송사 우선.",
+  "4. [행정·제작 제외]: 제목에 행정·제작 → rejected (HITL 없음).",
+  "5. [방송사 VJ·영상 보류]: company ∈ targetBroadcasters AND 제목에 VJ·영상취재·비디오·영상 편집·ENG·카메라 등 → score 45~59 → pending(HITL).",
+  "6. [방송사 승인]: company ∈ targetBroadcasters AND 제목에 targetRoles(쇼호스트 제외) → approved. 직무 없으면 자동 승인하지 않음.",
   "7. [비방송사]: exclusionKeywords → rejected. 신문사·인턴기자·금융 등 하위 규칙 적용.",
 ];
 
@@ -273,7 +292,9 @@ const FEW_SHOT_ANNOUNCER = [
   'Example (pending-ish): title=[VJ/취재기자] 영상취재부/VJ/카메라, company=연합뉴스TV → {"label":"rejected","score":52,"reasons":["방송사이나 VJ·영상취재"],"matched_rules":["broadcaster_pending_role"]}',
   'Example (pending-ish): title=영상 편집 PD 채용, company=연합뉴스TV → {"label":"rejected","score":55,"reasons":["방송사이나 영상·편집 직무","원장님 확인"],"matched_rules":["broadcaster_pending_role"]}',
   'Example (pending-ish): title=도슨트(진행자) 채용, company=현대 모터스튜디오 → {"label":"rejected","score":52,"reasons":["자동차 전시관 도슨트 가능성","HITL"],"matched_rules":["motor_studio_docent_pending"]}',
-  'Example (approved): title=취재기자 모집, company=JTV → {"label":"approved","score":85,"reasons":["Company matches target broadcasters"],"matched_rules":["target_broadcasters"]}',
+  'Example (rejected): title=쇼호스트 신입, company=KNN → {"label":"rejected","score":15,"reasons":["쇼호스트는 대형 홈쇼핑만"],"matched_rules":["showhost_not_major_homeshopping"]}',
+  'Example (approved): title=쇼호스트 신입, company=㈜공영홈쇼핑 → {"label":"approved","score":88,"reasons":["대형 홈쇼핑 쇼호스트"],"matched_rules":["major_homeshopping_showhost"]}',
+  'Example (approved): title=취재기자 모집, company=JTV → {"label":"approved","score":85,"reasons":["target broadcasters and role"],"matched_rules":["target_broadcasters","target_roles"]}',
   'Example (rejected): title=경제·금융 경력 기자, company=(주)뉴스포스트신문사 → {"label":"rejected","score":15,"reasons":["인터넷 신문사 기자직"],"matched_rules":["internet_newspaper_non_target_role"]}',
   'Example (rejected): title=채용 담당, company=○○일보 → {"label":"rejected","score":12,"reasons":["신문사 비대상 직무"],"matched_rules":["internet_newspaper_non_target_role"]}',
   'Example (pending-ish): title=아나운서 모집, company=○○신문사 → {"label":"approved","score":58,"reasons":["신문사이나 아나운서 직무"],"matched_rules":["target_role_keywords"]}',
@@ -342,7 +363,8 @@ export function buildUserPrompt(job: {
     `targetRoleKeywords (신문사 화이트리스트): ${JOB_FIT_TARGET_ROLE_KEYWORDS.join(", ")}`,
     `internetNewspaperCompanyMarkers: ${JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS.join(", ")}`,
     `internetNewspaperCompanies: ${JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES.join(", ")}`,
-    `homeshoppingMarkers (쇼호스트 직무만 승인): ${JOB_FIT_HOMESHOPPING_MARKERS.join(", ")}`,
+    `homeshoppingDetectMarkers (비쇼호스트 거절): ${JOB_FIT_HOMESHOPPING_DETECT_MARKERS.join(", ")}`,
+    `majorHomeshoppingCompanies (쇼호스트 승인 화이트리스트): ${JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES.join(", ")}`,
     `broadcasterRejectRoles (방송사인데 무조건 rejected): ${JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS.join(", ")}`,
     `broadcasterPendingRoles (방송사인데 HITL, score 45~59): ${JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS.join(", ")}`,
     `motorStudioMarkers (전시관·도슨트 HITL, score 45~59): ${JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS.join(", ")}`,
