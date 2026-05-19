@@ -204,7 +204,7 @@ describe("tryDeterministicDecision", () => {
     expect(r?.matched_rules).toContain("target_roles");
   });
 
-  it("rejects cross-source intern reporter at non-target broadcaster (헬스조선)", () => {
+  it("approves cross-source intern reporter at target broadcaster (헬스조선)", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       source: "jobkorea",
@@ -212,7 +212,8 @@ describe("tryDeterministicDecision", () => {
       company: "㈜헬스조선",
     });
     expect(r?.label).toBe("approved");
-    expect(r?.matched_rules).toContain("intern_reporter_not_target_broadcaster");
+    expect(r?.matched_rules).toContain("intern_reporter_title");
+    expect(r?.matched_rules).toContain("target_broadcasters");
   });
 
   it("rejects intern reporter at non-target broadcaster (뉴스트리)", () => {

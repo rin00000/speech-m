@@ -283,7 +283,7 @@ const REPORTER_POLICY_LINES = [
 
 const FEW_SHOT_ANNOUNCER = [
   'Example (approved): title=KBS 아나운서 공채, company=KBS → {"label":"approved","score":92,"reasons":["지상파 아나운서 공채","회사가 target_broadcasters"],"matched_rules":["target_broadcasters","target_roles"]}',
-  'Example (rejected): title=헬스조선 취재팀 인턴 기자 채용, company=㈜헬스조선 → {"label":"rejected","score":15,"reasons":["인턴기자는 타겟 방송사만"],"matched_rules":["intern_reporter_not_target_broadcaster"]}',
+  'Example (approved): title=헬스조선 취재팀 인턴 기자 채용, company=㈜헬스조선 → {"label":"approved","score":72,"reasons":["타겟 방송사 인턴기자"],"matched_rules":["intern_reporter_title","target_broadcasters"]}',
   'Example (rejected): title=뉴스트리 채용연계형 인턴기자 모집, company=(주)뉴스트리 → {"label":"rejected","score":15,"reasons":["비방송사 인턴기자"],"matched_rules":["intern_reporter_not_target_broadcaster"]}',
   'Example (rejected): title=2026년 공영홈쇼핑 NCS 블라인드 채용, company=공영홈쇼핑 → {"label":"rejected","score":15,"reasons":["홈쇼핑은 쇼호스트만"],"matched_rules":["homeshopping_non_showhost"]}',
   'Example (rejected): title=행정직 채용, company=KBS → {"label":"rejected","score":12,"reasons":["방송사이나 행정 직무"],"matched_rules":["broadcaster_non_target_role"]}',
