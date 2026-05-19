@@ -211,7 +211,7 @@ describe("tryDeterministicDecision", () => {
       title: "헬스조선 취재팀 인턴 기자 채용(5월 31일 마감)",
       company: "㈜헬스조선",
     });
-    expect(r?.label).toBe("rejected");
+    expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("intern_reporter_not_target_broadcaster");
   });
 

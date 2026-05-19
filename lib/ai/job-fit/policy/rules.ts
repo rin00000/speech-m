@@ -13,12 +13,6 @@ export const JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES = [
   "홈앤쇼핑",
   "공영홈쇼핑",
   "공영쇼핑",
-  "SK스토아",
-  "KT알파",
-  "KT알파쇼핑",
-  "신세계쇼핑",
-  "쇼핑엔티",
-  "W쇼핑",
 ] as const;
 
 /** Home-shopping context detection (reject non–show-host postings). */
