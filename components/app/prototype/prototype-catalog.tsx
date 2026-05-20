@@ -17,12 +17,12 @@ import { OptionPill } from "@/components/ui/option-pill";
 import type { UserRole } from "@/lib/auth/session";
 import { cn } from "@/lib/ui/cn";
 
-type FontChoice = "pretendard" | "suit" | "paperlogy";
+type FontChoice = "pretendard" | "nanum-gothic" | "nanum-coding";
 
 const FONT_OPTIONS: { id: FontChoice; label: string; className: string }[] = [
   { id: "pretendard", label: "Pretendard", className: "font-pretendard" },
-  { id: "suit", label: "SUIT", className: "font-suit" },
-  { id: "paperlogy", label: "Paperlogy", className: "font-paperlogy" },
+  { id: "nanum-gothic", label: "Nanum Gothic", className: "font-nanum-gothic" },
+  { id: "nanum-coding", label: "Nanum Gothic Coding", className: "font-nanum-coding" },
 ];
 
 const PALETTE = [

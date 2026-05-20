@@ -43,5 +43,5 @@ globs: components/ui/**/*.{tsx,ts}, components/app/**/*.{tsx,ts}, app/**/prototy
 - 한 화면에 3개 이상 서로 다른 accent 색상
 
 ## 폰트 (프로토타입 단계)
-- 비교 후보: Pretendard Variable / SUIT Variable / Paperlogy
-- 프로토타입 확정 전까지 `font-pretendard | font-suit | font-paperlogy` 클래스로 토글
+- 비교 후보: Pretendard Variable / Nanum Gothic / Nanum Gothic Coding
+- 프로토타입 확정 전까지 `font-pretendard | font-nanum-gothic | font-nanum-coding` 클래스로 토글 (또는 `.nanum-gothic-regular`, `.nanum-gothic-coding-regular`)

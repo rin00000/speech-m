@@ -1,31 +1,7 @@
 @import "tailwindcss";
 
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
-@import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css");
-
-@font-face {
-  font-family: "Paperlogy";
-  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2")
-    format("woff2");
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Paperlogy";
-  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2")
-    format("woff2");
-  font-weight: 700;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Paperlogy";
-  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2")
-    format("woff2");
-  font-weight: 800;
-  font-style: normal;
-}
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Nanum+Gothic+Coding:wght@400;700&display=swap");
 
 :root {
   --background: #ffffff;
@@ -54,8 +30,8 @@
   --shadow-island: 0 1px 2px rgb(0 0 0 / 0.03), 0 4px 12px rgb(0 0 0 / 0.04);
 
   --font-display-pretendard: "Pretendard Variable", Pretendard, system-ui, sans-serif;
-  --font-display-suit: "SUIT Variable", SUIT, system-ui, sans-serif;
-  --font-display-paperlogy: "Paperlogy", system-ui, sans-serif;
+  --font-display-nanum-gothic: "Nanum Gothic", sans-serif;
+  --font-display-nanum-coding: "Nanum Gothic Coding", monospace;
   --font-app: var(--font-display-pretendard);
 }
 
@@ -96,10 +72,26 @@ body {
   font-family: var(--font-display-pretendard);
 }
 
-.font-suit {
-  font-family: var(--font-display-suit);
+.font-nanum-gothic {
+  font-family: var(--font-display-nanum-gothic);
+  font-weight: 400;
+  font-style: normal;
 }
 
-.font-paperlogy {
-  font-family: var(--font-display-paperlogy);
+.font-nanum-coding {
+  font-family: var(--font-display-nanum-coding);
+  font-weight: 400;
+  font-style: normal;
+}
+
+.nanum-gothic-regular {
+  font-family: "Nanum Gothic", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.nanum-gothic-coding-regular {
+  font-family: "Nanum Gothic Coding", monospace;
+  font-weight: 400;
+  font-style: normal;
 }
