@@ -19,7 +19,7 @@ export function AppShell({
   hideNav?: boolean;
 }) {
   return (
-    <div className="flex min-h-screen bg-bg md:gap-4 md:p-4">
+    <div className="grain flex min-h-screen md:gap-4 md:p-4">
       {!hideNav && (
         <SideRail
           userRole={userRole}
@@ -29,7 +29,7 @@ export function AppShell({
       )}
 
       <main
-        className="flex min-h-screen min-w-0 flex-1 flex-col pb-24 md:min-h-[calc(100vh-2rem)] md:rounded-3xl md:border md:border-gray-200 md:bg-white md:pb-0 md:shadow-sm"
+        className="grain grain-soft flex min-h-screen min-w-0 flex-1 flex-col pb-24 md:min-h-[calc(100vh-2rem)] md:rounded-3xl md:border md:border-gray-200 md:bg-white md:pb-0 md:shadow-sm"
       >
         {children}
       </main>

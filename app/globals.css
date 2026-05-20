@@ -60,6 +60,16 @@
 
   --font-display-pretendard: "Pretendard Variable", Pretendard, system-ui, sans-serif;
   --font-app: var(--font-display-pretendard);
+
+  --grain-opacity: 0.32;
+  --grain-opacity-soft: 0.14;
+
+  --bg-gradient: linear-gradient(
+    to bottom,
+    var(--periwinkle-200) 0%,
+    var(--periwinkle-100) 35%,
+    var(--periwinkle-50) 100%
+  );
 }
 
 @theme inline {
@@ -111,7 +121,9 @@ body {
 }
 
 body {
-  background: var(--semantic-bg);
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
   color: var(--semantic-text);
   font-family: var(--font-display-pretendard);
 }
@@ -122,4 +134,31 @@ body {
 
 .font-pretendard {
   font-family: var(--font-display-pretendard);
+}
+
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+
+.grain > * {
+  position: relative;
+  z-index: 1;
+}
+
+.grain-soft::before {
+  opacity: var(--grain-opacity-soft);
 }
