@@ -54,8 +54,8 @@
   --app-muted: var(--semantic-muted);
   --app-accent: var(--semantic-accent);
   --app-accent-soft: var(--semantic-subtle);
-  --radius-card: 1.5rem;
-  --radius-pill: 9999px;
+  --radius-card: 6px;
+  --radius-pill: 6px;
   --shadow-island: 0 1px 2px rgb(0 0 0 / 0.03), 0 4px 12px rgb(0 0 0 / 0.04);
 
   --font-display-pretendard: "Pretendard Variable", Pretendard, system-ui, sans-serif;
@@ -121,11 +121,34 @@ body {
 }
 
 body {
+  position: relative;
   min-height: 100vh;
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--semantic-text);
   font-family: var(--font-display-pretendard);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 55vh;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 .shadow-island {
@@ -136,29 +159,9 @@ body {
   font-family: var(--font-display-pretendard);
 }
 
-.grain {
-  position: relative;
-  isolation: isolate;
+*,
+*::before,
+*::after {
+  border-radius: 6px !important;
 }
 
-.grain::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  opacity: var(--grain-opacity);
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-size: 160px 160px;
-}
-
-.grain > * {
-  position: relative;
-  z-index: 1;
-}
-
-.grain-soft::before {
-  opacity: var(--grain-opacity-soft);
-}
