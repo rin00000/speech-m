@@ -1,5 +1,32 @@
 @import "tailwindcss";
 
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+@import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css");
+
+@font-face {
+  font-family: "Paperlogy";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Paperlogy";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2")
+    format("woff2");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Paperlogy";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2")
+    format("woff2");
+  font-weight: 800;
+  font-style: normal;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -14,13 +41,39 @@
   --accent: #6366f1;
   --accent-light: #818cf8;
   --surface: #f8fafc;
+
+  --app-bg: #fafaf9;
+  --app-surface: #ffffff;
+  --app-border: rgb(228 228 231 / 0.5);
+  --app-text: #1c1917;
+  --app-muted: #78716c;
+  --app-accent: #7c3aed;
+  --app-accent-soft: #ede9fe;
+  --radius-card: 1.5rem;
+  --radius-pill: 9999px;
+  --shadow-island: 0 1px 2px rgb(0 0 0 / 0.03), 0 4px 12px rgb(0 0 0 / 0.04);
+
+  --font-display-pretendard: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-display-suit: "SUIT Variable", SUIT, system-ui, sans-serif;
+  --font-display-paperlogy: "Paperlogy", system-ui, sans-serif;
+  --font-app: var(--font-display-pretendard);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-border: var(--app-border);
+  --color-app-text: var(--app-text);
+  --color-app-muted: var(--app-muted);
+  --color-accent: var(--app-accent);
+  --color-accent-soft: var(--app-accent-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --radius-card: var(--radius-card);
+  --radius-pill: var(--radius-pill);
+  --shadow-island: var(--shadow-island);
 }
 
 html,
@@ -33,4 +86,20 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Apple SD Gothic Neo", "Malgun Gothic",
     sans-serif;
+}
+
+.shadow-island {
+  box-shadow: var(--shadow-island);
+}
+
+.font-pretendard {
+  font-family: var(--font-display-pretendard);
+}
+
+.font-suit {
+  font-family: var(--font-display-suit);
+}
+
+.font-paperlogy {
+  font-family: var(--font-display-paperlogy);
 }

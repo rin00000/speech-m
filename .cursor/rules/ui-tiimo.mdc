@@ -1,0 +1,47 @@
+---
+description: Tiimo 스타일 디자인 시스템 — Speech-M UI 가이드
+globs: components/ui/**/*.{tsx,ts}, components/app/**/*.{tsx,ts}, app/**/prototype/**/*.{tsx,ts}
+---
+# Tiimo Design System (Speech-M)
+
+## 색상
+- 페이지 배경: `bg-stone-50` 또는 `bg-app-bg`
+- 표면(Surface): `bg-white`
+- 텍스트: 제목 `font-extrabold text-stone-900`, 본문 `font-medium text-stone-600`
+- 포인트 컬러: `violet-600` (primary action). 연한 표면 `violet-100`, focus ring `ring-violet-500/30`
+- 한 화면에 액센트 컬러는 1~2회만 사용 (눈 피로 방지)
+
+## 모서리
+- 카드/컨테이너: `rounded-3xl` (또는 `rounded-2xl`)
+- 버튼/뱃지/탭: `rounded-full`
+
+## 테두리 & 그림자
+- 강한 그림자 금지. `shadow-sm` 이내만 사용
+- 테두리: `border border-zinc-200/50` (또는 `border-app-border`)
+- PC island: `shadow-island` 커스텀 클래스 허용
+
+## 컴포넌트 패턴
+- 카드: `rounded-3xl bg-white border border-zinc-200/50 shadow-sm`
+- Primary 버튼: `rounded-full bg-violet-600 text-white font-semibold hover:bg-violet-700`
+- Ghost 버튼: `rounded-full border border-zinc-200/50 bg-white text-stone-700 hover:bg-stone-50`
+- Soft 버튼: `rounded-full bg-violet-100 text-violet-700 hover:bg-violet-200`
+- 뱃지: `rounded-full bg-stone-100 text-stone-700 px-3 py-1 text-xs font-medium`
+
+## 반응형 레이아웃
+- 모바일: BottomTab (`fixed bottom-4 inset-x-4 rounded-full`), 콘텐츠 풀폭, `pb-24` 하단 여백
+- PC (`md:`): SideRail 좌측 고정, main은 `rounded-3xl bg-white shadow-sm` island
+- 중단점: Tailwind `md:` (768px) 기준
+
+## Role 분기
+- `nav-items.ts`에서 `role: 'all' | 'admin' | 'student'` 필드로 메뉴 필터
+- admin 전용: 공고 관리, 스터디 관리
+- student 전용: 내 스터디 등
+
+## 금지
+- slate-900 다크 사이드바 (레거시 AdminShell — 마이그레이션 전까지 유지)
+- `shadow-lg`, `shadow-xl` 등 강한 그림자
+- 한 화면에 3개 이상 서로 다른 accent 색상
+
+## 폰트 (프로토타입 단계)
+- 비교 후보: Pretendard Variable / SUIT Variable / Paperlogy
+- 프로토타입 확정 전까지 `font-pretendard | font-suit | font-paperlogy` 클래스로 토글
