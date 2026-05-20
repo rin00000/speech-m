@@ -23,7 +23,7 @@ export function BottomTab({
       aria-label="하단 탭 네비게이션"
       className="fixed inset-x-4 bottom-4 z-50 md:hidden"
     >
-      <div className="shadow-island flex items-center justify-around rounded-full border border-zinc-200/50 bg-white px-2 py-2">
+      <div className="shadow-island flex items-center justify-around rounded-full border border-gray-200 bg-white px-2 py-2">
         {items.map((item) => {
           const active = isNavActive(activePath, item.href);
           return (
@@ -32,13 +32,13 @@ export function BottomTab({
               href={item.href}
               className={cn(
                 "flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-full px-2 py-1.5 transition-colors",
-                active ? "text-violet-700" : "text-stone-400",
+                active ? "text-periwinkle-700" : "text-gray-400",
               )}
             >
               <span
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                  active ? "bg-violet-100" : "bg-transparent",
+                  active ? "bg-periwinkle-100" : "bg-transparent",
                 )}
               >
                 <HugeiconsIcon
@@ -48,7 +48,7 @@ export function BottomTab({
                   strokeWidth={active ? 2 : 1.5}
                 />
               </span>
-              <span className="max-w-full truncate text-[10px] font-semibold">
+              <span className="max-w-full truncate text-[10px] font-semibold leading-none">
                 {item.label}
               </span>
             </Link>

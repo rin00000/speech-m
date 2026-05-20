@@ -6,11 +6,11 @@ export type ButtonSize = "sm" | "md" | "lg";
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500/30",
+    "bg-periwinkle-600 text-white hover:bg-periwinkle-700 focus-visible:ring-periwinkle-500/30",
   ghost:
-    "border border-zinc-200/50 bg-white text-stone-700 hover:bg-stone-50 focus-visible:ring-stone-300/50",
+    "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-300/50",
   soft:
-    "bg-violet-100 text-violet-700 hover:bg-violet-200 focus-visible:ring-violet-500/30",
+    "border border-periwinkle-200 bg-periwinkle-100 text-periwinkle-700 hover:bg-periwinkle-200 focus-visible:ring-periwinkle-500/30",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -38,7 +38,7 @@ export function Button({
       type={type}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-full font-semibold leading-none transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         variantStyles[variant],

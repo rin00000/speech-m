@@ -1,6 +1,6 @@
 import { Header } from "@/components/admin/layout/header";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BookOpen01Icon, Add01Icon } from "@hugeicons/core-free-icons";
+import { BookOpen01Icon } from "@hugeicons/core-free-icons";
 
 export default function StudiesPage() {
   return (
@@ -11,23 +11,12 @@ export default function StudiesPage() {
       />
 
       <div className="flex-1 p-6">
-        <div className="mb-5 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
-            스터디 그룹 현황과 참여 수강생을 확인하세요.
-          </p>
-          <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
-            <HugeiconsIcon
-              icon={Add01Icon}
-              size={15}
-              color="currentColor"
-              strokeWidth={2}
-            />
-            스터디 개설
-          </button>
-        </div>
+        <p className="mb-5 text-sm leading-tight text-gray-500">
+          스터디 그룹 현황과 참여 수강생을 확인하세요.
+        </p>
 
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white py-20 text-center shadow-sm">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-20 text-center shadow-sm">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-400">
             <HugeiconsIcon
               icon={BookOpen01Icon}
               size={28}
@@ -35,10 +24,10 @@ export default function StudiesPage() {
               strokeWidth={1.5}
             />
           </span>
-          <p className="mt-4 text-sm font-medium text-slate-600">
+          <p className="mt-4 text-sm font-medium leading-tight text-gray-600">
             운영 중인 스터디가 없습니다
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs leading-tight text-gray-400">
             새 스터디를 개설하면 여기에 표시됩니다.
           </p>
         </div>

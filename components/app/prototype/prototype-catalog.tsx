@@ -1,37 +1,50 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Briefcase01Icon,
-  CheckmarkCircle01Icon,
-  Clock01Icon,
-} from "@hugeicons/core-free-icons";
+import { Briefcase01Icon, CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
 import { AppShell } from "@/components/app/layout/app-shell";
 import { getNavItemsForRole } from "@/components/app/layout/nav-items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardBody,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ListRow } from "@/components/ui/list-row";
 import { OptionPill } from "@/components/ui/option-pill";
 import type { UserRole } from "@/lib/auth/session";
 import { cn } from "@/lib/ui/cn";
 
-type FontChoice = "pretendard" | "nanum-gothic" | "nanum-coding";
+const periwinkleTokens = [
+  ["50", "#F4F8FE", "page bg"],
+  ["100", "#E5EEFC", "soft chip"],
+  ["200", "#D2E0FB", "key color"],
+  ["300", "#B0C6F0", "border tint"],
+  ["400", "#8EACCD", "secondary"],
+  ["500", "#6A8FBD", "hover"],
+  ["600", "#4D72B3", "primary action"],
+  ["700", "#3A5994", "active text"],
+  ["800", "#2A4275", "deep accent"],
+  ["900", "#1B2B52", "ink blue"],
+] as const;
 
-const FONT_OPTIONS: { id: FontChoice; label: string; className: string }[] = [
-  { id: "pretendard", label: "Pretendard", className: "font-pretendard" },
-  { id: "nanum-gothic", label: "Nanum Gothic", className: "font-nanum-gothic" },
-  { id: "nanum-coding", label: "Nanum Gothic Coding", className: "font-nanum-coding" },
-];
-
-const PALETTE = [
-  { name: "app-bg", className: "bg-stone-50", hex: "#fafaf9" },
-  { name: "surface", className: "bg-white border border-zinc-200/50", hex: "#ffffff" },
-  { name: "accent", className: "bg-violet-600", hex: "#7c3aed" },
-  { name: "accent-soft", className: "bg-violet-100", hex: "#ede9fe" },
-  { name: "border", className: "bg-zinc-200/50", hex: "zinc-200/50" },
-];
+const grayTokens = [
+  ["50", "#F8FAFC"],
+  ["100", "#F1F5F9"],
+  ["200", "#E2E8F0"],
+  ["300", "#CBD5E1"],
+  ["400", "#94A3B8"],
+  ["500", "#64748B"],
+  ["600", "#475569"],
+  ["700", "#334155"],
+  ["800", "#1E293B"],
+  ["900", "#0F172A"],
+] as const;
 
 function Section({
   title,
@@ -40,14 +53,18 @@ function Section({
 }: {
   title: string;
   description?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <div>
-        <h2 className="text-xl font-extrabold tracking-tight text-stone-900">{title}</h2>
+        <h2 className="text-xl font-extrabold leading-[1.1] tracking-tight text-gray-900">
+          {title}
+        </h2>
         {description && (
-          <p className="mt-1 text-sm font-medium text-stone-500">{description}</p>
+          <p className="mt-1 text-sm font-medium leading-tight text-gray-500">
+            {description}
+          </p>
         )}
       </div>
       {children}
@@ -55,32 +72,35 @@ function Section({
   );
 }
 
-function FontToggleBar({
-  font,
-  onChange,
+function TokenSwatch({
+  name,
+  hex,
+  note,
 }: {
-  font: FontChoice;
-  onChange: (font: FontChoice) => void;
+  name: string;
+  hex: string;
+  note?: string;
 }) {
   return (
-    <div className="sticky top-0 z-40 border-b border-zinc-200/50 bg-white/90 px-4 py-3 backdrop-blur-md sm:px-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-2 text-xs font-semibold text-stone-500">폰트 비교</span>
-        {FONT_OPTIONS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            onClick={() => onChange(option.id)}
-            className={cn(
-              "rounded-full px-4 py-2 text-xs font-semibold transition-colors",
-              font === option.id
-                ? "bg-violet-600 text-white"
-                : "border border-zinc-200/50 bg-white text-stone-600 hover:bg-stone-50",
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
+    <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div
+        className="h-12 rounded-2xl border border-black/5"
+        style={{ backgroundColor: hex }}
+      />
+      <div className="mt-2 flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold leading-tight text-gray-900">
+            {name}
+          </p>
+          <p className="mt-0.5 text-[11px] font-medium leading-none text-gray-500">
+            {hex}
+          </p>
+        </div>
+        {note && (
+          <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium leading-none text-gray-500">
+            {note}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -94,46 +114,86 @@ function RoleToggle({
   onChange: (role: UserRole) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {(["admin", "student"] as const).map((value) => (
+    <div className="inline-flex rounded-full border border-gray-200 bg-white p-1">
+      {(["admin", "student"] as const).map((r) => (
         <button
-          key={value}
+          key={r}
           type="button"
-          onClick={() => onChange(value)}
+          onClick={() => onChange(r)}
           className={cn(
-            "rounded-full px-4 py-2 text-xs font-semibold transition-colors",
-            role === value
-              ? "bg-violet-600 text-white"
-              : "border border-zinc-200/50 bg-white text-stone-600 hover:bg-stone-50",
+            "rounded-full px-4 py-2 text-xs font-semibold leading-none transition-colors",
+            role === r
+              ? "bg-periwinkle-600 text-white"
+              : "text-gray-500 hover:bg-gray-50 hover:text-gray-800",
           )}
         >
-          {value === "admin" ? "원장 (admin)" : "준비생 (student)"}
+          {r === "admin" ? "원장" : "준비생"}
         </button>
       ))}
     </div>
   );
 }
 
-function LayoutPreviewFrame({
-  label,
-  className,
-  children,
+function LayoutPreview({
+  role,
+  userName,
 }: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
+  role: UserRole;
+  userName: string | null;
 }) {
+  const items = getNavItemsForRole(role);
+
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-stone-500">{label}</p>
-      <div
-        className={cn(
-          "overflow-hidden rounded-3xl border border-zinc-200/50 bg-stone-100 shadow-sm",
-          className,
-        )}
-      >
-        {children}
-      </div>
+    <div className="overflow-hidden rounded-4xl border border-gray-200 bg-bg p-3 shadow-sm">
+      <AppShell userRole={role} userName={userName} previewPathname="/dashboard">
+        <div className="space-y-3 p-5">
+          <div>
+            <p className="inline-flex rounded-full border border-periwinkle-200 bg-white px-3 py-1 text-xs font-medium leading-none text-periwinkle-700">
+              {role === "admin" ? "admin navigation" : "student navigation"}
+            </p>
+            <h3 className="mt-3 text-2xl font-extrabold leading-[1.1] tracking-tight text-gray-900">
+              Speech-M 운영 아일랜드
+            </h3>
+            <p className="mt-1 max-w-xl text-sm font-medium leading-tight text-gray-500">
+              PC는 왼쪽 SideRail, 모바일은 하단 BottomTab을 사용합니다. 포인트 컬러는 주요
+              액션과 active state에만 제한합니다.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["등록 공고", "128"],
+              ["AI 검토", "34"],
+              ["스터디", "8"],
+            ].map(([label, value]) => (
+              <Card key={label}>
+                <CardBody className="p-4">
+                  <span className="block h-1.5 w-1.5 rounded-full bg-periwinkle-600" />
+                  <p className="mt-2 text-xs font-medium leading-none text-gray-500">
+                    {label}
+                  </p>
+                  <p className="mt-1 text-2xl font-extrabold leading-[1.1] tracking-tight text-gray-900">
+                    {value}
+                  </p>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+
+          <div className="rounded-3xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              visible menu
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {items.map((item) => (
+                <Badge key={item.href} tone={item.href === "/dashboard" ? "accent" : "neutral"}>
+                  {item.label}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      </AppShell>
     </div>
   );
 }
@@ -145,243 +205,120 @@ export function PrototypeCatalog({
   userName: string | null;
   initialRole: UserRole;
 }) {
-  const [font, setFont] = useState<FontChoice>("pretendard");
-  const [previewRole, setPreviewRole] = useState<UserRole>(initialRole);
-  const [selectedOption, setSelectedOption] = useState(0);
-
-  const fontClass = FONT_OPTIONS.find((f) => f.id === font)?.className ?? "font-pretendard";
-  const navItems = getNavItemsForRole(previewRole);
+  const [role, setRole] = useState<UserRole>(initialRole);
 
   return (
-    <div className={cn("min-h-screen", fontClass)}>
-      <FontToggleBar font={font} onChange={setFont} />
-
-      <AppShell userRole={previewRole} userName={userName} previewPathname="/dashboard">
-        <div className="space-y-10 p-4 sm:p-6 md:p-8">
-          <header className="space-y-2">
-            <Badge tone="accent">Tiimo Design System</Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-stone-900">
-              Speech-M UI 프로토타입
-            </h1>
-            <p className="max-w-2xl text-sm font-medium leading-relaxed text-stone-600">
-              웜톤 미색 배경, violet-600 포인트, 극도로 둥근 라운드. 폰트·Role·레이아웃을
-              이 페이지에서 바로 확인하세요.
+    <div className="min-h-screen bg-bg">
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6">
+        <header className="flex flex-col gap-4 rounded-4xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="inline-flex rounded-full border border-periwinkle-200 bg-periwinkle-100 px-3 py-1 text-xs font-semibold leading-none text-periwinkle-700">
+              Speech-M Design System
             </p>
-          </header>
+            <h1 className="mt-4 text-3xl font-extrabold leading-[1.05] tracking-tight text-gray-900">
+              Periwinkle 토큰 고정안
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-tight text-gray-500">
+              D2E0FB를 키 컬러로 두고, 액션은 periwinkle-600으로 명도를 보강했습니다. 화면
+              비율은 배경/표면 6, 텍스트 3, 포인트 1을 기준으로 검수합니다.
+            </p>
+          </div>
+          <RoleToggle role={role} onChange={setRole} />
+        </header>
 
-          <Section title="타이포그래피 샘플" description="선택한 폰트가 아래 전체에 적용됩니다.">
+        <Section
+          title="Periwinkle Scale"
+          description="실제 hue 이름을 스케일 이름으로 사용합니다. key/primary 같은 역할명은 alias에서만 씁니다."
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {periwinkleTokens.map(([step, hex, note]) => (
+              <TokenSwatch key={step} name={`periwinkle-${step}`} hex={hex} note={note} />
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Gray Scale" description="텍스트와 선은 cool gray로 통일합니다.">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {grayTokens.map(([step, hex]) => (
+              <TokenSwatch key={step} name={`gray-${step}`} hex={hex} />
+            ))}
+          </div>
+        </Section>
+
+        <Section
+          title="Primitives"
+          description="큰 도형보다 얇은 선, 라벨 박스, 타이트한 행간으로 강조합니다."
+        >
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
             <Card>
-              <CardBody className="space-y-4 pt-6">
-                <p className="text-3xl font-extrabold tracking-tight text-stone-900">
-                  아나운서 준비, 오늘부터 시작
-                </p>
-                <p className="text-base font-medium text-stone-600">
-                  Speech-M은 원장님과 준비생이 함께 쓰는 올인원 플랫폼입니다. 공고 수집부터
-                  스터디 관리까지 한곳에서.
-                </p>
-                <p className="text-4xl font-extrabold tabular-nums text-violet-600">1,248</p>
-              </CardBody>
-            </Card>
-          </Section>
-
-          <Section title="컬러 팔레트">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {PALETTE.map((swatch) => (
-                <div key={swatch.name} className="space-y-2">
-                  <div className={cn("h-16 rounded-2xl", swatch.className)} />
-                  <p className="text-xs font-semibold text-stone-700">{swatch.name}</p>
-                  <p className="text-[11px] font-medium text-stone-400">{swatch.hex}</p>
+              <CardHeader>
+                <CardTitle>채용 공고 검토</CardTitle>
+                <CardDescription>카드, 버튼, 뱃지의 기본 조합입니다.</CardDescription>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button>Primary action</Button>
+                  <Button variant="soft">Soft action</Button>
+                  <Button variant="ghost">Ghost action</Button>
                 </div>
-              ))}
-            </div>
-          </Section>
-
-          <Section title="컴포넌트 카탈로그">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Button</CardTitle>
-                  <CardDescription>primary · ghost · soft × sm · md · lg</CardDescription>
-                </CardHeader>
-                <CardBody className="space-y-4">
-                  {(["primary", "ghost", "soft"] as const).map((variant) => (
-                    <div key={variant} className="flex flex-wrap items-center gap-2">
-                      {(["sm", "md", "lg"] as const).map((size) => (
-                        <Button key={`${variant}-${size}`} variant={variant} size={size}>
-                          {variant} {size}
-                        </Button>
-                      ))}
-                    </div>
-                  ))}
-                </CardBody>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Badge</CardTitle>
-                </CardHeader>
-                <CardBody className="flex flex-wrap gap-2 pt-6">
-                  <Badge tone="neutral">neutral</Badge>
-                  <Badge tone="accent">accent</Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge>neutral</Badge>
+                  <Badge tone="accent">periwinkle</Badge>
                   <Badge tone="warn">warn</Badge>
                   <Badge tone="success">success</Badge>
-                </CardBody>
-              </Card>
-
-              <div className="space-y-3">
+                </div>
                 <ListRow
+                  icon={<HugeiconsIcon icon={Briefcase01Icon} size={18} color="currentColor" />}
                   title="KBS 아나운서 공채"
-                  subtitle="마감 D-3 · 서울"
-                  icon={
-                    <HugeiconsIcon
-                      icon={Briefcase01Icon}
-                      size={18}
-                      color="currentColor"
-                      strokeWidth={1.8}
-                    />
-                  }
-                  trailing={
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-zinc-200" />
-                  }
+                  subtitle="마감 D-3 · 서울 · AI 적합"
+                  trailing={<Badge tone="accent">검토</Badge>}
                 />
                 <ListRow
-                  title="MBC 겨울 스터디"
-                  subtitle="오늘 19:00 · 4/8명"
                   icon={
-                    <HugeiconsIcon
-                      icon={Clock01Icon}
-                      size={18}
-                      color="currentColor"
-                      strokeWidth={1.8}
-                    />
-                  }
-                  trailing={
                     <HugeiconsIcon
                       icon={CheckmarkCircle01Icon}
-                      size={20}
+                      size={18}
                       color="currentColor"
-                      strokeWidth={1.8}
-                      className="text-violet-600"
                     />
                   }
+                  title="내부 게시 완료"
+                  subtitle="네이버 공유 준비됨"
+                  trailing={<Badge tone="success">완료</Badge>}
                 />
-              </div>
-
-              <div className="space-y-2">
-                {["공고 알림 받기", "스터디 일정 관리", "시험 후기 작성"].map((label, i) => (
-                  <OptionPill
-                    key={label}
-                    selected={selectedOption === i}
-                    onClick={() => setSelectedOption(i)}
-                  >
-                    {label}
-                  </OptionPill>
-                ))}
-              </div>
-            </div>
-          </Section>
-
-          <Section
-            title="Role 분기 (더미)"
-            description="admin일 때만 공고 관리·스터디 관리 메뉴가 노출됩니다."
-          >
-            <RoleToggle role={previewRole} onChange={setPreviewRole} />
-            <Card className="mt-4">
-              <CardBody className="pt-6">
-                <ul className="space-y-2">
-                  {navItems.map((item) => (
-                    <li
-                      key={`${item.href}-${item.label}`}
-                      className="flex items-center justify-between rounded-2xl bg-stone-50 px-4 py-3"
-                    >
-                      <span className="text-sm font-semibold text-stone-800">{item.label}</span>
-                      <Badge tone={item.role === "admin" ? "accent" : "neutral"}>
-                        {item.role}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
               </CardBody>
             </Card>
-          </Section>
 
-          <Section
-            title="레이아웃 미리보기"
-            description="모바일 프레임과 PC island를 나란히 확인합니다."
-          >
-            <div className="grid gap-6 lg:grid-cols-2">
-              <LayoutPreviewFrame label="모바일 (max-w 420px)" className="mx-auto w-full max-w-[420px]">
-                <div className="relative h-[520px] overflow-hidden bg-stone-50">
-                  <div className="h-full overflow-y-auto pb-20">
-                    <div className="space-y-3 p-4">
-                      <p className="text-lg font-extrabold text-stone-900">오늘의 일정</p>
-                      {[1, 2, 3].map((n) => (
-                        <div
-                          key={n}
-                          className="rounded-2xl border border-zinc-200/50 bg-white p-4 shadow-sm"
-                        >
-                          <p className="text-sm font-semibold text-stone-800">스터디 세션 {n}</p>
-                          <p className="mt-1 text-xs font-medium text-stone-500">19:00 · 60분</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="absolute inset-x-3 bottom-3">
-                    <div className="shadow-island flex justify-around rounded-full border border-zinc-200/50 bg-white py-2">
-                      {navItems.slice(0, 4).map((item, i) => (
-                        <span
-                          key={item.label}
-                          className={cn(
-                            "px-2 text-[10px] font-semibold",
-                            i === 0 ? "text-violet-700" : "text-stone-400",
-                          )}
-                        >
-                          {item.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>라벨 기반 선택</CardTitle>
+                <CardDescription>포인트 컬러는 선택 상태에만 씁니다.</CardDescription>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                <OptionPill selected>periwinkle-600 / selected</OptionPill>
+                <OptionPill>gray border / default</OptionPill>
+                <div className="rounded-3xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs font-semibold leading-none text-gray-500">
+                    타이포 기준
+                  </p>
+                  <p className="mt-2 text-2xl font-extrabold leading-[1.1] tracking-tight text-gray-900">
+                    Tight leading
+                  </p>
+                  <p className="mt-1 text-sm font-medium leading-tight text-gray-500">
+                    본문은 leading-tight, 긴 설명은 leading-snug까지만 사용합니다.
+                  </p>
                 </div>
-              </LayoutPreviewFrame>
+              </CardBody>
+            </Card>
+          </div>
+        </Section>
 
-              <LayoutPreviewFrame label="PC island (md+)" className="h-[520px]">
-                <div className="flex h-full gap-3 bg-stone-50 p-3">
-                  <div className="hidden w-16 shrink-0 flex-col rounded-3xl border border-zinc-200/50 bg-white p-2 sm:flex">
-                    {navItems.slice(0, 5).map((item, i) => (
-                      <div
-                        key={item.label}
-                        className={cn(
-                          "mb-1 flex h-10 items-center justify-center rounded-xl text-[10px] font-bold",
-                          i === 0 ? "bg-violet-100 text-violet-700" : "text-stone-400",
-                        )}
-                      >
-                        {item.label.slice(0, 2)}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex-1 overflow-y-auto rounded-3xl border border-zinc-200/50 bg-white p-5 shadow-sm">
-                    <p className="text-xl font-extrabold text-stone-900">대시보드</p>
-                    <p className="mt-1 text-sm font-medium text-stone-500">
-                      PC에서는 좌측 SideRail + 둥근 island main
-                    </p>
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      {["등록 공고", "승인 공고", "스터디", "후기"].map((label) => (
-                        <div
-                          key={label}
-                          className="rounded-2xl border border-zinc-200/50 bg-stone-50 p-4"
-                        >
-                          <p className="text-xs font-medium text-stone-500">{label}</p>
-                          <p className="mt-1 text-2xl font-extrabold text-stone-900">42</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </LayoutPreviewFrame>
-            </div>
-          </Section>
-        </div>
-      </AppShell>
+        <Section
+          title="Responsive AppShell"
+          description="역할별 메뉴와 PC island / 모바일 bottom tab 구조를 확인합니다."
+        >
+          <LayoutPreview role={role} userName={userName} />
+        </Section>
+      </div>
     </div>
   );
 }

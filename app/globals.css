@@ -1,51 +1,104 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+
 @import "tailwindcss";
 
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
-@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Nanum+Gothic+Coding:wght@400;700&display=swap");
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --periwinkle-50: #f4f8fe;
+  --periwinkle-100: #e5eefc;
+  --periwinkle-200: #d2e0fb;
+  --periwinkle-300: #b0c6f0;
+  --periwinkle-400: #8eaccd;
+  --periwinkle-500: #6a8fbd;
+  --periwinkle-600: #4d72b3;
+  --periwinkle-700: #3a5994;
+  --periwinkle-800: #2a4275;
+  --periwinkle-900: #1b2b52;
+
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+
+  --semantic-bg: var(--periwinkle-50);
+  --semantic-surface: #ffffff;
+  --semantic-subtle: var(--periwinkle-100);
+  --semantic-text: var(--gray-900);
+  --semantic-muted: var(--gray-500);
+  --semantic-border: var(--gray-200);
+  --semantic-accent: var(--periwinkle-600);
+
+  --background: var(--semantic-bg);
+  --foreground: var(--semantic-text);
 
   --sidebar-width: 260px;
-  --sidebar-bg: #0f172a;
-  --sidebar-border: #1e293b;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #f1f5f9;
-  --sidebar-item-active-bg: #1e293b;
-  --sidebar-item-hover-bg: #1e293b;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --surface: #f8fafc;
+  --sidebar-bg: var(--semantic-surface);
+  --sidebar-border: var(--semantic-border);
+  --sidebar-text: var(--semantic-muted);
+  --sidebar-text-active: var(--semantic-text);
+  --sidebar-item-active-bg: var(--semantic-subtle);
+  --sidebar-item-hover-bg: var(--gray-50);
+  --accent: var(--semantic-accent);
+  --accent-light: var(--periwinkle-400);
+  --surface: var(--semantic-bg);
 
-  --app-bg: #fafaf9;
-  --app-surface: #ffffff;
-  --app-border: rgb(228 228 231 / 0.5);
-  --app-text: #1c1917;
-  --app-muted: #78716c;
-  --app-accent: #7c3aed;
-  --app-accent-soft: #ede9fe;
+  --app-bg: var(--semantic-bg);
+  --app-surface: var(--semantic-surface);
+  --app-border: color-mix(in srgb, var(--semantic-border) 70%, transparent);
+  --app-text: var(--semantic-text);
+  --app-muted: var(--semantic-muted);
+  --app-accent: var(--semantic-accent);
+  --app-accent-soft: var(--semantic-subtle);
   --radius-card: 1.5rem;
   --radius-pill: 9999px;
   --shadow-island: 0 1px 2px rgb(0 0 0 / 0.03), 0 4px 12px rgb(0 0 0 / 0.04);
 
   --font-display-pretendard: "Pretendard Variable", Pretendard, system-ui, sans-serif;
-  --font-display-nanum-gothic: "Nanum Gothic", sans-serif;
-  --font-display-nanum-coding: "Nanum Gothic Coding", monospace;
   --font-app: var(--font-display-pretendard);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-periwinkle-50: var(--periwinkle-50);
+  --color-periwinkle-100: var(--periwinkle-100);
+  --color-periwinkle-200: var(--periwinkle-200);
+  --color-periwinkle-300: var(--periwinkle-300);
+  --color-periwinkle-400: var(--periwinkle-400);
+  --color-periwinkle-500: var(--periwinkle-500);
+  --color-periwinkle-600: var(--periwinkle-600);
+  --color-periwinkle-700: var(--periwinkle-700);
+  --color-periwinkle-800: var(--periwinkle-800);
+  --color-periwinkle-900: var(--periwinkle-900);
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --color-bg: var(--semantic-bg);
+  --color-surface: var(--semantic-surface);
+  --color-subtle: var(--semantic-subtle);
+  --color-text: var(--semantic-text);
+  --color-muted: var(--semantic-muted);
+  --color-border: var(--semantic-border);
+  --color-accent: var(--semantic-accent);
   --color-app-bg: var(--app-bg);
   --color-app-surface: var(--app-surface);
   --color-app-border: var(--app-border);
   --color-app-text: var(--app-text);
   --color-app-muted: var(--app-muted);
-  --color-accent: var(--app-accent);
   --color-accent-soft: var(--app-accent-soft);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-display-pretendard);
   --font-mono: var(--font-geist-mono);
   --radius-card: var(--radius-card);
   --radius-pill: var(--radius-pill);
@@ -58,10 +111,9 @@ body {
 }
 
 body {
-  background: var(--surface);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), "Apple SD Gothic Neo", "Malgun Gothic",
-    sans-serif;
+  background: var(--semantic-bg);
+  color: var(--semantic-text);
+  font-family: var(--font-display-pretendard);
 }
 
 .shadow-island {
@@ -70,28 +122,4 @@ body {
 
 .font-pretendard {
   font-family: var(--font-display-pretendard);
-}
-
-.font-nanum-gothic {
-  font-family: var(--font-display-nanum-gothic);
-  font-weight: 400;
-  font-style: normal;
-}
-
-.font-nanum-coding {
-  font-family: var(--font-display-nanum-coding);
-  font-weight: 400;
-  font-style: normal;
-}
-
-.nanum-gothic-regular {
-  font-family: "Nanum Gothic", sans-serif;
-  font-weight: 400;
-  font-style: normal;
-}
-
-.nanum-gothic-coding-regular {
-  font-family: "Nanum Gothic Coding", monospace;
-  font-weight: 400;
-  font-style: normal;
 }

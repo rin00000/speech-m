@@ -15,11 +15,11 @@ export function OptionPill({
     <button
       type="button"
       className={cn(
-        "w-full rounded-full border px-6 py-4 text-center text-sm font-semibold transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:ring-offset-2",
+        "w-full rounded-full border px-6 py-4 text-center text-sm font-semibold leading-none transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-periwinkle-500/30 focus-visible:ring-offset-2",
         selected
-          ? "border-violet-600 bg-violet-50 text-violet-700"
-          : "border-zinc-200/50 bg-white text-stone-800 hover:bg-stone-50",
+          ? "border-periwinkle-600 bg-periwinkle-100 text-periwinkle-700"
+          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50",
         className,
       )}
       {...props}
