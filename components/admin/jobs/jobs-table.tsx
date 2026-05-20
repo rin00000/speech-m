@@ -29,6 +29,7 @@ import { NaverShareIconLink } from "./naver-share-icon-link";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
 import { TEXT_DEADLINE } from "@/lib/crawl/shared";
+import { isExpiredDeadline } from "@/lib/jobs/deadline";
 import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -47,7 +48,14 @@ const DeadlineBadge = ({ deadline }: { deadline: string | null }) => {
   const diffDays = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) {
-    return <span className="text-slate-400 line-through">{deadline}</span>;
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
+          마감
+        </span>
+        <span className="text-xs text-slate-400">{deadline}</span>
+      </span>
+    );
   }
   if (diffDays === 0) {
     return (
@@ -511,10 +519,13 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
               filtered.map((job) => {
                 const statusStyle = STATUS_STYLE[job.status];
                 const isSelected = selectedIds.has(job.id);
+                const expired = isExpiredDeadline(job.deadline);
                 return (
                   <tr
                     key={job.id}
-                    className={`transition-colors hover:bg-slate-50/60 ${isSelected ? "bg-indigo-50/40" : ""}`}
+                    className={`transition-colors hover:bg-slate-50/60 ${
+                      isSelected ? "bg-indigo-50/40" : ""
+                    } ${expired ? "text-slate-400 opacity-70" : ""}`}
                   >
                     <td className={cellPaddingClass}>
                       <input

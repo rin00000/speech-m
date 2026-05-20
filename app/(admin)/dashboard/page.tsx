@@ -4,6 +4,7 @@ import { Header } from "@/components/admin/layout/header";
 import { SOURCE_LABEL } from "@/lib/jobs/constants";
 import { buildBlogContent, buildNaverShareUrl } from "@/lib/jobs/naver-share";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
+import { activeDeadlineOrExpression, isExpiredDeadline } from "@/lib/jobs/deadline";
 import { relativeTime } from "@/lib/jobs/utils";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
@@ -31,6 +32,7 @@ const getMonthStartIso = () => {
 export default async function DashboardPage() {
   const supabase = createAdminClient();
   const monthStartIso = getMonthStartIso();
+  const activeDeadline = activeDeadlineOrExpression();
 
   const [
     totalJobsResult,
@@ -41,35 +43,44 @@ export default async function DashboardPage() {
     monthlyPublishedJobsResult,
     recentPublishedJobsResult,
   ] = await Promise.all([
-    supabase.from("job_postings").select("id", { count: "exact", head: true }),
     supabase
       .from("job_postings")
       .select("id", { count: "exact", head: true })
-      .eq("status", "pending"),
+      .or(activeDeadline),
     supabase
       .from("job_postings")
       .select("id", { count: "exact", head: true })
-      .eq("status", "rejected"),
+      .eq("status", "pending")
+      .or(activeDeadline),
     supabase
       .from("job_postings")
       .select("id", { count: "exact", head: true })
-      .eq("status", "approved"),
+      .eq("status", "rejected")
+      .or(activeDeadline),
     supabase
       .from("job_postings")
       .select("id", { count: "exact", head: true })
       .eq("status", "approved")
-      .not("published_at", "is", null),
+      .or(activeDeadline),
     supabase
       .from("job_postings")
       .select("id", { count: "exact", head: true })
       .eq("status", "approved")
       .not("published_at", "is", null)
-      .gte("published_at", monthStartIso),
+      .or(activeDeadline),
+    supabase
+      .from("job_postings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "approved")
+      .not("published_at", "is", null)
+      .gte("published_at", monthStartIso)
+      .or(activeDeadline),
     supabase
       .from("job_postings")
       .select("id,title,company,location,source,source_url,deadline,published_at")
       .eq("status", "approved")
       .not("published_at", "is", null)
+      .or(activeDeadline)
       .order("published_at", { ascending: false })
       .limit(6)
       .returns<JobPosting[]>(),
@@ -85,7 +96,9 @@ export default async function DashboardPage() {
     recentPublishedJobsResult,
   ].some((result) => result.error);
 
-  const recentPublishedJobs = recentPublishedJobsResult.data ?? [];
+  const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
+    (job) => !isExpiredDeadline(job.deadline),
+  );
   const siteOrigin = getPublicSiteOrigin();
   const pendingCount = pendingJobsResult.count ?? 0;
   const rejectedCount = rejectedJobsResult.count ?? 0;
