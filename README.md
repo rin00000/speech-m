@@ -4,6 +4,7 @@
 
 *All-in-one web platform for curating broadcaster-relevant job postings: scrape, AI-assisted triage, human review, and downstream posting.*
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rin00000/speech-m)
 ---
 
 ## 왜 만들었나
