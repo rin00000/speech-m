@@ -12,6 +12,46 @@ interface BlockedUrlItem {
   created_at: string;
 }
 
+type InitialSettings = {
+  ai_filter_enabled?: boolean;
+  ai_match_threshold?: number;
+  crawl_interval_hours?: number;
+  crawl_channels_active?: { mediajob: boolean; arang: boolean; kbs: boolean };
+  crm_retention_days?: number;
+  study_deposit_amount?: number;
+  study_penalty_amount?: number;
+};
+
+function parseInitialSettings(raw: Record<string, unknown>): InitialSettings {
+  const channels = raw.crawl_channels_active;
+  const channelRecord =
+    channels && typeof channels === "object" && !Array.isArray(channels)
+      ? (channels as Record<string, unknown>)
+      : null;
+
+  return {
+    ai_filter_enabled:
+      typeof raw.ai_filter_enabled === "boolean" ? raw.ai_filter_enabled : undefined,
+    ai_match_threshold:
+      typeof raw.ai_match_threshold === "number" ? raw.ai_match_threshold : undefined,
+    crawl_interval_hours:
+      typeof raw.crawl_interval_hours === "number" ? raw.crawl_interval_hours : undefined,
+    crawl_channels_active: channelRecord
+      ? {
+          mediajob: Boolean(channelRecord.mediajob),
+          arang: Boolean(channelRecord.arang),
+          kbs: Boolean(channelRecord.kbs),
+        }
+      : undefined,
+    crm_retention_days:
+      typeof raw.crm_retention_days === "number" ? raw.crm_retention_days : undefined,
+    study_deposit_amount:
+      typeof raw.study_deposit_amount === "number" ? raw.study_deposit_amount : undefined,
+    study_penalty_amount:
+      typeof raw.study_penalty_amount === "number" ? raw.study_penalty_amount : undefined,
+  };
+}
+
 export default async function SettingsPage() {
   const user = await getCurrentUser();
 
@@ -124,15 +164,7 @@ export default async function SettingsPage() {
             name: user.name,
             role: user.role,
           }}
-          initialSettings={{
-            ai_filter_enabled: systemSettings.ai_filter_enabled,
-            ai_match_threshold: systemSettings.ai_match_threshold,
-            crawl_interval_hours: systemSettings.crawl_interval_hours,
-            crawl_channels_active: systemSettings.crawl_channels_active,
-            crm_retention_days: systemSettings.crm_retention_days,
-            study_deposit_amount: systemSettings.study_deposit_amount,
-            study_penalty_amount: systemSettings.study_penalty_amount,
-          }}
+          initialSettings={parseInitialSettings(systemSettings)}
           initialBlockedUrls={blockedUrls}
         />
       </div>
