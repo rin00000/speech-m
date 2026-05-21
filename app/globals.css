@@ -165,3 +165,13 @@ body > * {
   border-radius: 6px !important;
 }
 
+.bg-white,
+.bg-bg,
+.bg-surface,
+.bg-app-surface,
+.bg-subtle,
+.bg-gray-50,
+.bg-gray-100 {
+  background-color: transparent !important;
+}
+
