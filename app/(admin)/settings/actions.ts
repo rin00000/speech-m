@@ -35,9 +35,10 @@ export async function updateProfileName(name: string): Promise<{ success: boolea
 
     revalidatePath("/settings");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("updateProfileName exception:", err);
-    return { success: false, error: err.message ?? "서버 내부 오류가 발생했습니다." };
+    const message = err instanceof Error ? err.message : "서버 내부 오류가 발생했습니다.";
+    return { success: false, error: message };
   }
 }
 
@@ -68,16 +69,20 @@ export async function removeBlockedUrl(url: string): Promise<{ success: boolean;
 
     revalidatePath("/settings");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("removeBlockedUrl exception:", err);
-    return { success: false, error: err.message ?? "서버 내부 오류가 발생했습니다." };
+    const message = err instanceof Error ? err.message : "서버 내부 오류가 발생했습니다.";
+    return { success: false, error: message };
   }
 }
 
 /**
  * 3. 서비스 전역 시스템 설정을 업데이트합니다. (Admin 전용)
  */
-export async function updateSystemSetting(key: string, value: any): Promise<{ success: boolean; error?: string }> {
+export async function updateSystemSetting(
+  key: string,
+  value: unknown
+): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentUser();
     if (!user || user.role !== "admin") {
@@ -106,8 +111,9 @@ export async function updateSystemSetting(key: string, value: any): Promise<{ su
 
     revalidatePath("/settings");
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("updateSystemSetting exception:", err);
-    return { success: false, error: err.message ?? "서버 내부 오류가 발생했습니다." };
+    const message = err instanceof Error ? err.message : "서버 내부 오류가 발생했습니다.";
+    return { success: false, error: message };
   }
 }

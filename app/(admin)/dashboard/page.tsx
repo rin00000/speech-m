@@ -285,7 +285,7 @@ function GuestDashboardView({ userName, email }: { userName: string | null; emai
               {userName ?? "준비생"}님, 가입을 환영합니다!
             </h2>
             <p className="mt-3 text-xs md:text-sm font-semibold text-amber-600 bg-amber-50/70 inline-block px-3.5 py-1 rounded-full border border-amber-100/50">
-              ⚡ 현재 '수강생 정회원 권한' 신청 대기 상태입니다.
+              ⚡ 현재 &apos;수강생 정회원 권한&apos; 신청 대기 상태입니다.
             </p>
 
             <p className="mt-5 text-xs md:text-sm font-medium text-gray-500 leading-relaxed max-w-lg mx-auto">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   UserSettings01Icon,
@@ -13,26 +13,26 @@ import {
 
 type SimulatedRole = "admin" | "student" | "guest" | "none" | "actual";
 
+function getMockRoleFromCookie(): SimulatedRole {
+  const cookies = document.cookie.split("; ");
+  const mockRoleCookie = cookies.find((row) => row.startsWith("mock_role="));
+  if (mockRoleCookie) {
+    return mockRoleCookie.split("=")[1] as SimulatedRole;
+  }
+  return "actual";
+}
+
+const subscribeNoop = () => () => {};
+
 export function RoleSimulator() {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentSimulated, setCurrentSimulated] = useState<SimulatedRole>("actual");
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    // 현재 쿠키 상태 분석
-    const cookies = document.cookie.split("; ");
-    const mockRoleCookie = cookies.find((row) => row.startsWith("mock_role="));
-    if (mockRoleCookie) {
-      const val = mockRoleCookie.split("=")[1];
-      setCurrentSimulated(val as SimulatedRole);
-    } else {
-      setCurrentSimulated("actual");
-    }
-  }, []);
+  const [currentSimulated, setCurrentSimulated] = useState<SimulatedRole>(() =>
+    typeof window === "undefined" ? "actual" : getMockRoleFromCookie()
+  );
+  const isClient = useSyncExternalStore(subscribeNoop, () => true, () => false);
 
   // 개발 모드가 아니면 화면에 전혀 표시하지 않음
-  if (!isMounted || process.env.NODE_ENV === "production") {
+  if (!isClient || process.env.NODE_ENV === "production") {
     return null;
   }
 

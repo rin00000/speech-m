@@ -63,7 +63,7 @@ export default async function UserManagementPage() {
               접근 권한이 차단되었습니다
             </h2>
             <p className="mt-3 text-sm font-medium text-gray-500 leading-relaxed">
-              본 화면은 아카데미를 총괄하는 **'원장 / 관리자(admin)'** 계정으로 로그인한 경우에만 관리할 수 있는 최고 보안 영역입니다.
+              본 화면은 아카데미를 총괄하는 **&apos;원장 / 관리자(admin)&apos;** 계정으로 로그인한 경우에만 관리할 수 있는 최고 보안 영역입니다.
             </p>
 
             <div className="mt-8 flex flex-col gap-3">

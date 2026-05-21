@@ -68,13 +68,14 @@ export function RelayFeedbackConsole() {
 
   const currentStudent = submissions.find((s) => s.id === selectedId) || submissions[0];
 
-  // Set default feedback text when active student changes
-  useEffect(() => {
-    setFeedbackText(currentStudent.defaultFeedback);
+  const selectStudent = (id: string) => {
+    const student = submissions.find((s) => s.id === id) ?? submissions[0];
+    setSelectedId(id);
+    setFeedbackText(student.defaultFeedback);
     setIsPlaying(false);
     setCurrentTime(0);
     setSubmitSuccess(false);
-  }, [selectedId, currentStudent]);
+  };
 
   // Audio timer simulator
   useEffect(() => {
@@ -149,7 +150,7 @@ export function RelayFeedbackConsole() {
               return (
                 <button
                   key={stud.id}
-                  onClick={() => setSelectedId(stud.id)}
+                  onClick={() => selectStudent(stud.id)}
                   className={`w-full text-left p-2.5 rounded-2xl border transition-all duration-200 flex items-center gap-3 ${
                     isSelected
                       ? "border-periwinkle-300 bg-periwinkle-50/60 ring-2 ring-periwinkle-100/50"

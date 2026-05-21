@@ -146,7 +146,7 @@ export default async function PracticePage() {
               정회원 수강생 전용 공간입니다
             </h2>
             <p className="mt-3 text-sm font-medium text-gray-500 leading-relaxed">
-              본 화면은 Speech-M 아카데미에 등록하고 원장님께 **'수강생(student)'** 권한을 부여받은 정회원분들만 접근할 수 있는 프리미엄 공간입니다.
+              본 화면은 Speech-M 아카데미에 등록하고 원장님께 **&apos;수강생(student)&apos;** 권한을 부여받은 정회원분들만 접근할 수 있는 프리미엄 공간입니다.
             </p>
 
             <div className="mt-8 space-y-3.5 text-left border-t border-gray-100 pt-6">

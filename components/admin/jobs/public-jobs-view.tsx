@@ -57,7 +57,7 @@ export function PublicJobsView({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-periwinkle-50 px-3 py-1 text-xs font-semibold text-periwinkle-700">
               <HugeiconsIcon icon={SparklesIcon} size={12} color="currentColor" />
-              <span>Director's Eye Curation</span>
+              <span>Director&apos;s Eye Curation</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
               방송 채용 정보 센터

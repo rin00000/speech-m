@@ -65,7 +65,7 @@ export default async function SettingsPage() {
             </span>
             <h2 className="relative z-10 text-xl font-extrabold text-gray-900 tracking-tight">접근 권한이 없습니다</h2>
             <p className="relative z-10 mt-3 text-sm font-medium text-gray-500 leading-relaxed">
-              본 설정 페이지는 **'아카데미 수강생(student)'** 또는 **'원장님(admin)'** 권한을 부여받은 정회원 계정만 접근할 수 있는 제한 구역입니다.
+              본 설정 페이지는 **&apos;아카데미 수강생(student)&apos;** 또는 **&apos;원장님(admin)&apos;** 권한을 부여받은 정회원 계정만 접근할 수 있는 제한 구역입니다.
             </p>
             <div className="mt-8 flex flex-col gap-3 relative z-10">
               <Link
@@ -101,7 +101,7 @@ export default async function SettingsPage() {
   }
 
   // 설정을 key-value 객체로 플래닝
-  const systemSettings: { [key: string]: any } = {};
+  const systemSettings: Record<string, unknown> = {};
   if (settingsRes.data) {
     for (const row of settingsRes.data) {
       systemSettings[row.key] = row.value;
