@@ -8,7 +8,6 @@ import { JobsTable } from "@/components/admin/jobs/jobs-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
-  Add01Icon,
   CheckmarkCircle01Icon,
   Cancel01Icon,
   Clock01Icon,
@@ -17,7 +16,8 @@ import {
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
-import { requireAdmin } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
+import { PublicJobsView } from "@/components/admin/jobs/public-jobs-view";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
@@ -48,8 +48,29 @@ export default async function JobsPage({
 }: {
   searchParams: Promise<{ status?: string; source?: string; showRejected?: string }>;
 }) {
-  await requireAdmin();
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "admin";
   const { status: rawStatus, source: rawSource, showRejected: rawShowRejected } = await searchParams;
+
+  const supabase = createAdminClient();
+
+  // 관리자가 아닐 때 (비로그인, 수강생, 게스트 등)
+  if (!isAdmin) {
+    const { data: approvedJobs } = await supabase
+      .from("job_postings")
+      .select("*")
+      .eq("status", "approved")
+      .order("published_at", { ascending: false })
+      .returns<JobPosting[]>();
+
+    return (
+      <PublicJobsView
+        initialJobs={approvedJobs ?? []}
+        isLoggedIn={!!user}
+        userRole={user?.role ?? "guest"}
+      />
+    );
+  }
 
   const activeStatus = VALID_STATUSES.includes(rawStatus as JobStatus)
     ? (rawStatus as JobStatus)
@@ -60,8 +81,6 @@ export default async function JobsPage({
   const showRejected = rawShowRejected === "1";
   const hideRejectedInList = activeStatus === null && !showRejected;
   const rejectedRetentionDays = getRejectedJobRetentionDays();
-
-  const supabase = createAdminClient();
 
   const [{ data: allForCounts }, { data: jobs, error }] = await Promise.all([
     supabase.from("job_postings").select("status, source"),
@@ -111,8 +130,8 @@ export default async function JobsPage({
       label: showRejected ? "전체" : "작업 대상",
       value: showRejected ? statusCounts.all : workQueueCount,
       icon: GridViewIcon,
-      accent: "text-slate-600 bg-slate-100",
-      bar: "bg-slate-400",
+      accent: "text-gray-600 bg-gray-100",
+      bar: "bg-gray-400",
       status: null,
       href: buildJobsAdminHref({
         source: activeSource,
@@ -162,7 +181,7 @@ export default async function JobsPage({
         description="미디어잡, 회사 홈페이지 등에서 수집된 공고를 관리합니다."
       />
 
-      <div className="flex-1 space-y-5 p-6">
+        <div className="flex-1 space-y-3 p-6">
         {/* Stats cards + rejected visibility hint (state tabs removed; cards are the primary control) */}
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -175,17 +194,17 @@ export default async function JobsPage({
                 <Link
                   key={label}
                   href={href}
-                  className={`relative block overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
-                    isActive ? "border-slate-900 ring-1 ring-slate-900" : "border-slate-100"
+                  className={`relative block overflow-hidden rounded-3xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-sm ${
+                    isActive ? "border-periwinkle-600 ring-1 ring-periwinkle-600" : "border-gray-200"
                   }`}
                 >
                   <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
                   <div className="flex items-center justify-between pl-2">
                     <div>
-                      <p className="text-xs font-medium text-slate-400">{label}</p>
-                      <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{value}</p>
+                      <p className="text-xs font-medium leading-tight text-gray-500">{label}</p>
+                      <p className="mt-1 text-2xl font-extrabold leading-[1.1] tabular-nums text-gray-900">{value}</p>
                     </div>
-                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
+                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 ${accent}`}>
                       <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
                     </span>
                   </div>
@@ -194,26 +213,26 @@ export default async function JobsPage({
             })}
           </div>
           {!showRejected && statusCounts.rejected > 0 ? (
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] leading-tight text-gray-500">
               거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
               <Link
                 href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
-                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                className="font-medium text-periwinkle-700 underline-offset-2 hover:underline"
               >
                 DB 전체 보기
               </Link>
             </p>
           ) : showRejected ? (
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] leading-tight text-gray-500">
               <Link
                 href={buildJobsAdminHref({ source: activeSource })}
-                className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                className="font-medium text-periwinkle-700 underline-offset-2 hover:underline"
               >
                 작업 대상만(거절 숨김)
               </Link>
             </p>
           ) : null}
-          <p className="text-[11px] leading-relaxed text-slate-400">
+          <p className="text-[11px] leading-snug text-gray-400">
             거절 공고는 거절 확정 시각 기준 {rejectedRetentionDays}일이 지나면 정리 크론 실행 시 DB에서
             자동 삭제됩니다. 수동 삭제와 동일하게 해당 URL은 다시 수집되지 않습니다.
           </p>
@@ -233,10 +252,6 @@ export default async function JobsPage({
             <CrawlButton source="saramin" label="사람인 즉시 동기화" />
             <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />
             <AiFitButton />
-            <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700">
-              <HugeiconsIcon icon={Add01Icon} size={15} color="currentColor" strokeWidth={2} />
-              공고 추가
-            </button>
           </div>
 
           <JobsTable
@@ -253,7 +268,7 @@ export default async function JobsPage({
             emptyState={
               hasJobs ? undefined : (
               <div className="px-4 py-16 text-center">
-                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-400">
                   <HugeiconsIcon
                     icon={Briefcase01Icon}
                     size={28}
@@ -261,26 +276,26 @@ export default async function JobsPage({
                     strokeWidth={1.5}
                   />
                 </span>
-                <p className="mt-4 text-sm font-medium text-slate-600">
+                <p className="mt-4 text-sm font-medium text-gray-600">
                   {hideRejectedInList && statusCounts.rejected > 0
                     ? "보류·승인 공고가 없습니다. 거절만 있는 경우 아래에서 거절 목록을 여세요."
                     : activeStatus || activeSource
                       ? "해당 조건의 공고가 없습니다"
                       : "등록된 공고가 없습니다"}
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-gray-400">
                   {hideRejectedInList && statusCounts.rejected > 0 ? (
                     <>
                       거절 {statusCounts.rejected}건은 기본 목록에서 숨깁니다.{" "}
                       <a
-                        className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                        className="font-medium text-periwinkle-700 underline-offset-2 hover:underline"
                         href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
                       >
                         거절 포함해 보기
                       </a>
                       {" · "}
                       <a
-                        className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                        className="font-medium text-periwinkle-700 underline-offset-2 hover:underline"
                         href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
                       >
                         거절됨만 보기

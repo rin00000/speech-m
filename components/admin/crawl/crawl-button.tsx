@@ -47,8 +47,8 @@ export const CrawlButton = ({ source, label }: Props) => {
   };
 
   const STYLES: Record<State, string> = {
-    idle: "bg-slate-100 text-slate-600 hover:bg-slate-200",
-    loading: "bg-slate-100 text-slate-400 cursor-not-allowed",
+    idle: "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
+    loading: "border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed",
     success: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200",
     error: "bg-red-50 text-red-500 ring-1 ring-red-200",
   };
@@ -66,7 +66,7 @@ export const CrawlButton = ({ source, label }: Props) => {
     <button
       onClick={run}
       disabled={disabled}
-      className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-colors ${STYLES[state]}`}
+      className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold leading-none shadow-sm transition-colors ${STYLES[state]}`}
     >
       <HugeiconsIcon
         icon={ICONS[state]}

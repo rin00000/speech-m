@@ -86,21 +86,21 @@ export interface Database {
       user_profiles: {
         Row: {
           email: string;
-          role: "admin" | "student";
+          role: "admin" | "student" | "guest";
           display_name: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           email: string;
-          role?: "admin" | "student";
+          role?: "admin" | "student" | "guest";
           display_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           email?: string;
-          role?: "admin" | "student";
+          role?: "admin" | "student" | "guest";
           display_name?: string | null;
           created_at?: string;
           updated_at?: string;

@@ -1,0 +1,58 @@
+---
+description: Tiimo 스타일 디자인 시스템 — Speech-M UI 가이드
+globs: app/**/*.{tsx,ts,css}, components/**/*.{tsx,ts}
+---
+# Tiimo Design System (Speech-M)
+
+## 색상 토큰
+- 브랜드 hue 스케일: `periwinkle-50` ~ `periwinkle-900`.
+- 키 컬러: `periwinkle-200` `#D2E0FB`.
+- Primary action: `periwinkle-600` `#4D72B3`, hover는 `periwinkle-700`.
+- 텍스트/선: `gray-50` ~ `gray-900` cool gray 사용.
+- 의미 alias: `bg-bg`, `bg-surface`, `bg-subtle`, `text-text`, `text-muted`, `border-border`, `bg-accent`.
+- `key-*`, `brand-*`, `primary-*` 같은 추상 스케일 이름은 쓰지 않는다. 역할명은 alias에서만 사용한다.
+
+## 6:3:1 비율
+- 6: 배경/표면 — `bg-bg`, `bg-white`, `gray-50/100`.
+- 3: 텍스트 — `gray-900`, `gray-500`.
+- 1: 포인트 — `periwinkle-600`과 의미 시그널(amber/emerald/red)만 제한적으로 사용.
+- 한 화면에서 `bg-periwinkle-600`은 primary 버튼, active state, 핵심 숫자 등 2회 이내를 기준으로 한다.
+
+## 모서리
+- 카드/컨테이너: `rounded-3xl` 또는 `rounded-2xl`.
+- 버튼/뱃지/탭: `rounded-full`.
+- 작은 아이콘 컨테이너도 큰 색 블록보다 `rounded-full border` 위주로 둔다.
+
+## 테두리 & 그림자
+- 기본 구획: `border border-gray-200 bg-white shadow-sm`.
+- 강한 그림자 금지. `shadow-sm` 또는 `shadow-island`까지만 허용.
+- PC island: `md:rounded-3xl md:border md:border-gray-200 md:bg-white md:shadow-sm`.
+
+## 컴포넌트 패턴
+- 카드: `rounded-3xl border border-gray-200 bg-white shadow-sm`.
+- Primary 버튼: `rounded-full bg-periwinkle-600 text-white font-semibold hover:bg-periwinkle-700`.
+- Ghost 버튼: `rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50`.
+- Soft 버튼/active chip: `rounded-full border border-periwinkle-200 bg-periwinkle-100 text-periwinkle-700`.
+- 뱃지/라벨: `rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium leading-none text-gray-600`.
+- 강조는 큰 도형보다 얇은 선, 작은 dot(`h-1.5 w-1.5`), 라벨 박스, 밑줄(`decoration-periwinkle-300`)을 우선한다.
+
+## 타이포
+- 기본 폰트: Pretendard Variable (`body { font-family: var(--font-display-pretendard) }`).
+- 제목: `font-extrabold tracking-tight leading-[1.1]`.
+- 본문: `text-sm leading-tight`; 긴 설명만 `leading-snug` 허용.
+- 라벨/뱃지 내부: `leading-none`.
+
+## 반응형 레이아웃
+- 모바일: BottomTab (`fixed bottom-4 inset-x-4 rounded-full`), 콘텐츠 풀폭, `pb-24`.
+- PC (`md:`): SideRail 좌측, main은 rounded island.
+- 중단점: Tailwind `md:` 기준.
+
+## Role 분기
+- `nav-items.ts`에서 `role: "all" | "admin" | "student"` 필드로 메뉴 필터.
+- admin 전용: 공고 관리, 스터디 관리.
+- student 전용: 내 스터디 등.
+
+## 금지
+- `violet-*`, `indigo-*`, 다크 `slate-900` 사이드바를 새 UI에 추가하지 않는다.
+- `shadow-md`, `shadow-lg`, `shadow-xl` 금지.
+- 큰 채도 배경 블록을 반복하지 않는다. 상태 표현은 1px bar, dot, 라벨 박스로 제한한다.

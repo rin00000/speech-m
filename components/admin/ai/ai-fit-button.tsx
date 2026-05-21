@@ -39,8 +39,8 @@ export const AiFitButton = () => {
   };
 
   const styles: Record<State, string> = {
-    idle: "bg-indigo-600 text-white hover:bg-indigo-700",
-    loading: "bg-indigo-100 text-indigo-400 cursor-not-allowed",
+    idle: "bg-periwinkle-600 text-white hover:bg-periwinkle-700",
+    loading: "bg-periwinkle-100 text-periwinkle-500 cursor-not-allowed",
     success: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200",
     error: "bg-red-50 text-red-500 ring-1 ring-red-200",
   };
@@ -56,7 +56,7 @@ export const AiFitButton = () => {
     <button
       onClick={run}
       disabled={isPending || state === "loading"}
-      className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-colors ${styles[state]}`}
+      className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold leading-none shadow-sm transition-colors ${styles[state]}`}
       title="pending 공고를 AI로 일괄 판별"
     >
       <HugeiconsIcon

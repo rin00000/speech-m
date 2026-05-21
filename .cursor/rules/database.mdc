@@ -8,3 +8,4 @@ globs: lib/supabase/**/*.{ts,tsx}, services/**/*.{ts,tsx}, actions/**/*.{ts,tsx}
 - Type Safety: Use Supabase-generated types for all database interactions to ensure end-to-end type safety. Strictly avoid using 'any'.
 - Validation: Use Zod for runtime schema validation (API responses, Form data).
 - Error/Loading States: Always implement declarative error handling with error.tsx and loading states with loading.tsx or Suspense.
+- Database Migrations: Every database schema change, RLS policy modification, or DDL operation MUST be documented in a new SQL migration file within `supabase/migrations/` using a timestamp prefix (e.g. `YYYYMMDDHHMMSS_name.sql`). Do not apply direct, manual DDL alterations to the production database without a corresponding file.

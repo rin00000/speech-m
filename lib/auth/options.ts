@@ -83,13 +83,13 @@ export const authOptions: NextAuthOptions = {
         .eq("email", email)
         .maybeSingle();
 
-      token.role = data?.role ?? "student";
+      token.role = data?.role ?? "guest";
       token.name = data?.display_name ?? user?.name ?? token.name;
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = (token.role as "admin" | "student" | undefined) ?? "student";
+        session.user.role = (token.role as "admin" | "student" | "guest" | undefined) ?? "guest";
       }
       return session;
     },

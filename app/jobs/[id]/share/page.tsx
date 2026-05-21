@@ -68,17 +68,17 @@ export default async function JobShareLandingPage({ params }: PageProps) {
   const body = buildBlogContent(job);
 
   return (
-    <article className="mx-auto max-w-xl px-4 py-10 text-slate-800">
-      <h1 className="text-lg font-semibold leading-snug">{title}</h1>
-      <div className="mt-4 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50/80 p-4 text-sm leading-relaxed">
+    <article className="mx-auto max-w-xl px-4 py-10 text-gray-800">
+      <h1 className="text-lg font-extrabold leading-[1.1] tracking-tight text-gray-900">{title}</h1>
+      <div className="mt-4 whitespace-pre-wrap rounded-3xl border border-gray-200 bg-white p-4 text-sm leading-snug shadow-sm">
         {body}
       </div>
-      <p className="mt-6 text-sm text-slate-600">
+      <p className="mt-6 text-sm text-gray-600">
         <Link
           href={job.source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-indigo-600 underline decoration-indigo-200 underline-offset-2 hover:text-indigo-700"
+          className="font-medium text-periwinkle-700 underline decoration-periwinkle-300 underline-offset-2 hover:text-periwinkle-800"
         >
           원문 공고 보기
         </Link>

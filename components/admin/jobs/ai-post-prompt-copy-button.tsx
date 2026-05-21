@@ -39,7 +39,7 @@ export const AiPostPromptCopyButton = ({ jobId, className }: Props) => {
       title="AI 외부 초안용 프롬프트를 클립보드에 복사"
       className={
         className ??
-        "inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-violet-50 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-40"
+        "inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-periwinkle-100 hover:text-periwinkle-700 disabled:cursor-not-allowed disabled:opacity-40"
       }
     >
       <HugeiconsIcon icon={Copy01Icon} size={16} color="currentColor" strokeWidth={1.8} />
