@@ -159,19 +159,38 @@ body > * {
   font-family: var(--font-display-pretendard);
 }
 
-*,
-*::before,
-*::after {
-  border-radius: 6px !important;
+/* 실험용 Sharp 스코프 클래스: 활성화 시에만 6px 라운딩 및 투명 배경이 적용됩니다. */
+.style-sharp {
+  & *,
+  & *::before,
+  & *::after {
+    border-radius: 6px !important;
+  }
+
+  & .bg-white,
+  & .bg-bg,
+  & .bg-surface,
+  & .bg-app-surface,
+  & .bg-subtle,
+  & .bg-gray-50,
+  & .bg-gray-100 {
+    background-color: transparent !important;
+  }
 }
 
-.bg-white,
-.bg-bg,
-.bg-surface,
-.bg-app-surface,
-.bg-subtle,
-.bg-gray-50,
-.bg-gray-100 {
-  background-color: transparent !important;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 

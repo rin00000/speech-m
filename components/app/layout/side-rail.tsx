@@ -29,7 +29,11 @@ export function SideRail({
         <div className="hidden min-w-0 flex-col leading-none lg:flex">
           <span className="truncate text-sm font-extrabold text-gray-900">Speech-M</span>
           <span className="truncate text-[11px] font-medium text-gray-500">
-            {userRole === "admin" ? "원장" : "준비생"}
+            {userRole === "admin"
+              ? "원장 / 관리자"
+              : userRole === "student"
+              ? "정회원 수강생"
+              : "준비생 / 게스트"}
           </span>
         </div>
       </div>
@@ -77,7 +81,11 @@ export function SideRail({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold leading-tight text-gray-800">{userName}</p>
               <p className="truncate text-[11px] font-medium leading-tight text-gray-500">
-                {userRole === "admin" ? "관리자" : "학생"}
+                {userRole === "admin"
+                  ? "관리자"
+                  : userRole === "student"
+                  ? "수강생"
+                  : "게스트"}
               </p>
             </div>
           </div>

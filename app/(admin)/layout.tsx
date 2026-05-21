@@ -1,14 +1,17 @@
 import { AdminLayoutGate } from "@/components/admin/layout/admin-layout-gate";
-import { requireUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+  const role = user?.role ?? "guest";
+  const name = user?.name ?? null;
+
   return (
-    <AdminLayoutGate userName={user.name} userRole={user.role}>
+    <AdminLayoutGate userName={name} userRole={role}>
       {children}
     </AdminLayoutGate>
   );

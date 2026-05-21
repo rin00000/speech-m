@@ -16,7 +16,8 @@ import {
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
-import { requireAdmin } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
+import { PublicJobsView } from "@/components/admin/jobs/public-jobs-view";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
@@ -47,8 +48,29 @@ export default async function JobsPage({
 }: {
   searchParams: Promise<{ status?: string; source?: string; showRejected?: string }>;
 }) {
-  await requireAdmin();
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "admin";
   const { status: rawStatus, source: rawSource, showRejected: rawShowRejected } = await searchParams;
+
+  const supabase = createAdminClient();
+
+  // 관리자가 아닐 때 (비로그인, 수강생, 게스트 등)
+  if (!isAdmin) {
+    const { data: approvedJobs } = await supabase
+      .from("job_postings")
+      .select("*")
+      .eq("status", "approved")
+      .order("published_at", { ascending: false })
+      .returns<JobPosting[]>();
+
+    return (
+      <PublicJobsView
+        initialJobs={approvedJobs ?? []}
+        isLoggedIn={!!user}
+        userRole={user?.role ?? "guest"}
+      />
+    );
+  }
 
   const activeStatus = VALID_STATUSES.includes(rawStatus as JobStatus)
     ? (rawStatus as JobStatus)
@@ -59,8 +81,6 @@ export default async function JobsPage({
   const showRejected = rawShowRejected === "1";
   const hideRejectedInList = activeStatus === null && !showRejected;
   const rejectedRetentionDays = getRejectedJobRetentionDays();
-
-  const supabase = createAdminClient();
 
   const [{ data: allForCounts }, { data: jobs, error }] = await Promise.all([
     supabase.from("job_postings").select("status, source"),
