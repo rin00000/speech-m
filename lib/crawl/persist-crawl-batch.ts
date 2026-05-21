@@ -4,6 +4,7 @@ import {
   fetchCrossSourceDedupCandidates,
   fetchExistingJobRowsBySourceUrl,
   fetchJobRowsByFingerprints,
+  type ExistingJobPostingRow,
 } from "@/lib/crawl/crawl-db-lookup";
 import {
   isCrossSourceDuplicate,
@@ -27,6 +28,16 @@ export type PersistCrawlBatchResult = {
   total_input: number;
 };
 
+type MetaUpdateRow = {
+  id: string;
+  title: string;
+  company: string | null;
+  location: string | null;
+  deadline: string | null;
+  fingerprint: string;
+  last_seen_at: string;
+};
+
 function buildActiveFingerprintCollisionSet(
   rows: { fingerprint: string | null; deadline: string | null }[]
 ): Set<string> {
@@ -41,7 +52,63 @@ function buildActiveFingerprintCollisionSet(
 }
 
 /**
- * 블록리스트 제외 → 지문 중복 스킵(DB + 동일 크롤 배치) → URL 기준 insert/update 분리 → 배치 반영.
+ * 같은 배치에 중복된 source_url이 들어오면 마지막 항목만 남긴다(메타 갱신 일관성).
+ */
+function dedupeBySourceUrl(jobs: readonly JobInsert[]): JobInsert[] {
+  const map = new Map<string, JobInsert>();
+  for (const j of jobs) {
+    const url = j.source_url.trim();
+    if (!url) continue;
+    map.set(url, j);
+  }
+  return [...map.values()];
+}
+
+/**
+ * source_url이 DB에 이미 있는 잡(메타 갱신 대상)과 신규 후보를 분리.
+ * 기존 행은 추가 dedup 없이 항상 메타 갱신한다(원본이 마감일만 바뀐 경우도 반영).
+ */
+export function splitJobsByExistingSourceUrl(
+  jobs: readonly JobInsert[],
+  existingByUrl: Map<string, ExistingJobPostingRow>
+): {
+  existing: { incoming: JobInsert; existing: ExistingJobPostingRow }[];
+  fresh: JobInsert[];
+} {
+  const existing: { incoming: JobInsert; existing: ExistingJobPostingRow }[] = [];
+  const fresh: JobInsert[] = [];
+  for (const j of jobs) {
+    const e = existingByUrl.get(j.source_url);
+    if (e) {
+      existing.push({ incoming: j, existing: e });
+    } else {
+      fresh.push(j);
+    }
+  }
+  return { existing, fresh };
+}
+
+function buildMetaUpdateRow(
+  incoming: JobInsert,
+  existingId: string,
+  nowIso: string
+): MetaUpdateRow {
+  return {
+    id: existingId,
+    title: incoming.title,
+    company: incoming.company ?? null,
+    location: incoming.location ?? null,
+    deadline: incoming.deadline ?? null,
+    fingerprint: computeJobFingerprint(incoming.company, incoming.title),
+    last_seen_at: nowIso,
+  };
+}
+
+/**
+ * 1) blocked URL 제외
+ * 2) source_url 기준으로 기존/신규 분리 — 기존은 무조건 메타 갱신(마감일 등 원본 수정 반영)
+ * 3) 신규에 대해서만 fingerprint·cross-source dedup
+ * 4) 신규 insert + 기존(+race fallback) 메타 갱신 일괄 반영
  */
 export async function persistCrawlBatch(
   supabase: AdminClient,
@@ -62,7 +129,26 @@ export async function persistCrawlBatch(
   const afterBlock = await filterBlockedFromJobs(jobs);
   const skipped_blocked = jobs.length - afterBlock.length;
 
-  const withFp = afterBlock.map((j) => ({
+  const uniqueByUrl = dedupeBySourceUrl(afterBlock);
+  if (uniqueByUrl.length === 0) {
+    return {
+      inserted: 0,
+      updated: 0,
+      skipped_blocked,
+      skipped_fingerprint_dup: 0,
+      skipped_cross_source_dup: 0,
+      total_input,
+    };
+  }
+
+  const urls = uniqueByUrl.map((j) => j.source_url);
+  const existingByUrl = await fetchExistingJobRowsBySourceUrl(supabase, urls);
+  const { existing: existingMatched, fresh: freshCandidates } = splitJobsByExistingSourceUrl(
+    uniqueByUrl,
+    existingByUrl
+  );
+
+  const withFp = freshCandidates.map((j) => ({
     ...j,
     fingerprint: computeJobFingerprint(j.company, j.title),
   }));
@@ -113,61 +199,28 @@ export async function persistCrawlBatch(
     localCrossSource.push(job);
   }
 
-  if (afterDedup.length === 0) {
-    return {
-      inserted: 0,
-      updated: 0,
-      skipped_blocked,
-      skipped_fingerprint_dup,
-      skipped_cross_source_dup,
-      total_input,
-    };
-  }
-
-  const urls = afterDedup.map((j) => j.source_url);
-  const existingByUrl = await fetchExistingJobRowsBySourceUrl(supabase, urls);
-
   const nowIso = new Date().toISOString();
-  const toInsert: Database["public"]["Tables"]["job_postings"]["Insert"][] = [];
-  const toUpdateMeta: {
-    id: string;
-    title: string;
-    company: string | null;
-    location: string | null;
-    deadline: string | null;
-    fingerprint: string;
-    last_seen_at: string;
-  }[] = [];
 
-  for (const row of afterDedup) {
-    const existing = existingByUrl.get(row.source_url);
-    if (existing) {
-      toUpdateMeta.push({
-        id: existing.id,
-        title: row.title,
-        company: row.company ?? null,
-        location: row.location ?? null,
-        deadline: row.deadline ?? null,
-        fingerprint: row.fingerprint,
-        last_seen_at: nowIso,
-      });
-    } else {
-      toInsert.push({
-        title: row.title,
-        company: row.company ?? null,
-        location: row.location ?? null,
-        source: row.source,
-        source_url: row.source_url,
-        status: row.status,
-        deadline: row.deadline ?? null,
-        fingerprint: row.fingerprint,
-        last_seen_at: nowIso,
-      });
-    }
-  }
+  const toUpdateMeta: MetaUpdateRow[] = existingMatched.map(({ incoming, existing }) =>
+    buildMetaUpdateRow(incoming, existing.id, nowIso)
+  );
+
+  const toInsert: Database["public"]["Tables"]["job_postings"]["Insert"][] = afterDedup.map(
+    (row) => ({
+      title: row.title,
+      company: row.company ?? null,
+      location: row.location ?? null,
+      source: row.source,
+      source_url: row.source_url,
+      status: row.status,
+      deadline: row.deadline ?? null,
+      fingerprint: row.fingerprint,
+      last_seen_at: nowIso,
+    })
+  );
 
   let inserted = 0;
-  const fallbackUpdates: (typeof toUpdateMeta)[number][] = [];
+  const fallbackUpdates: MetaUpdateRow[] = [];
 
   for (let i = 0; i < toInsert.length; i += INSERT_CHUNK) {
     const chunk = toInsert.slice(i, i + INSERT_CHUNK);
@@ -195,7 +248,8 @@ export async function persistCrawlBatch(
               company: single.company ?? null,
               location: single.location ?? null,
               deadline: single.deadline ?? null,
-              fingerprint: single.fingerprint ?? computeJobFingerprint(single.company, single.title),
+              fingerprint:
+                single.fingerprint ?? computeJobFingerprint(single.company, single.title),
               last_seen_at: nowIso,
             });
           }

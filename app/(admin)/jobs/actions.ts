@@ -15,6 +15,12 @@ import { buildJobPostDraftPrompt } from "@/lib/ai/post/prompt";
 import type { JobStatus } from "@/types/database.types";
 export type { CrawlSource } from "@/lib/crawl/trigger";
 
+/** 공고 데이터 변경 시 공고 관리·대시보드(같은 DB를 읽는 모든 관리자 화면)를 함께 갱신. */
+const revalidateJobsViews = () => {
+  revalidatePath("/jobs");
+  revalidatePath("/dashboard");
+};
+
 export type RunCrawlResult = {
   success: boolean;
   saved?: number;
@@ -65,7 +71,7 @@ export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => 
       return { success: false, error: result.error ?? "크롤링 실패" };
     }
 
-    revalidatePath("/jobs");
+    revalidateJobsViews();
     return {
       success: true,
       saved: result.saved ?? 0,
@@ -81,7 +87,7 @@ export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => 
 export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
   try {
     const result = await runJobFitBatch(30);
-    revalidatePath("/jobs");
+    revalidateJobsViews();
     return result;
   } catch (err) {
     return {
@@ -117,7 +123,7 @@ export const updateJobStatus = async (id: string, status: JobStatus) => {
     .eq("id", id);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/jobs");
+  revalidateJobsViews();
 };
 
 export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
@@ -129,7 +135,7 @@ export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
     .in("id", ids);
 
   if (error) throw new Error(error.message);
-  revalidatePath("/jobs");
+  revalidateJobsViews();
 };
 
 const DELETE_REJECTED_CHUNK = 200;
@@ -156,7 +162,7 @@ export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> =>
     const { error } = await supabase.from("job_postings").delete().in("id", chunk).eq("status", "rejected");
     if (error) throw new Error(error.message);
   }
-  revalidatePath("/jobs");
+  revalidateJobsViews();
 };
 
 export type MarkPublishedResult = {
@@ -199,7 +205,7 @@ export const markJobsPublished = async (ids: string[]): Promise<MarkPublishedRes
   if (error) {
     return { success: false, error: error.message };
   }
-  revalidatePath("/jobs");
+  revalidateJobsViews();
   return { success: true, updated: eligible.length };
 };
 

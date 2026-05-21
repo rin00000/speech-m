@@ -183,7 +183,7 @@ export default async function DashboardPage() {
                 최근 내부 게시 공고
               </h2>
               <p className="mt-1 text-xs text-slate-400">
-                승인 후 내부 게시가 확정된 최신 공고입니다.
+                원장님 승인 후 내부 게시가 확정된 최신 공고입니다.
               </p>
             </div>
             <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-600">
