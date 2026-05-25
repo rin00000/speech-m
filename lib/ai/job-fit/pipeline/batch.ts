@@ -44,7 +44,7 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
     .from("job_postings")
     .select("*")
     .eq("status", "pending")
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: true })
     .limit(limit)
     .returns<JobPosting[]>();
 

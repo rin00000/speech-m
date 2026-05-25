@@ -13,10 +13,9 @@ import { createAdminClient } from "@/lib/supabase/server";
 export interface ScriptItem {
   id: string;
   title: string;
-  category: "practice" | "portfolio";
+  category: "practice" | "portfolio" | "designated";
   type: string;
   difficulty: "쉬움" | "보통" | "어려움";
-  length: number;
   description: string;
   content: string;
 }

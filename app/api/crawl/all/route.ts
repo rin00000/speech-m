@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { scheduleJobFitCronKick } from "@/lib/cron/kick-job-fit";
+import { schedulePurgeStaleCronKick } from "@/lib/cron/kick-purge-stale";
 import { CRAWL_SOURCES, triggerCrawl } from "@/lib/crawl/trigger";
+
+export const maxDuration = 300;
 
 type Summary = {
   success: boolean;
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
   }
 
   const response = await runAllSources(request);
-  scheduleJobFitCronKick(buildBaseUrl(request));
+  schedulePurgeStaleCronKick(buildBaseUrl(request));
   return response;
 }
 
