@@ -8,8 +8,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { PracticeListView } from "./practice-list-view";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export interface ScriptItem {
   id: string;
@@ -30,18 +29,7 @@ export default async function PracticePage() {
   let scripts: ScriptItem[] = [];
 
   if (isAuthorized) {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-        },
-      }
-    );
+    const supabase = createAdminClient();
 
     const { data } = await supabase
       .from("practice_scripts")
