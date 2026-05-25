@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TransitionLink } from "@/components/ui/transition-link";
 import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { UserRole } from "@/lib/auth/session";
@@ -42,7 +42,7 @@ export function SideRail({
         {items.map((item) => {
           const active = isNavActive(activePath, item.href);
           return (
-            <Link
+            <TransitionLink
               key={`${item.href}-${item.label}`}
               href={item.href}
               className={cn(
@@ -67,7 +67,7 @@ export function SideRail({
                 />
               </span>
               <span className="hidden truncate lg:inline">{item.label}</span>
-            </Link>
+            </TransitionLink>
           );
         })}
       </nav>

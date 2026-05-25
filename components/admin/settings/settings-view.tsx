@@ -1,7 +1,14 @@
 "use client";
 
+/**
+ * 시스템 통합 설정 뷰 컴포넌트.
+ * 프로필/AI 큐레이션/크롤링/CRM 탭 설정을 관리한다.
+ * useAsyncAction 훅으로 모든 저장 버튼이 글로벌 Progress Bar와 연동된다.
+ */
+
 import { useState } from "react";
 import { updateProfileName, removeBlockedUrl, updateSystemSetting } from "@/app/(admin)/settings/actions";
+import { useAsyncAction } from "@/lib/ui/use-async-action";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   UserIcon,
@@ -47,19 +54,16 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
   
   // 1. 프로필 관련 State
   const [displayName, setDisplayName] = useState(user.name ?? "");
-  const [updatingProfile, setUpdatingProfile] = useState(false);
 
   // 2. AI 큐레이션 관련 State
   const [aiFilterEnabled, setAiFilterEnabled] = useState(initialSettings.ai_filter_enabled ?? true);
   const [aiMatchThreshold, setAiMatchThreshold] = useState(initialSettings.ai_match_threshold ?? 0.75);
-  const [savingAi, setSavingAi] = useState(false);
 
   // 3. 크롤링 관련 State
   const [crawlInterval, setCrawlInterval] = useState(initialSettings.crawl_interval_hours ?? 6);
   const [crawlChannels, setCrawlChannels] = useState(
     initialSettings.crawl_channels_active ?? { mediajob: true, arang: true, kbs: true }
   );
-  const [savingCrawl, setSavingCrawl] = useState(false);
   const [blockedUrls, setBlockedUrls] = useState<BlockedUrlItem[]>(initialBlockedUrls);
   const [removingUrl, setRemovingUrl] = useState<string | null>(null);
 
@@ -67,10 +71,16 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
   const [crmRetention, setCrmRetention] = useState(initialSettings.crm_retention_days ?? 60);
   const [studyDeposit, setStudyDeposit] = useState(initialSettings.study_deposit_amount ?? 30000);
   const [studyPenalty, setStudyPenalty] = useState(initialSettings.study_penalty_amount ?? 5000);
-  const [savingCrm, setSavingCrm] = useState(false);
 
   // 토스트 메시지 알림 State
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // useAsyncAction 훅 (섹션별 독립 로딩 상태)
+  const profileAction = useAsyncAction();
+  const aiAction = useAsyncAction();
+  const crawlAction = useAsyncAction();
+  const crmAction = useAsyncAction();
+  const removeUrlAction = useAsyncAction();
 
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ type, message });
@@ -78,89 +88,71 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
   };
 
   // 닉네임 저장
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    setUpdatingProfile(true);
-    const result = await updateProfileName(displayName);
-    setUpdatingProfile(false);
-
-    if (result.success) {
-      showToast("success", "프로필 닉네임이 성공적으로 변경되었습니다.");
-    } else {
-      showToast("error", result.error ?? "프로필 변경 도중 오류가 발생했습니다.");
-    }
+    profileAction.runAction(async () => {
+      const result = await updateProfileName(displayName);
+      if (result.success) {
+        showToast("success", "프로필 닉네임이 성공적으로 변경되었습니다.");
+      } else {
+        showToast("error", result.error ?? "프로필 변경 도중 오류가 발생했습니다.");
+      }
+    });
   };
 
   // AI 큐레이션 설정 저장
-  const handleSaveAiSettings = async () => {
-    setSavingAi(true);
-    try {
+  const handleSaveAiSettings = () => {
+    aiAction.runAction(async () => {
       const res1 = await updateSystemSetting("ai_filter_enabled", aiFilterEnabled);
       const res2 = await updateSystemSetting("ai_match_threshold", aiMatchThreshold);
-      
       if (res1.success && res2.success) {
         showToast("success", "AI 자동 큐레이션 임계치 및 필터 설정이 저장되었습니다.");
       } else {
         showToast("error", res1.error ?? res2.error ?? "AI 설정 중 오류가 발생했습니다.");
       }
-    } catch (err) {
-      showToast("error", "AI 설정 저장 실패");
-    } finally {
-      setSavingAi(false);
-    }
+    });
   };
 
   // 크롤링 채널/주기 설정 저장
-  const handleSaveCrawlSettings = async () => {
-    setSavingCrawl(true);
-    try {
+  const handleSaveCrawlSettings = () => {
+    crawlAction.runAction(async () => {
       const res1 = await updateSystemSetting("crawl_interval_hours", Number(crawlInterval));
       const res2 = await updateSystemSetting("crawl_channels_active", crawlChannels);
-      
       if (res1.success && res2.success) {
         showToast("success", "크롤러 수집 주기 및 채널 설정이 성공적으로 동기화되었습니다.");
       } else {
         showToast("error", res1.error ?? res2.error ?? "크롤러 설정 중 오류가 발생했습니다.");
       }
-    } catch (err) {
-      showToast("error", "크롤러 설정 저장 실패");
-    } finally {
-      setSavingCrawl(false);
-    }
+    });
   };
 
   // 차단 소스 URL 삭제 (블랙리스트 해제)
-  const handleRemoveBlockedUrl = async (url: string) => {
+  const handleRemoveBlockedUrl = (url: string) => {
     setRemovingUrl(url);
-    const result = await removeBlockedUrl(url);
-    setRemovingUrl(null);
-
-    if (result.success) {
-      setBlockedUrls((prev) => prev.filter((item) => item.source_url !== url));
-      showToast("success", "차단된 소스 URL의 블랙리스트 해제가 완료되었습니다.");
-    } else {
-      showToast("error", result.error ?? "블랙리스트 해제 실패");
-    }
+    removeUrlAction.runAction(async () => {
+      const result = await removeBlockedUrl(url);
+      setRemovingUrl(null);
+      if (result.success) {
+        setBlockedUrls((prev) => prev.filter((item) => item.source_url !== url));
+        showToast("success", "차단된 소스 URL의 블랙리스트 해제가 완료되었습니다.");
+      } else {
+        showToast("error", result.error ?? "블랙리스트 해제 실패");
+      }
+    });
   };
 
   // CRM 및 스터디 벌금/보증금 설정 저장
-  const handleSaveCrmSettings = async () => {
-    setSavingCrm(true);
-    try {
+  const handleSaveCrmSettings = () => {
+    crmAction.runAction(async () => {
       const res1 = await updateSystemSetting("crm_retention_days", Number(crmRetention));
       const res2 = await updateSystemSetting("study_deposit_amount", Number(studyDeposit));
       const res3 = await updateSystemSetting("study_penalty_amount", Number(studyPenalty));
-      
       if (res1.success && res2.success && res3.success) {
         showToast("success", "CRM 만료 정책 및 스터디 보증금/벌금 기준액 설정이 저장되었습니다.");
       } else {
         showToast("error", "학원 CRM/스터디 설정 중 일부 항목을 저장하지 못했습니다.");
       }
-    } catch (err) {
-      showToast("error", "CRM 설정 저장 실패");
-    } finally {
-      setSavingCrm(false);
-    }
+    });
   };
 
   // 권한 뱃지 스타일
@@ -295,10 +287,10 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                       />
                       <button
                         type="submit"
-                        disabled={updatingProfile || displayName.trim() === (user.name ?? "")}
+                        disabled={profileAction.isPending || displayName.trim() === (user.name ?? "")}
                         className="rounded-full bg-periwinkle-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shrink-0"
                       >
-                        {updatingProfile ? "저장 중..." : "저장"}
+                        {profileAction.isPending ? "저장 중..." : "저장"}
                       </button>
                     </div>
                   </div>
@@ -318,12 +310,12 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                   </p>
                 </div>
                 <button
-                  onClick={handleSaveAiSettings}
-                  disabled={savingAi}
-                  className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
-                >
-                  {savingAi ? "저장 중..." : "설정 저장"}
-                </button>
+                    onClick={handleSaveAiSettings}
+                    disabled={aiAction.isPending}
+                    className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
+                  >
+                    {aiAction.isPending ? "저장 중..." : "설정 저장"}
+                  </button>
               </div>
 
               <div className="border-t border-gray-100 pt-6 space-y-6">
@@ -388,12 +380,12 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                     </p>
                   </div>
                   <button
-                    onClick={handleSaveCrawlSettings}
-                    disabled={savingCrawl}
-                    className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
-                  >
-                    {savingCrawl ? "저장 중..." : "설정 저장"}
-                  </button>
+                      onClick={handleSaveCrawlSettings}
+                      disabled={crawlAction.isPending}
+                      className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
+                    >
+                      {crawlAction.isPending ? "저장 중..." : "설정 저장"}
+                    </button>
                 </div>
 
                 <div className="border-t border-gray-100 pt-6 space-y-6">
@@ -500,12 +492,12 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                             </td>
                             <td className="px-6 py-3 whitespace-nowrap text-right">
                               <button
-                                onClick={() => handleRemoveBlockedUrl(item.source_url)}
-                                disabled={removingUrl === item.source_url}
-                                className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0"
-                              >
-                                {removingUrl === item.source_url ? "해제 중..." : "차단 해제"}
-                              </button>
+                                  onClick={() => handleRemoveBlockedUrl(item.source_url)}
+                                  disabled={removingUrl === item.source_url || removeUrlAction.isPending}
+                                  className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0"
+                                >
+                                  {removingUrl === item.source_url ? "해제 중..." : "차단 해제"}
+                                </button>
                             </td>
                           </tr>
                         ))
@@ -529,10 +521,10 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                 </div>
                 <button
                   onClick={handleSaveCrmSettings}
-                  disabled={savingCrm}
+                  disabled={crmAction.isPending}
                   className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
                 >
-                  {savingCrm ? "저장 중..." : "설정 저장"}
+                  {crmAction.isPending ? "저장 중..." : "설정 저장"}
                 </button>
               </div>
 

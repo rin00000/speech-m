@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+/**
+ * 크롤 즉시 실행 버튼 컴포넌트.
+ * 클릭 시 해당 소스의 크롤링을 즉시 트리거하고 결과를 피드백으로 표시.
+ * useAsyncAction 훅을 통해 글로벌 Progress Bar와 연동되고 중복 클릭을 방지한다.
+ */
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -9,6 +15,7 @@ import {
   AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { runCrawl, type CrawlSource } from "@/app/(admin)/jobs/actions";
+import { useAsyncAction } from "@/lib/ui/use-async-action";
 
 type State = "idle" | "loading" | "success" | "error";
 
@@ -19,14 +26,22 @@ type Props = {
 
 export const CrawlButton = ({ source, label }: Props) => {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<State>("idle");
   const [message, setMessage] = useState("");
 
+  const { isPending, runAction } = useAsyncAction({
+    onError: (err) => {
+      setState("error");
+      setMessage(err instanceof Error ? err.message : "크롤링 실패");
+    },
+  });
+
   const run = () => {
+    if (isPending || state === "loading") return;
     setState("loading");
     setMessage("");
-    startTransition(async () => {
+
+    runAction(async () => {
       const result = await runCrawl(source);
       if (!result.success) {
         setState("error");
@@ -37,9 +52,7 @@ export const CrawlButton = ({ source, label }: Props) => {
       const inserted = result.inserted ?? 0;
       const updated = result.updated ?? 0;
       const parts = [`신규 ${inserted}건`];
-      if (updated > 0) {
-        parts.push(`메타 갱신 ${updated}건`);
-      }
+      if (updated > 0) parts.push(`메타 갱신 ${updated}건`);
       setMessage(parts.join(" · "));
       router.refresh();
       setTimeout(() => setState("idle"), 4000);

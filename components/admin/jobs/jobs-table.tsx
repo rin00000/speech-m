@@ -1,8 +1,15 @@
 "use client";
 
+/**
+ * 공고 관리 테이블 컴포넌트.
+ * 행별 승인/거절/재검토/삭제, 일괄 액션, 소스 필터 탭을 포함.
+ * useAsyncAction 훅으로 모든 버튼이 글로벌 Progress Bar와 연동된다.
+ */
+
 import type { ReactNode } from "react";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAsyncAction } from "@/lib/ui/use-async-action";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   CheckmarkCircle01Icon,
@@ -132,17 +139,17 @@ const RowActions = ({
   publishedAt: string | null;
 }) => {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const { isPending, runAction } = useAsyncAction();
 
   const handle = (next: JobStatus) => {
-    startTransition(async () => {
+    runAction(async () => {
       await updateJobStatus(jobId, next);
       router.refresh();
     });
   };
 
   const handlePublish = () => {
-    startTransition(async () => {
+    runAction(async () => {
       await markJobsPublished([jobId]);
       router.refresh();
     });
@@ -202,7 +209,7 @@ const RowActions = ({
   if (status === "rejected") {
     const handleDelete = () => {
       if (!window.confirm("이 거절 공고를 DB에서 삭제할까요? 복구할 수 없습니다.")) return;
-      startTransition(async () => {
+      runAction(async () => {
         await deleteRejectedJobPostings([jobId]);
         router.refresh();
       });
@@ -276,7 +283,7 @@ type Props = {
 export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emptyState }: Props) => {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isBulkPending, startBulkTransition] = useTransition();
+  const { isPending: isBulkPending, runAction: runBulkAction } = useAsyncAction();
   const [query, setQuery] = useState("");
   const [density, setDensity] = useState<"compact" | "comfortable">("compact");
 
@@ -320,7 +327,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
   };
 
   const handleBulk = (status: JobStatus) => {
-    startBulkTransition(async () => {
+    runBulkAction(async () => {
       await bulkUpdateJobStatus(Array.from(selectedIds), status);
       setSelectedIds(new Set());
       router.refresh();
@@ -328,7 +335,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
   };
 
   const handleBulkPublish = () => {
-    startBulkTransition(async () => {
+    runBulkAction(async () => {
       await markJobsPublished(Array.from(selectedIds));
       setSelectedIds(new Set());
       router.refresh();
@@ -342,7 +349,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
     ) {
       return;
     }
-    startBulkTransition(async () => {
+    runBulkAction(async () => {
       await deleteRejectedJobPostings(Array.from(selectedIds));
       setSelectedIds(new Set());
       router.refresh();

@@ -1,11 +1,30 @@
 "use client";
 
+/**
+ * 로그인 폼 컴포넌트.
+ * Google, Naver OAuth 소셜 로그인을 제공.
+ * 버튼 클릭 시 즉시 로딩 상태(스피너 + disabled)로 전환해 중복 클릭 방지.
+ */
+
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+
+type Provider = "google" | "naver";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const [loading, setLoading] = useState<Provider | null>(null);
+
+  const handleSignIn = (provider: Provider) => {
+    if (loading) return;
+    setLoading(provider);
+    // signIn은 OAuth 리디렉션을 시작하므로 완료 콜백 불필요
+    void signIn(provider, { callbackUrl });
+  };
+
+  const isLoading = loading !== null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg p-4">
@@ -15,18 +34,37 @@ export default function LoginForm() {
 
         <div className="mt-6 flex flex-col gap-3">
           <button
+            id="login-google"
             type="button"
-            onClick={() => signIn("google", { callbackUrl })}
-            className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-gray-700 hover:bg-gray-50"
+            onClick={() => handleSignIn("google")}
+            disabled={isLoading}
+            className="relative rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold leading-none text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Google로 로그인
+            {loading === "google" ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                연결 중…
+              </span>
+            ) : (
+              "Google로 로그인"
+            )}
           </button>
+
           <button
+            id="login-naver"
             type="button"
-            onClick={() => signIn("naver", { callbackUrl })}
-            className="rounded-full bg-periwinkle-600 px-4 py-2.5 text-sm font-semibold leading-none text-white hover:bg-periwinkle-700"
+            onClick={() => handleSignIn("naver")}
+            disabled={isLoading}
+            className="rounded-full bg-periwinkle-600 px-4 py-2.5 text-sm font-semibold leading-none text-white transition-colors hover:bg-periwinkle-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Naver로 로그인
+            {loading === "naver" ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-periwinkle-300 border-t-white" />
+                연결 중…
+              </span>
+            ) : (
+              "Naver로 로그인"
+            )}
           </button>
         </div>
       </section>

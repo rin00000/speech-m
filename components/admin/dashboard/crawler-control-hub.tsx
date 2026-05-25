@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+/**
+ * 크롤러 제어 허브 컴포넌트 (대시보드).
+ * 각 소스별 즉시 크롤 트리거 버튼과 AI 배치 필터 실행 버튼을 제공.
+ * useAsyncAction 훅으로 모든 버튼이 글로벌 Progress Bar와 연동된다.
+ */
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -8,12 +14,12 @@ import {
   CheckmarkCircle01Icon,
   AlertCircleIcon,
   CpuIcon,
-  Calendar01Icon,
   GlobalIcon
 } from "@hugeicons/core-free-icons";
 import { runCrawl, runAiFitBatch, type CrawlSource } from "@/app/(admin)/jobs/actions";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAsyncAction } from "@/lib/ui/use-async-action";
 
 type SyncState = {
   status: "idle" | "loading" | "success" | "error";
@@ -22,86 +28,85 @@ type SyncState = {
 
 export function CrawlerControlHub() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
-  // Each crawl source state
+  // 각 크롤 소스 상태
   const [crawlStates, setCrawlStates] = useState<Record<CrawlSource, SyncState>>({
     mediajob: { status: "idle", message: "" },
     saramin: { status: "idle", message: "" },
     jobkorea: { status: "idle", message: "" },
   });
 
-  // AI batch filter state
+  // AI 배치 필터 상태
   const [aiState, setAiState] = useState<SyncState>({ status: "idle", message: "" });
 
+  // 크롤 소스별 개별 useAsyncAction 훅 (각 소스가 독립적으로 로딩 상태 관리)
+  const mediajobAction = useAsyncAction();
+  const saraminAction = useAsyncAction();
+  const jobkoreaAction = useAsyncAction();
+  const aiAction = useAsyncAction();
+
+  const getSourceAction = (source: CrawlSource) => {
+    if (source === "mediajob") return mediajobAction;
+    if (source === "saramin") return saraminAction;
+    return jobkoreaAction;
+  };
+
   const triggerSourceCrawl = (source: CrawlSource) => {
+    const { runAction } = getSourceAction(source);
+
     setCrawlStates((prev) => ({
       ...prev,
       [source]: { status: "loading", message: "" },
     }));
 
-    startTransition(async () => {
-      try {
-        const result = await runCrawl(source);
-        if (!result.success) {
-          setCrawlStates((prev) => ({
-            ...prev,
-            [source]: { status: "error", message: result.error ?? "수집 실패" },
-          }));
-          return;
-        }
-
-        const inserted = result.inserted ?? 0;
-        const updated = result.updated ?? 0;
-        const msg = `신규 ${inserted}건 / 갱신 ${updated}건`;
-
+    runAction(async () => {
+      const result = await runCrawl(source);
+      if (!result.success) {
         setCrawlStates((prev) => ({
           ...prev,
-          [source]: { status: "success", message: msg },
+          [source]: { status: "error", message: result.error ?? "수집 실패" },
         }));
-
-        router.refresh();
-        setTimeout(() => {
-          setCrawlStates((prev) => ({
-            ...prev,
-            [source]: { ...prev[source], status: "idle" },
-          }));
-        }, 5000);
-      } catch (err) {
-        setCrawlStates((prev) => ({
-          ...prev,
-          [source]: { status: "error", message: err instanceof Error ? err.message : "알 수 없는 오류" },
-        }));
+        return;
       }
+
+      const inserted = result.inserted ?? 0;
+      const updated = result.updated ?? 0;
+      const msg = `신규 ${inserted}건 / 갱신 ${updated}건`;
+
+      setCrawlStates((prev) => ({
+        ...prev,
+        [source]: { status: "success", message: msg },
+      }));
+
+      router.refresh();
+      setTimeout(() => {
+        setCrawlStates((prev) => ({
+          ...prev,
+          [source]: { ...prev[source], status: "idle" },
+        }));
+      }, 5000);
     });
   };
 
   const triggerAiBatch = () => {
     setAiState({ status: "loading", message: "" });
 
-    startTransition(async () => {
-      try {
-        const result = await runAiFitBatch();
-        if (!result.success) {
-          setAiState({ status: "error", message: result.error ?? "AI 필터 실행 실패" });
-          return;
-        }
-
-        const scanned = result.scanned ?? 0;
-        const approved = result.approved ?? 0;
-        const msg = `검사 ${scanned}건 (승인 ${approved}건)`;
-
-        setAiState({ status: "success", message: msg });
-        router.refresh();
-        setTimeout(() => {
-          setAiState({ status: "idle", message: "" });
-        }, 5000);
-      } catch (err) {
-        setAiState({
-          status: "error",
-          message: err instanceof Error ? err.message : "알 수 없는 오류",
-        });
+    aiAction.runAction(async () => {
+      const result = await runAiFitBatch();
+      if (!result.success) {
+        setAiState({ status: "error", message: result.error ?? "AI 필터 실행 실패" });
+        return;
       }
+
+      const scanned = result.scanned ?? 0;
+      const approved = result.approved ?? 0;
+      const msg = `검사 ${scanned}건 (승인 ${approved}건)`;
+
+      setAiState({ status: "success", message: msg });
+      router.refresh();
+      setTimeout(() => {
+        setAiState({ status: "idle", message: "" });
+      }, 5000);
     });
   };
 
@@ -110,6 +115,12 @@ export function CrawlerControlHub() {
     saramin: "사람인 (일반 공고)",
     jobkorea: "잡코리아 (대형 포털)",
   };
+
+  const sourceActions = {
+    mediajob: mediajobAction,
+    saramin: saraminAction,
+    jobkorea: jobkoreaAction,
+  } as const;
 
   return (
     <Card className="h-full">
@@ -142,9 +153,10 @@ export function CrawlerControlHub() {
         {/* 수집원 리스트 */}
         <div className="space-y-3">
           <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">실시간 수집 트리거</h4>
-          
+
           {(["mediajob", "saramin", "jobkorea"] as const).map((source) => {
             const state = crawlStates[source];
+            const { isPending } = sourceActions[source];
             const isLoading = state.status === "loading" || isPending;
 
             const buttonStyle =
@@ -202,7 +214,7 @@ export function CrawlerControlHub() {
 
           <Button
             onClick={triggerAiBatch}
-            disabled={aiState.status === "loading" || isPending}
+            disabled={aiState.status === "loading" || aiAction.isPending}
             className={`w-full py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
               aiState.status === "loading"
                 ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"

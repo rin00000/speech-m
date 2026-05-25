@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TransitionLink } from "@/components/ui/transition-link";
 import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { UserRole } from "@/lib/auth/session";
@@ -27,7 +27,7 @@ export function BottomTab({
         {items.map((item) => {
           const active = isNavActive(activePath, item.href);
           return (
-            <Link
+            <TransitionLink
               key={`${item.href}-${item.label}`}
               href={item.href}
               className={cn(
@@ -51,7 +51,7 @@ export function BottomTab({
               <span className="max-w-full truncate text-[10px] font-semibold leading-none">
                 {item.label}
               </span>
-            </Link>
+            </TransitionLink>
           );
         })}
       </div>

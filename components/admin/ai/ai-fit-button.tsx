@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+/**
+ * AI 적합도 일괄 판별 버튼 컴포넌트.
+ * pending 상태의 공고를 AI로 일괄 필터링한다.
+ * useAsyncAction 훅을 통해 글로벌 Progress Bar와 연동되고 중복 클릭을 방지한다.
+ */
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -9,20 +15,28 @@ import {
   AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { runAiFitBatch } from "@/app/(admin)/jobs/actions";
+import { useAsyncAction } from "@/lib/ui/use-async-action";
 
 type State = "idle" | "loading" | "success" | "error";
 
 export const AiFitButton = () => {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<State>("idle");
   const [message, setMessage] = useState("");
 
+  const { isPending, runAction } = useAsyncAction({
+    onError: (err) => {
+      setState("error");
+      setMessage(err instanceof Error ? err.message : "AI 판별 실패");
+    },
+  });
+
   const run = () => {
+    if (isPending || state === "loading") return;
     setState("loading");
     setMessage("");
 
-    startTransition(async () => {
+    runAction(async () => {
       const result = await runAiFitBatch();
       if (!result.success) {
         setState("error");
