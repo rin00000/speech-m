@@ -1,6 +1,6 @@
 /**
- * Vercel Cron 또는 crawl/all kick: pending 공고 LLM 일괄 판별.
- * 인증: `Authorization: Bearer ${CRON_SECRET}` (일일 크롤·purge와 동일).
+ * Vercel Cron: pending 공고 LLM 일괄 판별.
+ * 인증: `Authorization: Bearer ${CRON_SECRET}` (일일 크롤과 동일).
  */
 import { NextResponse } from "next/server";
 import { runJobFitBatch } from "@/lib/ai/job-fit";

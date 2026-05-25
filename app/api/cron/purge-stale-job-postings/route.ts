@@ -1,6 +1,6 @@
 /**
- * Vercel Cron 등에서 호출: 리스트형 소스의 마감 지난 공고를 DB에서 정리한다.
- * 인증은 일일 전체 크롤(`/api/crawl/all`)과 동일하게 `Authorization: Bearer ${CRON_SECRET}`.
+ * crawl/all 완료 후 after() kick으로 호출: 리스트형 소스의 마감 지난 공고를 DB에서 정리한다.
+ * 인증: `Authorization: Bearer ${CRON_SECRET}` (일일 전체 크롤과 동일).
  */
 import { NextResponse } from "next/server";
 import { purgeRejectedPastRetention } from "@/lib/jobs/purge-rejected-ttl";
