@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const AUTH_REQUIRED_PREFIXES = ["/dashboard", "/jobs", "/reviews", "/studies"];
+const AUTH_REQUIRED_PREFIXES = ["/dashboard", "/reviews", "/studies"];
 const CRAWL_PROTECTED_PATHS = ["/api/crawl/", "/api/admin/benchmark-job-fit"];
 
 function isAuthRequiredPath(pathname: string) {
@@ -49,7 +49,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/jobs/:path*",
     "/reviews/:path*",
     "/studies/:path*",
     "/api/crawl/:path*",

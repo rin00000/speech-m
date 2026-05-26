@@ -7,14 +7,16 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import { getSafeCallbackPath } from "@/lib/auth/redirects";
 
 type Provider = "google" | "naver";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl = getSafeCallbackPath(searchParams.get("callbackUrl")) ?? "/auth/after-login";
   const [loading, setLoading] = useState<Provider | null>(null);
 
   const handleSignIn = (provider: Provider) => {
@@ -169,17 +171,20 @@ export default function LoginForm() {
             <span>Naver로 시작하기</span>
           </button>
 
-          {/* 이메일 텍스트 버튼 */}
-          <button
-            type="button"
-            className="relative mt-1 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[0.95rem] font-medium text-gray-400 transition-colors hover:text-gray-700 active:scale-95"
+          <Link
+            href="/jobs"
+            className="relative mt-1 flex w-full items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-3 text-[0.95rem] font-semibold text-gray-600 transition-colors hover:border-periwinkle-200 hover:bg-periwinkle-50 hover:text-periwinkle-700 active:scale-95"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+              <path d="M20 7h-8" />
+              <path d="M20 12h-8" />
+              <path d="M20 17h-8" />
+              <path d="M4 7h1" />
+              <path d="M4 12h1" />
+              <path d="M4 17h1" />
             </svg>
-            이메일로 계속하기
-          </button>
+            채용공고 먼저 보기
+          </Link>
         </div>
       </div>
     </main>
