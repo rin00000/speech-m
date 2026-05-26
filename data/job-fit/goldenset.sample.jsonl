@@ -27,3 +27,4 @@
 {"id":"g27","title":"(성과에 따른 확실한 보상) 여성의류 쇼핑몰 셀러 (쇼호스트) 모집","company":"하이루","location":"서울","source":"custom","source_url":"https://example.com/27","expected_label":"rejected"}
 {"id":"g28","title":"[운전직/광화문/월284만원] 취재차량/차량운전/차량관리/취재보조","company":"연합뉴스","location":"서울","source":"custom","source_url":"https://example.com/28","expected_label":"rejected"}
 {"id":"g29","title":"뉴스트리 채용연계형 인턴기자 모집","company":"(주)뉴스트리","location":"서울","source":"mediajob_intern","source_url":"https://example.com/29","expected_label":"rejected"}
+{"id":"g30","title":"2026년 전주MBC 방송기술, 취재기자 공개채용(신입/경력)","company":"전주문화방송","location":"전주","source":"custom","source_url":"https://example.com/30","expected_label":"approved"}

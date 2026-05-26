@@ -97,6 +97,9 @@ export const titleHasAlwaysRejectKeyword = (title: string): boolean =>
 export const titleHasTargetBroadcasterMarker = (title: string): boolean =>
   JOB_FIT_TARGET_BROADCASTER_TITLE_MARKERS.some((kw) => fieldTextMatches(title, kw));
 
+export const titleMatchesTargetBroadcaster = (title: string): boolean =>
+  companyMatchesBroadcaster(title, JOB_FIT_RULES.targetBroadcasters);
+
 /** Non-target roles at broadcasters → always rejected. */
 export const titleHasBroadcasterRejectRole = (title: string): boolean =>
   JOB_FIT_BROADCASTER_NON_TARGET_ROLE_KEYWORDS.some((kw) => fieldTextMatches(title, kw));

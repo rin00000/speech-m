@@ -10,6 +10,7 @@ import {
 import {
   isInternetSmallNewspaperCompany,
   titleHasInternReporterRole,
+  titleMatchesTargetBroadcaster,
   titleHasTargetBroadcastRole,
 } from "./company-newspaper";
 import { JOB_FIT_INTERN_SOURCE, JOB_FIT_RULES } from "./rules";
@@ -58,6 +59,7 @@ describe("companyMatchesBroadcaster", () => {
     expect(companyMatchesBroadcaster("연합뉴스TV 보도국", JOB_FIT_RULES.targetBroadcasters)).toBe(true);
     expect(companyMatchesBroadcaster("경인방송", JOB_FIT_RULES.targetBroadcasters)).toBe(true);
     expect(companyMatchesBroadcaster("㈜머니투데이방송", JOB_FIT_RULES.targetBroadcasters)).toBe(true);
+    expect(companyMatchesBroadcaster("전주문화방송", JOB_FIT_RULES.targetBroadcasters)).toBe(true);
   });
 });
 
@@ -153,6 +155,48 @@ describe("tryDeterministicDecision", () => {
     expect(r?.label).toBe("approved");
     expect(r?.matched_rules).toContain("target_broadcasters");
     expect(r?.matched_rules).toContain("target_roles");
+  });
+
+  it("approves Jeonju MBC reporter when company uses formal broadcaster name", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "2026년 전주MBC 방송기술, 취재기자 공개채용(신입/경력)",
+      company: "전주문화방송",
+    });
+    expect(r?.label).toBe("approved");
+    expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
+  });
+
+  it("approves reporter at formal Jeonju broadcaster company without title broadcaster name", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "취재기자 공개채용",
+      company: "전주문화방송",
+    });
+    expect(r?.label).toBe("approved");
+    expect(r?.matched_rules).toContain("target_broadcasters");
+    expect(r?.matched_rules).toContain("target_roles");
+  });
+
+  it("does not approve broadcaster posting without target role even at formal Jeonju company", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "방송기술 공개채용",
+      company: "전주문화방송",
+    });
+    expect(r).toBeNull();
+  });
+
+  it("rejects non-target role even when only title has target broadcaster name", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "전주MBC 영상취재 취재기자 공개채용",
+      company: "일반회사",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
   });
 
   it("rejects internet newspaper reporter role", () => {
@@ -556,5 +600,11 @@ describe("titleHasTargetBroadcastRole", () => {
 
   it("does not treat 취재기자 as target role", () => {
     expect(titleHasTargetBroadcastRole("취재기자 모집")).toBe(false);
+  });
+});
+
+describe("titleMatchesTargetBroadcaster", () => {
+  it("detects target broadcaster names in title", () => {
+    expect(titleMatchesTargetBroadcaster("2026년 전주MBC 취재기자 공개채용")).toBe(true);
   });
 });

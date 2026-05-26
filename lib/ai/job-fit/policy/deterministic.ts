@@ -11,6 +11,7 @@ import {
   titleHasJobFitTargetRole,
   titleHasTargetBroadcasterMarker,
   titleHasTargetBroadcastRole,
+  titleMatchesTargetBroadcaster,
 } from "./company-newspaper";
 import {
   companyMatchesBlocklist,
@@ -62,6 +63,7 @@ const findAlwaysRejectTitleKeyword = (title: string): string | null => {
 
 const hasTargetBroadcasterContext = (input: JobFitInput): boolean =>
   companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters) ||
+  titleMatchesTargetBroadcaster(input.title) ||
   titleHasTargetBroadcasterMarker(input.title);
 
 /** Absolute rejects: blocklist company, hard keywords, entertainment in title. */
@@ -154,7 +156,7 @@ const hitsInternReporterScopeGate = (input: JobFitInput): JobFitResult | null =>
   if (!titleHasInternReporterRole(input.title)) {
     return null;
   }
-  if (companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+  if (hasTargetBroadcasterContext(input)) {
     return synthetic({
       label: "approved",
       score: 72,
@@ -211,9 +213,12 @@ const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
   if (!titleHasJobFitTargetRole(input.title)) {
     return null;
   }
+  const companyMatched = companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters);
   const matchedRules = titleHasTargetBroadcasterMarker(input.title)
     ? ["target_broadcaster_title_marker", "target_roles"]
-    : ["target_broadcasters", "target_roles"];
+    : companyMatched
+      ? ["target_broadcasters", "target_roles"]
+      : ["target_broadcaster_title", "target_roles"];
   return synthetic({
     label: "approved",
     score: 85,

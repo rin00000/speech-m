@@ -75,6 +75,7 @@ export {
   titleHasJobFitTargetRole,
   titleHasInternReporterRole,
   titleHasTargetBroadcasterMarker,
+  titleMatchesTargetBroadcaster,
   titleHasTargetBroadcastRole,
 } from "./policy/company-newspaper";
 

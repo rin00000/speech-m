@@ -1,4 +1,4 @@
-export const JOB_FIT_PROMPT_VERSION = "v2.9.0";
+export const JOB_FIT_PROMPT_VERSION = "v2.9.1";
 
 /** Major home-shopping companies: show-host roles may be approved only here. */
 export const JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES = [
@@ -187,6 +187,7 @@ export const JOB_FIT_TARGET_BROADCASTERS = [
   "대구MBC",
   "MBC충북",
   "전주MBC",
+  "전주문화방송",
   "여수MBC",
   "목포MBC",
   // Regional commercial
@@ -296,13 +297,13 @@ const FINANCIAL_POLICY_LINES = [
 const PRIORITY_LINES = [
   "### [규칙 우선순위 (매우 중요)]",
   "1. [블랙리스트 최우선]: blocklist·유튜버/강사·엔터테인먼트·alwaysRejectTitleKeywords → 직무/회사 불문 rejected.",
-  "2. [제목 방송 마커]: title에 해양예보방송 등 targetBroadcasterTitleMarkers가 있으면 targetBroadcasters 맥락으로 본다.",
+  "2. [제목 방송사명]: company 또는 title에 targetBroadcasters 명칭이 있거나 title에 해양예보방송 등 targetBroadcasterTitleMarkers가 있으면 방송사 맥락으로 본다.",
   "3. [홈쇼핑 특례]: 홈쇼핑 마커인데 제목에 쇼호스트 없음 → rejected.",
   "3b. [쇼호스트 한정]: 제목에 쇼호스트 → company가 majorHomeshoppingCompanies에만 approved; 지역·케이블 방송사 등 그 외 rejected.",
   "3c. [인턴기자 한정]: 제목에 인턴기자(인턴+기자) → company ∈ targetBroadcasters에만 approved; 비방송사 rejected.",
   "4. [모터스튜디오 도슨트 보류]: company/title에 모터스튜디오·motor studio 등 자동차 전시관 → approved/rejected 즉시 확정 금지, score 45~59(rejected 라벨 가능) → pending, 원장님 HITL.",
-  "5. [방송사 비대상 직무 제외]: company ∈ targetBroadcasters/title marker AND 제목에 행정·제작·AD·운전·차량·촬영·카메라·영상취재·ENG·취재보조 등 nonTargetRoleKeywords → rejected (HITL 없음).",
-  "6. [방송사 승인]: company ∈ targetBroadcasters/title marker AND 제목에 targetRoles(쇼호스트 제외) → approved. 직무 없으면 자동 승인하지 않음.",
+  "5. [방송사 비대상 직무 제외]: 방송사 맥락 AND 제목에 행정·제작·AD·운전·차량·촬영·카메라·영상취재·ENG·취재보조 등 nonTargetRoleKeywords → rejected (HITL 없음).",
+  "6. [방송사 승인]: 방송사 맥락 AND 제목에 targetRoles(쇼호스트 제외) → approved. 취재기자는 방송사 맥락이면 승인. 직무 없으면 자동 승인하지 않음.",
   "7. [비방송사]: exclusionKeywords → rejected. 신문사·인턴기자·금융 등 하위 규칙 적용.",
 ];
 
@@ -318,6 +319,7 @@ const REPORTER_POLICY_LINES = [
 
 const FEW_SHOT_ANNOUNCER = [
   'Example (approved): title=KBS 아나운서 공채, company=KBS → {"label":"approved","score":92,"reasons":["지상파 아나운서 공채","회사가 target_broadcasters"],"matched_rules":["target_broadcasters","target_roles"]}',
+  'Example (approved): title=2026년 전주MBC 방송기술, 취재기자 공개채용, company=전주문화방송 → {"label":"approved","score":85,"reasons":["타이틀 또는 회사가 target_broadcasters","취재기자 직무"],"matched_rules":["target_broadcasters","target_roles"]}',
   'Example (approved): title=헬스조선 취재팀 인턴 기자 채용, company=㈜헬스조선 → {"label":"approved","score":72,"reasons":["타겟 방송사 인턴기자"],"matched_rules":["intern_reporter_title","target_broadcasters"]}',
   'Example (rejected): title=뉴스트리 채용연계형 인턴기자 모집, company=(주)뉴스트리 → {"label":"rejected","score":8,"reasons":["blocklist company"],"matched_rules":["blocklist_company"]}',
   'Example (rejected): title=2026년 공영홈쇼핑 NCS 블라인드 채용, company=공영홈쇼핑 → {"label":"rejected","score":15,"reasons":["홈쇼핑은 쇼호스트만"],"matched_rules":["homeshopping_non_showhost"]}',
@@ -350,7 +352,7 @@ export function buildSystemPrompt(source: string): string {
 
   return [
     "너는 방송아카데미 원장님의 채용 큐레이터다.",
-    "목표: 공고가 아나운서/앵커/기상캐스터 중심인지 판단한다. company를 먼저 본다.",
+    "목표: 공고가 아나운서/앵커/기상캐스터/방송사 취재기자 중심인지 판단한다. company와 title의 방송사명을 함께 본다.",
     "승인 우선 대상: 지상파/종편/보도/지역/케이블 방송사 또는 동등 수준 미디어 기업의 관련 직무.",
     "제외: 인터넷/중소 신문사의 기자·취재 직무, 유튜브 전용 채널, 신뢰도 낮은 소형 에이전시.",
     ...PRIORITY_LINES,
@@ -405,7 +407,7 @@ export function buildUserPrompt(job: {
     `broadcasterNonTargetRoles (방송사인데 무조건 rejected): ${JOB_FIT_BROADCASTER_NON_TARGET_ROLE_KEYWORDS.join(", ")}`,
     `broadcasterPendingRolesDeprecated (이제 HITL 아님, rejected): ${JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS.join(", ")}`,
     `motorStudioMarkers (전시관·도슨트 HITL, score 45~59): ${JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS.join(", ")}`,
-    `targetBroadcasters (company substring match, case-insensitive Latin): ${JOB_FIT_RULES.targetBroadcasters.join(", ")}`,
+    `targetBroadcasters (company/title substring match, case-insensitive Latin): ${JOB_FIT_RULES.targetBroadcasters.join(", ")}`,
     `positiveSignals (boost when present in title/company): ${JOB_FIT_POSITIVE_SIGNALS.join(", ")}`,
     `exclusionKeywords (hard / deterministic when company not in targetBroadcasters): ${JOB_FIT_RULES.exclusionKeywords.join(", ")}`,
     "제목에 한경이 포함되면 승인 후보 신호로 보되, 위 차단·우선순위에 이미 걸리면 적용하지 않는다.",
