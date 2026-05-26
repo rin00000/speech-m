@@ -59,15 +59,15 @@ export function PublicJobsView({
   const resetPaging = () => setPage(1);
 
   return (
-    <div className="min-h-screen bg-bg p-4 md:p-8">
-      <div className="mb-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+    <div className="min-h-screen bg-bg p-3 sm:p-4 md:p-8">
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:mb-6 md:rounded-3xl md:p-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-periwinkle-50 px-3 py-1 text-xs font-semibold text-periwinkle-700">
               <HugeiconsIcon icon={SparklesIcon} size={12} color="currentColor" />
               <span>Director&apos;s Eye Curation</span>
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+            <h1 className="text-xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
               방송 채용 정보 필터
             </h1>
             <p className="max-w-xl text-sm font-medium leading-snug text-gray-500">
@@ -95,7 +95,7 @@ export function PublicJobsView({
         </div>
       </div>
 
-      <div className="mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:flex-row">
+      <div className="mb-4 flex flex-col items-stretch justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm md:mb-6 md:flex-row md:items-center md:gap-4 md:p-4">
         <div className="relative w-full md:max-w-md">
           <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
             <HugeiconsIcon icon={Search01Icon} size={16} color="currentColor" />
@@ -158,11 +158,11 @@ export function PublicJobsView({
               <span>{currentPage} / {totalPages}</span>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3">
             {visibleJobs.map((job) => (
               <div
                 key={job.id}
-                className="group flex flex-col justify-between rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition-colors hover:border-periwinkle-200 hover:bg-periwinkle-50/20"
+                className="group flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-periwinkle-200 hover:bg-periwinkle-50/20 md:rounded-3xl md:p-5"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
@@ -189,7 +189,7 @@ export function PublicJobsView({
                   )}
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4 md:mt-6">
                   <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-500">
                     마감: {job.deadline ?? "상시 채용"}
                   </span>

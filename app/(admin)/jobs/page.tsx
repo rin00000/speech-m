@@ -181,7 +181,7 @@ export default async function JobsPage({
         description="미디어잡, 회사 홈페이지 등에서 수집된 공고를 관리합니다."
       />
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 md:p-6">
         {/* Stats cards + rejected visibility hint (state tabs removed; cards are the primary control) */}
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -194,17 +194,17 @@ export default async function JobsPage({
                 <Link
                   key={label}
                   href={href}
-                  className={`relative block overflow-hidden rounded-3xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-sm ${
+                  className={`relative block overflow-hidden rounded-2xl border bg-white p-3 shadow-sm transition-shadow hover:shadow-sm md:rounded-3xl md:p-4 ${
                     isActive ? "border-periwinkle-600 ring-1 ring-periwinkle-600" : "border-gray-200"
                   }`}
                 >
                   <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
-                  <div className="flex items-center justify-between pl-2">
+                  <div className="flex items-center justify-between gap-2 pl-2">
                     <div>
                       <p className="text-xs font-medium leading-tight text-gray-500">{label}</p>
-                      <p className="mt-1 text-2xl font-extrabold leading-[1.1] tabular-nums text-gray-900">{value}</p>
+                      <p className="mt-1 text-xl font-extrabold leading-[1.1] tabular-nums text-gray-900 md:text-2xl">{value}</p>
                     </div>
-                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 ${accent}`}>
+                    <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 md:h-9 md:w-9 ${accent}`}>
                       <HugeiconsIcon icon={icon} size={18} color="currentColor" strokeWidth={1.8} />
                     </span>
                   </div>
@@ -247,7 +247,7 @@ export default async function JobsPage({
 
         {/* Actions row (above list card) */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
             <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
             <CrawlButton source="saramin" label="사람인 즉시 동기화" />
             <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />

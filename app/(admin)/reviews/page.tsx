@@ -10,7 +10,7 @@ export default function ReviewsPage() {
         description="시험 경험 및 면접 질문 보관함 (보안 구역)"
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <div className="mb-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">
             <HugeiconsIcon
@@ -25,7 +25,7 @@ export default function ReviewsPage() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-20 text-center shadow-sm">
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-12 text-center shadow-sm md:rounded-3xl md:py-20">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-400">
             <HugeiconsIcon
               icon={FileEditIcon}

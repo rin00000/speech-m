@@ -9,7 +9,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-3xl bg-white shadow-island ring-1 ring-gray-200/45 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_34px_rgba(77,114,179,0.08)] hover:ring-periwinkle-200/70",
+        "rounded-2xl bg-white shadow-island ring-1 ring-gray-200/45 transition-all duration-300 hover:ring-periwinkle-200/70 md:rounded-3xl md:hover:-translate-y-0.5 md:hover:shadow-[0_10px_34px_rgba(77,114,179,0.08)]",
         className,
       )}
       {...props}
@@ -25,7 +25,7 @@ export function CardHeader({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("px-6 pt-6 pb-2", className)} {...props}>
+    <div className={cn("px-4 pt-4 pb-2 md:px-6 md:pt-6", className)} {...props}>
       {children}
     </div>
   );
@@ -64,7 +64,7 @@ export function CardBody({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("px-6 pb-6", className)} {...props}>
+    <div className={cn("px-4 pb-4 md:px-6 md:pb-6", className)} {...props}>
       {children}
     </div>
   );
@@ -77,7 +77,7 @@ export function CardFooter({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("px-6 py-4 ring-1 ring-inset ring-gray-100", className)}
+      className={cn("px-4 py-3 ring-1 ring-inset ring-gray-100 md:px-6 md:py-4", className)}
       {...props}
     >
       {children}

@@ -124,7 +124,7 @@ export function CrawlerControlHub() {
 
   return (
     <Card className="h-full overflow-hidden">
-      <CardHeader className="bg-gray-50/45 pb-4">
+      <CardHeader className="bg-gray-50/45 pb-3 md:pb-4">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-periwinkle-700 shadow-sm ring-1 ring-periwinkle-100">
             <HugeiconsIcon icon={GlobalIcon} size={15} color="currentColor" strokeWidth={2} />
@@ -137,7 +137,7 @@ export function CrawlerControlHub() {
           </div>
         </div>
       </CardHeader>
-      <CardBody className="pt-4 space-y-4">
+      <CardBody className="space-y-4 pt-4">
         {/* 통계 요약 (Stat row) */}
         <div className="grid grid-cols-2 gap-3 text-center">
           <div className="p-3 bg-gray-50/80 rounded-2xl ring-1 ring-gray-100">
@@ -171,10 +171,10 @@ export function CrawlerControlHub() {
             return (
               <div
                 key={source}
-                className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/55 transition-colors hover:bg-gray-100/70"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-gray-50/55 p-3 transition-colors hover:bg-gray-100/70"
               >
-                <div className="space-y-0.5">
-                  <span className="text-xs font-extrabold text-gray-700">{SOURCE_LABELS[source]}</span>
+                <div className="min-w-0 space-y-0.5">
+                  <span className="block truncate text-xs font-extrabold text-gray-700">{SOURCE_LABELS[source]}</span>
                   {state.message ? (
                     <p className={`text-[10px] font-medium leading-none ${state.status === "success" ? "text-emerald-600" : "text-red-500"}`}>
                       {state.message}

@@ -39,19 +39,19 @@ export function PracticeListView({
 
   return (
     <>
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_1.3fr]">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_1.3fr] lg:gap-8">
         {/* Left panel - Navigation and script list */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Category switcher tabs & Upload Button */}
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 rounded-2xl bg-gray-100 p-1 border border-gray-200">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-1 overflow-x-auto rounded-2xl border border-gray-200 bg-gray-100 p-1">
               <button
                 onClick={() => {
                   setActiveCategory("practice");
                   const sub = scripts.find((s) => s.category === "practice");
                   selectScript(sub?.id ?? null);
                 }}
-                className={`flex-1 rounded-xl py-2.5 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex min-w-28 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-extrabold transition-all ${
                   activeCategory === "practice"
                     ? "bg-white text-periwinkle-700 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
@@ -66,7 +66,7 @@ export function PracticeListView({
                   const sub = scripts.find((s) => s.category === "portfolio");
                   selectScript(sub?.id ?? null);
                 }}
-                className={`flex-1 rounded-xl py-2.5 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex min-w-28 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-extrabold transition-all ${
                   activeCategory === "portfolio"
                     ? "bg-white text-periwinkle-700 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
@@ -81,7 +81,7 @@ export function PracticeListView({
                   const sub = scripts.find((s) => s.category === "designated");
                   selectScript(sub?.id ?? null);
                 }}
-                className={`flex-1 rounded-xl py-2.5 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex min-w-28 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-extrabold transition-all ${
                   activeCategory === "designated"
                     ? "bg-white text-periwinkle-700 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
@@ -94,7 +94,7 @@ export function PracticeListView({
             {isAdmin && (
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="shrink-0 flex items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-95"
+                className="flex shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-95"
               >
                 <HugeiconsIcon icon={Add01Icon} size={16} color="currentColor" />
                 <span>등록</span>
@@ -165,7 +165,7 @@ export function PracticeListView({
         </div>
 
         {/* Right panel - Script Reader */}
-        <div className="flex min-h-[500px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex min-h-[420px] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:min-h-[500px] md:rounded-3xl md:p-6">
           {selectedScript ? (
             <div className="flex-1 flex flex-col">
               {isEditing ? (
@@ -192,7 +192,7 @@ export function PracticeListView({
                     </h2>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 shrink-0">
+                  <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div>
                       <label className="mb-1.5 block text-xs font-bold text-gray-700">카테고리</label>
                       <select name="category" defaultValue={selectedScript.category} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500">
@@ -212,7 +212,7 @@ export function PracticeListView({
                     <input type="text" name="title" required defaultValue={selectedScript.title} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 shrink-0">
+                  <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div>
                       <label className="mb-1.5 block text-xs font-bold text-gray-700">난이도</label>
                       <select name="difficulty" defaultValue={selectedScript.difficulty} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500">
@@ -232,11 +232,11 @@ export function PracticeListView({
                     <textarea name="content" required defaultValue={selectedScript.content} className="flex-1 w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500 font-sans"></textarea>
                   </div>
 
-                  <div className="mt-4 flex justify-end gap-2 shrink-0 border-t border-gray-100 pt-4">
+                  <div className="mt-4 flex shrink-0 flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
                     <button type="button" onClick={() => setIsEditing(false)} className="rounded-xl px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 transition-colors">
                       취소
                     </button>
-                    <button type="submit" disabled={isUpdating} className="rounded-xl bg-periwinkle-600 px-6 py-2 text-sm font-bold text-white shadow-sm hover:bg-periwinkle-700 disabled:opacity-50 transition-colors">
+                    <button type="submit" disabled={isUpdating} className="rounded-xl bg-periwinkle-600 px-6 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-periwinkle-700 disabled:opacity-50">
                       {isUpdating ? "저장 중..." : "수정 완료"}
                     </button>
                   </div>
@@ -246,7 +246,7 @@ export function PracticeListView({
                 <>
                   {/* Header info */}
                   <div className="border-b border-gray-100 pb-5">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="rounded-full bg-periwinkle-50 px-2.5 py-0.5 text-xs font-bold text-periwinkle-700">
@@ -264,7 +264,7 @@ export function PracticeListView({
                         </p>
                       </div>
                       {isAdmin && (
-                        <div className="flex shrink-0 gap-2">
+                        <div className="flex shrink-0 gap-2 sm:justify-end">
                           <button
                             onClick={() => setIsEditing(true)}
                             className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50"
@@ -298,14 +298,14 @@ export function PracticeListView({
                   </div>
 
                   {/* Script content view */}
-                  <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-6 md:p-8">
-                    <pre className="whitespace-pre-wrap font-sans text-sm md:text-base font-medium leading-[1.8] text-gray-800 tracking-wide select-all">
+                  <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50 p-4 md:mt-6 md:p-8">
+                    <pre className="whitespace-pre-wrap break-words font-sans text-sm font-medium leading-[1.8] text-gray-800 tracking-wide select-all md:text-base">
                       {selectedScript.content}
                     </pre>
                   </div>
 
                   {/* Footer tips */}
-                  <div className="mt-6 flex gap-3 rounded-2xl bg-periwinkle-50/50 p-4 border border-periwinkle-100/50">
+                  <div className="mt-5 flex gap-3 rounded-2xl border border-periwinkle-100/50 bg-periwinkle-50/50 p-4 md:mt-6">
                     <span className="text-periwinkle-600 shrink-0 mt-0.5">
                       <HugeiconsIcon icon={BookOpen01Icon} size={16} color="currentColor" />
                     </span>
@@ -337,7 +337,7 @@ export function PracticeListView({
       {/* Upload Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white p-6 shadow-sm">
+          <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4 shrink-0">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 🎙️ 새 원고 등록
@@ -363,7 +363,7 @@ export function PracticeListView({
               }} 
               className="flex flex-col gap-4 overflow-y-auto pr-2 pb-4"
             >
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-gray-700">카테고리</label>
                   <select name="category" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500">
@@ -383,7 +383,7 @@ export function PracticeListView({
                 <input type="text" name="title" required placeholder="예) KBS 정오 뉴스 - 수도권 집중호우 속보" className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-gray-700">난이도</label>
                   <select name="difficulty" className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500">
@@ -403,7 +403,7 @@ export function PracticeListView({
                 <textarea name="content" required rows={10} placeholder="내용을 복사+붙여넣기 하세요." className="h-full w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-periwinkle-500 focus:outline-none focus:ring-1 focus:ring-periwinkle-500 font-sans"></textarea>
               </div>
 
-              <div className="mt-4 flex justify-end gap-2 shrink-0 border-t border-gray-100 pt-4">
+              <div className="mt-4 flex shrink-0 flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-xl px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 transition-colors">
                   취소
                 </button>

@@ -58,7 +58,7 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Toast notifications */}
       {successMsg && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 flex items-center gap-2.5 animate-fadeIn">
@@ -75,7 +75,7 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
       )}
 
       {/* Stats Board */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">전체 가입자</span>
           <p className="mt-1 text-2xl font-extrabold text-gray-900 tabular-nums">{users.length}명</p>
@@ -95,8 +95,83 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
       </div>
 
       {/* Users table */}
-      <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm md:rounded-3xl">
+        <div className="divide-y divide-gray-100 md:hidden">
+          {users.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm font-medium text-gray-400">
+              가입한 회원 프로필이 아직 없습니다.
+            </div>
+          ) : (
+            users.map((user) => (
+              <article key={user.email} className="space-y-4 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-sm font-bold text-periwinkle-600">
+                    {user.display_name ? user.display_name[0].toUpperCase() : "U"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-extrabold leading-snug text-gray-900">
+                      {user.display_name ?? "이름 미상"}
+                    </h3>
+                    <p className="mt-1 break-all text-xs font-medium leading-snug text-gray-400">
+                      {user.email}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getRoleBadge(user.role)}`}>
+                        {getRoleLabel(user.role)}
+                      </span>
+                      <span className="text-[11px] font-medium text-gray-400">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {loadingEmail === user.email ? (
+                  <div className="rounded-2xl bg-periwinkle-50 px-3 py-2 text-center text-xs font-bold text-periwinkle-600">
+                    권한 업데이트 중...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-1 rounded-2xl border border-gray-200 bg-gray-100 p-1">
+                    <button
+                      onClick={() => handleRoleChange(user.email, "guest")}
+                      disabled={user.role === "guest"}
+                      className={`rounded-xl px-2 py-2 text-xs font-bold transition-all ${
+                        user.role === "guest"
+                          ? "bg-white text-gray-800 shadow-sm"
+                          : "text-gray-400 hover:text-gray-700"
+                      }`}
+                    >
+                      게스트
+                    </button>
+                    <button
+                      onClick={() => handleRoleChange(user.email, "student")}
+                      disabled={user.role === "student"}
+                      className={`rounded-xl px-2 py-2 text-xs font-bold transition-all ${
+                        user.role === "student"
+                          ? "bg-white text-periwinkle-700 shadow-sm"
+                          : "text-gray-400 hover:text-gray-700"
+                      }`}
+                    >
+                      수강생
+                    </button>
+                    <button
+                      onClick={() => handleRoleChange(user.email, "admin")}
+                      disabled={user.role === "admin"}
+                      className={`rounded-xl px-2 py-2 text-xs font-bold transition-all ${
+                        user.role === "admin"
+                          ? "bg-white text-rose-700 shadow-sm"
+                          : "text-gray-400 hover:text-rose-600"
+                      }`}
+                    >
+                      원장
+                    </button>
+                  </div>
+                )}
+              </article>
+            ))
+          )}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">

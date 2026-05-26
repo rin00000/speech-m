@@ -48,12 +48,12 @@ export default async function PracticePage() {
       />
 
       {isAuthorized ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
           <PracticeListView scripts={scripts} isAdmin={isAdmin} />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-slate-50 to-periwinkle-50/20 p-6">
-          <div className="max-w-md w-full rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-lg relative overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 md:p-6">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm md:rounded-3xl md:p-8">
             <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-periwinkle-100/50 blur-2xl" />
             
             <span className="relative z-10 inline-flex h-16 w-16 items-center justify-center rounded-full bg-periwinkle-50 text-periwinkle-600 mb-6 shadow-sm">
@@ -93,7 +93,7 @@ export default async function PracticePage() {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-4 py-3 text-sm font-extrabold text-white shadow-md transition-all active:scale-[0.98] hover:bg-periwinkle-700 hover:shadow-lg"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm transition-all active:scale-[0.98] hover:bg-periwinkle-700"
                 >
                   <span>수강생 등업 신청 대기실로 이동</span>
                   <HugeiconsIcon icon={ArrowRight01Icon} size={16} color="currentColor" />
@@ -101,7 +101,7 @@ export default async function PracticePage() {
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-4 py-3 text-sm font-extrabold text-white shadow-md transition-all active:scale-[0.98] hover:bg-periwinkle-700 hover:shadow-lg"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-4 py-3 text-sm font-extrabold text-white shadow-sm transition-all active:scale-[0.98] hover:bg-periwinkle-700"
                 >
                   <span>1초 로그인 후 수강생 권한 문의</span>
                   <HugeiconsIcon icon={ArrowRight01Icon} size={16} color="currentColor" />

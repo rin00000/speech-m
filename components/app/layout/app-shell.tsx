@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 /**
  * 앱 최상위 Shell 컴포넌트.
  * 사이드바(SideRail), 하단 탭(BottomTab), 개발용 RoleSimulator를 포함.
@@ -43,7 +41,7 @@ function AppShellContent({
 
       <main
         className={cn(
-          "flex min-h-dvh min-w-0 flex-1 flex-col overflow-hidden pb-24 md:h-[calc(100vh-2rem)] md:min-h-0 md:rounded-3xl md:border md:border-gray-200 md:bg-white md:pb-0 md:shadow-sm transition-opacity duration-200",
+          "flex min-h-dvh min-w-0 flex-1 flex-col overflow-visible pb-[calc(6rem+env(safe-area-inset-bottom))] md:h-[calc(100vh-2rem)] md:min-h-0 md:overflow-hidden md:rounded-3xl md:border md:border-gray-200 md:bg-white md:pb-0 md:shadow-sm transition-opacity duration-200",
           isNavigating ? "opacity-40 pointer-events-none" : "opacity-100"
         )}
       >

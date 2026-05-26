@@ -10,12 +10,12 @@ export default function StudiesPage() {
         description="수강생 스터디 그룹을 개설하고 관리합니다."
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <p className="mb-5 text-sm leading-tight text-gray-500">
           스터디 그룹 현황과 참여 수강생을 확인하세요.
         </p>
 
-        <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-20 text-center shadow-sm">
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-12 text-center shadow-sm md:rounded-3xl md:py-20">
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-400">
             <HugeiconsIcon
               icon={BookOpen01Icon}

@@ -176,7 +176,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
     <div className="relative">
       {/* Toast Alert */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 rounded-2xl border p-4 text-sm font-semibold shadow-island animate-fadeIn flex items-center gap-2.5 ${
+        <div className={`fixed inset-x-4 top-4 z-50 flex items-center gap-2.5 rounded-2xl border p-4 text-sm font-semibold shadow-island animate-fadeIn sm:left-auto sm:right-4 sm:max-w-md ${
           toast.type === "success" 
             ? "border-emerald-200 bg-emerald-50 text-emerald-800" 
             : "border-red-200 bg-red-50 text-red-800"
@@ -187,14 +187,14 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
       )}
 
       {/* Grid: 탭 메뉴 & 콘텐츠 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:gap-6">
         
         {/* Left column: 탭 버튼 목록 (PC Rail / Mobile Row) */}
-        <div className="md:col-span-1 space-y-2">
-          <div className="rounded-3xl border border-gray-200 bg-white p-3 shadow-sm space-y-1">
+        <div className="space-y-2 md:col-span-1">
+          <div className="flex gap-2 overflow-x-auto rounded-2xl border border-gray-200 bg-white p-2 shadow-sm md:block md:space-y-1 md:rounded-3xl md:p-3">
             <button
               onClick={() => setActiveTab("profile")}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-all rounded-full ${
+              className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all md:w-full md:gap-3 md:py-3 md:text-sm ${
                 activeTab === "profile"
                   ? "bg-periwinkle-100 border border-periwinkle-200 text-periwinkle-700"
                   : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
@@ -208,7 +208,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
               <>
                 <button
                   onClick={() => setActiveTab("ai")}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-all rounded-full ${
+                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all md:w-full md:gap-3 md:py-3 md:text-sm ${
                     activeTab === "ai"
                       ? "bg-periwinkle-100 border border-periwinkle-200 text-periwinkle-700"
                       : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
@@ -220,7 +220,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
 
                 <button
                   onClick={() => setActiveTab("crawl")}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-all rounded-full ${
+                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all md:w-full md:gap-3 md:py-3 md:text-sm ${
                     activeTab === "crawl"
                       ? "bg-periwinkle-100 border border-periwinkle-200 text-periwinkle-700"
                       : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
@@ -232,7 +232,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
 
                 <button
                   onClick={() => setActiveTab("crm")}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold transition-all rounded-full ${
+                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold transition-all md:w-full md:gap-3 md:py-3 md:text-sm ${
                     activeTab === "crm"
                       ? "bg-periwinkle-100 border border-periwinkle-200 text-periwinkle-700"
                       : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
@@ -251,7 +251,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
           
           {/* TAB 1: 프로필 설정 */}
           {activeTab === "profile" && (
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+            <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:space-y-6 md:rounded-3xl md:p-6">
               <div>
                 <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">개인 프로필 관리</h3>
                 <p className="text-xs font-semibold text-gray-400 mt-1">
@@ -275,7 +275,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                     <label htmlFor="displayName" className="text-xs font-extrabold text-gray-500">
                       서비스 이름 / 닉네임
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         id="displayName"
                         type="text"
@@ -287,7 +287,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                       <button
                         type="submit"
                         disabled={profileAction.isPending || displayName.trim() === (user.name ?? "")}
-                        className="rounded-full bg-periwinkle-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shrink-0"
+                        className="shrink-0 rounded-full bg-periwinkle-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                       >
                         {profileAction.isPending ? "저장 중..." : "저장"}
                       </button>
@@ -300,8 +300,8 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
 
           {/* TAB 2: AI 큐레이션 설정 (Admin 전용) */}
           {activeTab === "ai" && user.role === "admin" && (
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-              <div className="flex justify-between items-start">
+            <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:space-y-6 md:rounded-3xl md:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">AI 큐레이션 및 필터 설정</h3>
                   <p className="text-xs font-semibold text-gray-400 mt-1">
@@ -311,7 +311,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                 <button
                     onClick={handleSaveAiSettings}
                     disabled={aiAction.isPending}
-                    className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
+                    className="rounded-full bg-periwinkle-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-[0.98] sm:py-2"
                   >
                     {aiAction.isPending ? "저장 중..." : "설정 저장"}
                   </button>
@@ -348,7 +348,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                   <p className="text-[11px] font-semibold text-gray-400">
                     원장님이 원하는 아나운서/앵커 등 정교한 타겟 직군과의 매칭률 기준입니다. 이 수치 이상인 공고들 위주로 자동 승인 또는 최상위 추천 큐레이션에 배치됩니다.
                   </p>
-                  <div className="flex items-center gap-4 pt-2">
+                  <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:gap-4">
                     <span className="text-xs font-bold text-gray-400">관대함 (0.50)</span>
                     <input
                       type="range"
@@ -368,10 +368,10 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
 
           {/* TAB 3: 크롤링 허브 & 블랙리스트 (Admin 전용) */}
           {activeTab === "crawl" && user.role === "admin" && (
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* 상단: 크롤러 환경설정 */}
-              <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-                <div className="flex justify-between items-start">
+              <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:space-y-6 md:rounded-3xl md:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">크롤링 허브 구성</h3>
                     <p className="text-xs font-semibold text-gray-400 mt-1">
@@ -381,7 +381,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                   <button
                       onClick={handleSaveCrawlSettings}
                       disabled={crawlAction.isPending}
-                      className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
+                      className="rounded-full bg-periwinkle-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-[0.98] sm:py-2"
                     >
                       {crawlAction.isPending ? "저장 중..." : "설정 저장"}
                     </button>
@@ -391,7 +391,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                   {/* 수집 주기 셀렉터 */}
                   <div className="space-y-2">
                     <label className="text-xs font-extrabold text-gray-500">배치 수집 주기 설정</label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {[3, 6, 12, 24].map((hours) => (
                         <button
                           key={hours}
@@ -443,15 +443,50 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
               </div>
 
               {/* 하단: 차단된 소스 URL 관리 (블랙리스트) */}
-              <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm md:rounded-3xl">
+                <div className="border-b border-gray-100 p-4 md:p-6">
                   <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">수집 차단 블랙리스트 관리</h3>
                   <p className="text-xs font-semibold text-gray-400 mt-1">
                     원장님이 공고 관리 콘솔에서 하드 삭제 또는 제외 처리하여, 향후 크롤링 시 재유입되지 않도록 영구 필터링된 공고 원문 URL 목록입니다.
                   </p>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="divide-y divide-gray-100 md:hidden">
+                  {blockedUrls.length === 0 ? (
+                    <div className="px-4 py-10 text-center text-sm font-medium text-gray-400">
+                      현재 수집 방지 차단 URL이 없습니다.
+                    </div>
+                  ) : (
+                    blockedUrls.map((item) => (
+                      <article key={item.source_url} className="space-y-3 p-4">
+                        <a
+                          href={item.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block break-all text-sm font-semibold leading-snug text-periwinkle-700"
+                        >
+                          {item.source_url}
+                        </a>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                            {item.reason === "manual_delete" ? "수동 관리 삭제" : item.reason === "ttl_purge" ? "만료 정리" : "만료 관리"}
+                          </span>
+                          <span className="text-[11px] font-medium text-gray-400">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveBlockedUrl(item.source_url)}
+                          disabled={removingUrl === item.source_url || removeUrlAction.isPending}
+                          className="w-full rounded-full border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {removingUrl === item.source_url ? "해제 중..." : "차단 해제"}
+                        </button>
+                      </article>
+                    ))
+                  )}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -510,8 +545,8 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
 
           {/* TAB 4: CRM & 학원 정책 (Admin 전용) */}
           {activeTab === "crm" && user.role === "admin" && (
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
-              <div className="flex justify-between items-start">
+            <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:space-y-6 md:rounded-3xl md:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">CRM 정책 & 스터디 보증금 규칙</h3>
                   <p className="text-xs font-semibold text-gray-400 mt-1">
@@ -521,7 +556,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                 <button
                   onClick={handleSaveCrmSettings}
                   disabled={crmAction.isPending}
-                  className="rounded-full bg-periwinkle-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-periwinkle-700 active:scale-[0.98] transition-all"
+                  className="rounded-full bg-periwinkle-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-periwinkle-700 active:scale-[0.98] sm:py-2"
                 >
                   {crmAction.isPending ? "저장 중..." : "설정 저장"}
                 </button>
@@ -534,7 +569,7 @@ export function SettingsView({ user, initialSettings, initialBlockedUrls }: Sett
                   <p className="text-[11px] font-semibold text-gray-400">
                     학원 미등록 상태인 신규 리드 데이터는 개인정보 보호 정책에 따라 지정된 보존 기간 이후 자동으로 안전하게 스크랩 영구 소멸 처리됩니다.
                   </p>
-                  <div className="grid grid-cols-4 gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-1 sm:grid-cols-4">
                     {[30, 60, 90, 180].map((days) => (
                       <button
                         key={days}

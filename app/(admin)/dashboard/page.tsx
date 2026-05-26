@@ -64,15 +64,15 @@ async function AdminDashboardView({}: { userName: string | null }) {
         description="Speech-M 아카데미 현황을 한눈에 확인하세요."
       />
 
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
         {/* Top grid for 1:1 Relay Feedback Console & Crawler Control Hub */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr] lg:gap-6">
           <RelayFeedbackConsole />
           <CrawlerControlHub />
         </div>
 
         {/* Existing Job Postings Queue */}
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
           <div className="mb-4">
             <h2 className="text-sm font-semibold leading-tight text-gray-800">
               최근 내부 게시 공고
@@ -97,7 +97,7 @@ async function AdminDashboardView({}: { userName: string | null }) {
           ) : (
             <div className="divide-y divide-gray-100">
               {recentPublishedJobs.map((job) => (
-                <div key={job.id} className="flex items-center gap-4 py-3">
+                <div key={job.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-sm font-medium leading-tight text-gray-800">
@@ -115,7 +115,7 @@ async function AdminDashboardView({}: { userName: string | null }) {
                       </span>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1 self-end sm:self-center">
                     {siteOrigin ? (
                       <NaverShareIconLink
                         href={buildNaverShareUrl(
@@ -174,9 +174,9 @@ function StudentDashboardView({ userName }: { userName: string | null }) {
         description="Speech-M 명품 스피치 클래스에 오신 것을 환영합니다."
       />
 
-      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
         {/* Welcome Card with Periwinkle gradient */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-periwinkle-600 to-indigo-600 p-6 md:p-8 text-white shadow-md">
+        <div className="relative overflow-hidden rounded-2xl bg-periwinkle-600 p-4 text-white shadow-sm md:rounded-3xl md:p-8">
           <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl animate-pulse" />
           <div className="relative z-10 space-y-2">
             <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
@@ -198,9 +198,9 @@ function StudentDashboardView({ userName }: { userName: string | null }) {
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
           {/* Practice Progress Card */}
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
             <div>
               <h3 className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
                 <span className="text-lg">📖</span>
@@ -233,7 +233,7 @@ function StudentDashboardView({ userName }: { userName: string | null }) {
           </div>
 
           {/* Feedback Card */}
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
             <div>
               <h3 className="text-sm font-extrabold text-gray-800 flex items-center gap-1.5">
                 <span className="text-lg">💬</span>
@@ -270,8 +270,8 @@ function GuestDashboardView({ userName, email }: { userName: string | null; emai
         description="Speech-M의 특별한 회원 권한 상태를 확인하실 수 있는 라운지입니다."
       />
 
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-6">
-        <div className="max-w-2xl w-full rounded-3xl border border-gray-100 bg-white p-8 md:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.015)] relative overflow-hidden">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-4 md:p-6">
+        <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 text-center shadow-sm md:rounded-3xl md:p-10">
           {/* Decorative gradients */}
           <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-periwinkle-100/50 blur-3xl" />
           <div className="absolute -left-20 -bottom-20 h-52 w-52 rounded-full bg-pink-100/30 blur-3xl" />

@@ -25,7 +25,7 @@ export default async function UserManagementPage() {
       />
 
       {isAdmin ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
           {/* Fetch data */}
           {(() => {
             return (
@@ -51,8 +51,8 @@ export default async function UserManagementPage() {
           })()}
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-slate-50 to-rose-50/10 p-6">
-          <div className="max-w-md w-full rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-lg relative overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 md:p-6">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm md:rounded-3xl md:p-8">
             <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-rose-100/50 blur-2xl" />
             
             <span className="relative z-10 inline-flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-6 shadow-sm">

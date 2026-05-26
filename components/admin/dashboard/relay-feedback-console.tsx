@@ -125,7 +125,7 @@ export function RelayFeedbackConsole() {
 
   return (
     <Card className="h-full overflow-hidden">
-      <CardHeader className="bg-gray-50/45 pb-4">
+      <CardHeader className="bg-gray-50/45 pb-3 md:pb-4">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-periwinkle-700 shadow-sm ring-1 ring-periwinkle-100">
             <HugeiconsIcon icon={UserGroupIcon} size={15} color="currentColor" strokeWidth={2} />
@@ -139,12 +139,12 @@ export function RelayFeedbackConsole() {
         </div>
       </CardHeader>
       
-      <CardBody className="pt-4 grid gap-6 md:grid-cols-[1fr_1.4fr]">
+      <CardBody className="grid gap-4 pt-4 md:grid-cols-[1fr_1.4fr] md:gap-6">
         
         {/* Left column: Student queue list */}
         <div className="space-y-3">
           <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">제출 대기 대열</h4>
-          <div className="flex flex-col gap-2 overflow-y-auto max-h-[300px] pr-1">
+          <div className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 md:max-h-[300px]">
             {submissions.map((stud) => {
               const isSelected = stud.id === selectedId;
               return (
@@ -199,7 +199,7 @@ export function RelayFeedbackConsole() {
 
             {/* Audio Wave Player Box */}
             <div className="p-3.5 rounded-2xl bg-gray-50/80 space-y-2 ring-1 ring-gray-100">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-gray-400 shrink-0">
                     <HugeiconsIcon icon={VolumeHighIcon} size={14} color="currentColor" />
@@ -214,7 +214,7 @@ export function RelayFeedbackConsole() {
               </div>
 
               {/* Wave equalizer animation / mock timeline */}
-              <div className="flex items-center justify-between gap-1 h-7 pt-1 px-1">
+              <div className="flex h-7 items-center justify-between gap-0.5 overflow-hidden px-1 pt-1 sm:gap-1">
                 {Array.from({ length: 28 }).map((_, idx) => {
                   // Simulate wave heights based on playing status
                   const randomHeight = isPlaying 
