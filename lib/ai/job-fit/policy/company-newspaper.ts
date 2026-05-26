@@ -5,8 +5,9 @@ import {
   foldCase,
 } from "./keyword-match";
 import {
+  JOB_FIT_ALWAYS_REJECT_TITLE_KEYWORDS,
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,
-  JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS,
+  JOB_FIT_BROADCASTER_NON_TARGET_ROLE_KEYWORDS,
   JOB_FIT_HOMESHOPPING_APPROVE_ROLES,
   JOB_FIT_HOMESHOPPING_DETECT_MARKERS,
   JOB_FIT_MAJOR_HOMESHOPPING_COMPANIES,
@@ -14,6 +15,7 @@ import {
   JOB_FIT_INTERNET_NEWSPAPER_COMPANY_MARKERS,
   JOB_FIT_INTERNET_NEWSPAPER_EXCLUSION_COMPANIES,
   JOB_FIT_RULES,
+  JOB_FIT_TARGET_BROADCASTER_TITLE_MARKERS,
   JOB_FIT_TARGET_ROLE_KEYWORDS,
 } from "./rules";
 
@@ -84,11 +86,22 @@ export const isMotorStudioCompanyOrTitle = (
   return JOB_FIT_MOTOR_STUDIO_COMPANY_MARKERS.some((m) => folded.includes(foldCase(m)));
 };
 
-/** Admin / production-office roles at broadcasters → always rejected. */
-export const titleHasBroadcasterRejectRole = (title: string): boolean =>
-  JOB_FIT_BROADCASTER_REJECT_ROLE_KEYWORDS.some((kw) => fieldTextMatches(title, kw));
+export const titleHasAlwaysRejectKeyword = (title: string): boolean =>
+  JOB_FIT_ALWAYS_REJECT_TITLE_KEYWORDS.some((kw) => {
+    if (kw === "라이브") {
+      return fieldTextMatches(title.split("딜라이브").join(""), kw);
+    }
+    return fieldTextMatches(title, kw);
+  });
 
-/** VJ / video production roles at broadcasters → HITL pending, not auto-approve. */
+export const titleHasTargetBroadcasterMarker = (title: string): boolean =>
+  JOB_FIT_TARGET_BROADCASTER_TITLE_MARKERS.some((kw) => fieldTextMatches(title, kw));
+
+/** Non-target roles at broadcasters → always rejected. */
+export const titleHasBroadcasterRejectRole = (title: string): boolean =>
+  JOB_FIT_BROADCASTER_NON_TARGET_ROLE_KEYWORDS.some((kw) => fieldTextMatches(title, kw));
+
+/** @deprecated VJ / video production roles are now rejected via titleHasBroadcasterRejectRole. */
 export const titleHasBroadcasterPendingRole = (title: string): boolean =>
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS.some((kw) => fieldTextMatches(title, kw));
 

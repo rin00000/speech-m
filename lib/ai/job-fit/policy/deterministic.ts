@@ -4,11 +4,12 @@ import {
   isHomeshoppingCompanyOrTitle,
   isInternetSmallNewspaperCompany,
   isMotorStudioCompanyOrTitle,
-  titleHasBroadcasterPendingRole,
+  titleHasAlwaysRejectKeyword,
   titleHasBroadcasterRejectRole,
   titleHasHomeshoppingApproveRole,
   titleHasInternReporterRole,
   titleHasJobFitTargetRole,
+  titleHasTargetBroadcasterMarker,
   titleHasTargetBroadcastRole,
 } from "./company-newspaper";
 import {
@@ -19,6 +20,7 @@ import {
   titleMatchesAnyKeyword,
 } from "./keyword-match";
 import {
+  JOB_FIT_ALWAYS_REJECT_TITLE_KEYWORDS,
   JOB_FIT_BLOCK_COMPANIES,
   JOB_FIT_INTERN_ALLOWED_KEYWORDS,
   JOB_FIT_INTERN_SOURCE,
@@ -47,6 +49,20 @@ const internHasAllowedKeyword = (input: JobFitInput): boolean => {
     return allowed.has(normalized);
   });
 };
+
+const titleWithoutDlive = (title: string): string => title.split("딜라이브").join("");
+
+const findAlwaysRejectTitleKeyword = (title: string): string | null => {
+  for (const kw of JOB_FIT_ALWAYS_REJECT_TITLE_KEYWORDS) {
+    const field = kw === "라이브" ? titleWithoutDlive(title) : title;
+    if (fieldTextMatches(field, kw)) return kw;
+  }
+  return null;
+};
+
+const hasTargetBroadcasterContext = (input: JobFitInput): boolean =>
+  companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters) ||
+  titleHasTargetBroadcasterMarker(input.title);
 
 /** Absolute rejects: blocklist company, hard keywords, entertainment in title. */
 const hitsAbsoluteExclude = (input: JobFitInput): JobFitResult | null => {
@@ -80,6 +96,16 @@ const hitsAbsoluteExclude = (input: JobFitInput): JobFitResult | null => {
       score: 10,
       reasons: ["Title contains entertainment industry marker (deterministic)."],
       matched_rules: ["title_entertainment"],
+    });
+  }
+
+  const titleHardReject = findAlwaysRejectTitleKeyword(title);
+  if (titleHardReject && titleHasAlwaysRejectKeyword(title)) {
+    return synthetic({
+      label: "rejected",
+      score: 10,
+      reasons: [`Title hard-reject keyword matched: ${titleHardReject}.`],
+      matched_rules: ["always_reject_title_keyword"],
     });
   }
 
@@ -158,44 +184,41 @@ const hitsMotorStudioPending = (input: JobFitInput): JobFitResult | null => {
   });
 };
 
-/** 행정·제작 — rejected (no HITL). 영상/VJ 맥락의 제작은 pending 게이트로 넘긴다. */
-const hitsAdminProductionReject = (input: JobFitInput): JobFitResult | null => {
+/** Non-target roles override target company/role signals. */
+const hitsNonTargetRoleReject = (input: JobFitInput): JobFitResult | null => {
   if (!titleHasBroadcasterRejectRole(input.title)) {
     return null;
   }
-  if (titleHasBroadcasterPendingRole(input.title)) {
+  if (
+    !hasTargetBroadcasterContext(input) &&
+    !titleHasJobFitTargetRole(input.title) &&
+    !titleHasTargetBroadcastRole(input.title)
+  ) {
     return null;
   }
   return synthetic({
     label: "rejected",
     score: 12,
-    reasons: ["Admin or production-office role (행정, 제작) — out of scope."],
+    reasons: ["Target broadcaster context or target-role title, but non-target job duties are present."],
     matched_rules: ["broadcaster_non_target_role"],
   });
 };
 
 const hitsBroadcasterRoleGate = (input: JobFitInput): JobFitResult | null => {
-  if (!companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters)) {
+  if (!hasTargetBroadcasterContext(input)) {
     return null;
-  }
-  if (titleHasBroadcasterPendingRole(input.title)) {
-    return synthetic({
-      label: "rejected",
-      score: 52,
-      reasons: [
-        "Target broadcaster company but production/VJ/video-edit role — defer to admin review.",
-      ],
-      matched_rules: ["broadcaster_pending_role"],
-    });
   }
   if (!titleHasJobFitTargetRole(input.title)) {
     return null;
   }
+  const matchedRules = titleHasTargetBroadcasterMarker(input.title)
+    ? ["target_broadcaster_title_marker", "target_roles"]
+    : ["target_broadcasters", "target_roles"];
   return synthetic({
     label: "approved",
     score: 85,
     reasons: ["Target broadcaster company and target role in title (deterministic)."],
-    matched_rules: ["target_broadcasters", "target_roles"],
+    matched_rules: matchedRules,
   });
 };
 
@@ -250,8 +273,8 @@ export const tryDeterministicDecision = (input: JobFitInput): JobFitResult | nul
   const motorStudioPending = hitsMotorStudioPending(input);
   if (motorStudioPending) return motorStudioPending;
 
-  const adminProductionReject = hitsAdminProductionReject(input);
-  if (adminProductionReject) return adminProductionReject;
+  const nonTargetRoleReject = hitsNonTargetRoleReject(input);
+  if (nonTargetRoleReject) return nonTargetRoleReject;
 
   const broadcasterGate = hitsBroadcasterRoleGate(input);
   if (broadcasterGate) return broadcasterGate;

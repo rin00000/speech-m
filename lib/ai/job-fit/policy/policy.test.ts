@@ -94,15 +94,15 @@ describe("tryDeterministicDecision", () => {
     expect(r?.matched_rules).toContain("target_roles");
   });
 
-  it("approves broadcaster and skips title hard exclude", () => {
+  it("rejects broadcaster non-target role before target role approval", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       title: "아나운서 촬영 스탭",
       company: "KBS미디어",
     });
-    expect(r?.label).toBe("approved");
-    expect(r?.matched_rules).toContain("target_broadcasters");
-    expect(r?.matched_rules).toContain("target_roles");
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
   });
 
   it("returns null for broadcaster without target role in title", () => {
@@ -123,13 +123,14 @@ describe("tryDeterministicDecision", () => {
     expect(r?.label).toBe("rejected");
   });
 
-  it("bypasses title hard exclude when target role is in title", () => {
+  it("rejects non-target duty even when target role is in title", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       title: "아나운서 촬영 스탭",
       company: "일반회사",
     });
-    expect(r).toBeNull();
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
   });
 
   it("rejects intern channel at non-target broadcaster", () => {
@@ -224,7 +225,7 @@ describe("tryDeterministicDecision", () => {
       company: "(주)뉴스트리",
     });
     expect(r?.label).toBe("rejected");
-    expect(r?.matched_rules).toContain("intern_reporter_not_target_broadcaster");
+    expect(r?.matched_rules).toContain("blocklist_company");
   });
 
   it("approves intern reporter at target broadcaster (JTV)", () => {
@@ -349,6 +350,92 @@ describe("tryDeterministicDecision", () => {
     expect(r?.matched_rules).toContain("broadcaster_non_target_role");
   });
 
+  it("rejects YTN ENG and camera assistant role without HITL", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "[2명채용/영상취재/카메라보조] ENG/취재보조/방송촬영/장비관리/오디오맨/카메라/촬영보조",
+      company: "YTN",
+      source: "mediajob_announcer",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
+  });
+
+  it("approves marine forecast broadcast weathercaster by title marker", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "해양예보방송 해양캐스터 모집(신입&경력)",
+      company: "㈜올포랜드",
+      source: "mediajob_announcer",
+    });
+    expect(r?.label).toBe("approved");
+    expect(r?.matched_rules).toContain("target_broadcaster_title_marker");
+    expect(r?.matched_rules).toContain("target_roles");
+  });
+
+  it("rejects 시험방송 title before LLM", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "6/13) 창원, 시험방송",
+      company: "꿈을Dream",
+      source: "mediajob_announcer",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("always_reject_title_keyword");
+  });
+
+  it("rejects live content presenter title before LLM", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "[온라인사업부] 라이브컨텐츠 기획 및 진행자 채용",
+      company: "피쉬데이",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("always_reject_title_keyword");
+  });
+
+  it("does not reject 딜라이브 broadcaster name as 라이브 keyword", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "딜라이브 아나운서 모집",
+      company: "딜라이브",
+    });
+    expect(r?.label).toBe("approved");
+    expect(r?.matched_rules).toContain("target_broadcasters");
+  });
+
+  it("rejects AD role even when broadcaster and reporter words appear", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "[취재AD/국제팀/4시간근무] 뉴스/취재기자/영어기사/기사서치/자료검색/취재보조",
+      company: "MBC",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("always_reject_title_keyword");
+  });
+
+  it("rejects shopping-mall seller show-host title before LLM", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "(성과에 따른 확실한 보상) 여성의류 쇼핑몰 셀러 (쇼호스트) 모집",
+      company: "하이루",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("always_reject_title_keyword");
+  });
+
+  it("rejects driving and vehicle role at target broadcaster", () => {
+    const r = tryDeterministicDecision({
+      ...baseInput(),
+      title: "[운전직/광화문/월284만원] 취재차량/차량운전/차량관리/취재보조",
+      company: "연합뉴스",
+    });
+    expect(r?.label).toBe("rejected");
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
+  });
+
   it("rejects non-broadcaster title with VJ via title hard exclude", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
@@ -359,39 +446,39 @@ describe("tryDeterministicDecision", () => {
     expect(r?.matched_rules).toContain("title_hard_exclude");
   });
 
-  it("defers 연합뉴스TV VJ 영상취재 to pending via score band", () => {
+  it("rejects 연합뉴스TV VJ 영상취재 without HITL", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       title: "[VJ/취재기자/연합뉴스TV] 영상취재부/VJ/카메라/ENG/6mm",
       company: "연합뉴스TV",
     });
     expect(r?.label).toBe("rejected");
-    expect(r?.score).toBe(52);
-    expect(r?.matched_rules).toContain("broadcaster_pending_role");
-    expect(toFinalStatus(r!)).toBe("pending");
+    expect(r?.score).toBe(12);
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
   });
 
-  it("defers 연합뉴스TV 영상 편집 to pending", () => {
+  it("rejects 연합뉴스TV 영상 편집 without HITL", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       title: "영상 편집 PD 채용",
       company: "연합뉴스TV",
     });
     expect(r?.label).toBe("rejected");
-    expect(r?.score).toBe(52);
-    expect(r?.matched_rules).toContain("broadcaster_pending_role");
-    expect(toFinalStatus(r!)).toBe("pending");
+    expect(r?.score).toBe(12);
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
   });
 
-  it("defers 연합뉴스TV 비디오 to pending", () => {
+  it("rejects 연합뉴스TV 비디오 without HITL", () => {
     const r = tryDeterministicDecision({
       ...baseInput(),
       title: "비디오 제작 담당 채용",
       company: "연합뉴스TV",
     });
     expect(r?.label).toBe("rejected");
-    expect(r?.matched_rules).toContain("broadcaster_pending_role");
-    expect(toFinalStatus(r!)).toBe("pending");
+    expect(r?.matched_rules).toContain("broadcaster_non_target_role");
+    expect(toFinalStatus(r!)).toBe("rejected");
   });
 
   it("defers 현대 모터스튜디오 도슨트 to pending (before title hard exclude)", () => {

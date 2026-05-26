@@ -10,7 +10,7 @@
 {"id":"g10","title":"MC/행사 진행자 단기 계약","company":"소형 에이전시C","location":"서울","source":"custom","source_url":"https://example.com/10","expected_label":"rejected"}
 {"id":"g11","title":"아나운서 공개채용","company":"원투원TV","location":"서울","source":"custom","source_url":"https://example.com/11","expected_label":"rejected"}
 {"id":"g12","title":"취재기자 모집","company":"JTV","location":"부산","source":"mediajob_intern","source_url":"https://example.com/12","expected_label":"approved"}
-{"id":"g13","title":"신입 기자 모집","company":"(주)뉴스포스트신문사","location":"서울","source":"mediajob_intern","source_url":"https://example.com/13","expected_label":"approved"}
+{"id":"g13","title":"신입 기자 모집","company":"(주)뉴스포스트신문사","location":"서울","source":"mediajob_intern","source_url":"https://example.com/13","expected_label":"rejected"}
 {"id":"g14","title":"취재기자 모집","company":"JTV","location":"부산","source":"custom","source_url":"https://example.com/14","expected_label":"approved"}
 {"id":"g15","title":"경제·금융 경력 기자 모집","company":"(주)뉴스포스트신문사","location":"서울","source":"custom","source_url":"https://example.com/15","expected_label":"rejected"}
 {"id":"g16","title":"아나운서 모집","company":"○○신문사","location":"서울","source":"custom","source_url":"https://example.com/16","expected_label":"approved"}
@@ -19,3 +19,11 @@
 {"id":"g19","title":"[VJ/취재기자/연합뉴스TV] 영상취재부/VJ/카메라/ENG/6mm","company":"연합뉴스TV","location":"서울","source":"custom","source_url":"https://example.com/19","expected_label":"rejected"}
 {"id":"g20","title":"영상 편집 PD 채용","company":"연합뉴스TV","location":"서울","source":"custom","source_url":"https://example.com/20","expected_label":"rejected"}
 {"id":"g21","title":"도슨트(진행자) 채용","company":"현대 모터스튜디오","location":"서울","source":"custom","source_url":"https://example.com/21","expected_label":"rejected"}
+{"id":"g22","title":"[2명채용/영상취재/카메라보조] ENG/취재보조/방송촬영/장비관리/오디오맨/카메라/촬영보조","company":"YTN","location":"서울","source":"mediajob_announcer","source_url":"https://example.com/22","expected_label":"rejected"}
+{"id":"g23","title":"해양예보방송 해양캐스터 모집(신입&경력)","company":"㈜올포랜드","location":"서울","source":"mediajob_announcer","source_url":"https://example.com/23","expected_label":"approved"}
+{"id":"g24","title":"6/13) 창원, 시험방송","company":"꿈을Dream","location":"창원","source":"mediajob_announcer","source_url":"https://example.com/24","expected_label":"rejected"}
+{"id":"g25","title":"[온라인사업부] 라이브컨텐츠 기획 및 진행자 채용","company":"피쉬데이","location":"서울","source":"custom","source_url":"https://example.com/25","expected_label":"rejected"}
+{"id":"g26","title":"[취재AD/국제팀/4시간근무] 뉴스/취재기자/영어기사/기사서치/자료검색/취재보조","company":"MBC","location":"서울","source":"custom","source_url":"https://example.com/26","expected_label":"rejected"}
+{"id":"g27","title":"(성과에 따른 확실한 보상) 여성의류 쇼핑몰 셀러 (쇼호스트) 모집","company":"하이루","location":"서울","source":"custom","source_url":"https://example.com/27","expected_label":"rejected"}
+{"id":"g28","title":"[운전직/광화문/월284만원] 취재차량/차량운전/차량관리/취재보조","company":"연합뉴스","location":"서울","source":"custom","source_url":"https://example.com/28","expected_label":"rejected"}
+{"id":"g29","title":"뉴스트리 채용연계형 인턴기자 모집","company":"(주)뉴스트리","location":"서울","source":"mediajob_intern","source_url":"https://example.com/29","expected_label":"rejected"}
