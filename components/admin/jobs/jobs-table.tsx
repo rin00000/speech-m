@@ -40,7 +40,7 @@ import { isExpiredDeadline } from "@/lib/jobs/deadline";
 import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
-const JOBS_PAGE_SIZE = 25;
+const JOBS_PAGE_SIZE = 15;
 
 const DeadlineBadge = ({ deadline }: { deadline: string | null }) => {
   if (!deadline) return <span className="text-gray-400">—</span>;

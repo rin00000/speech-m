@@ -17,7 +17,7 @@ import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
-const PUBLIC_JOBS_PAGE_SIZE = 25;
+const PUBLIC_JOBS_PAGE_SIZE = 15;
 
 export function PublicJobsView({
   initialJobs,
