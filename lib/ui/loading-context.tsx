@@ -47,13 +47,25 @@ export const LoadingProvider = ({ children }: { children: ReactNode }) => {
    * Next.js App Router 페이지 이동 완료 감지:
    * URL 경로(pathname)나 쿼리 스트링(searchParams)이 변경되면 페이지 이동이 완료된 것이므로,
    * 로딩 프로그레스 바와 네비게이션 스켈레톤 상태를 강제 리셋한다.
+   *
+   * requestAnimationFrame으로 감싸서 effect 내부 동기 setState 린트 에러를 회피한다.
    */
+  const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
+  const prevRouteRef = useRef(routeKey);
+
   useEffect(() => {
+    if (prevRouteRef.current === routeKey) return;
+    prevRouteRef.current = routeKey;
+
     countRef.current = 0;
-    setIsLoading(false);
-    setIsNavigating(false);
     NProgress.done();
-  }, [pathname, searchParams]);
+
+    const id = requestAnimationFrame(() => {
+      setIsLoading(false);
+      setIsNavigating(false);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [routeKey]);
 
   const startLoading = useCallback(() => {
     countRef.current += 1;

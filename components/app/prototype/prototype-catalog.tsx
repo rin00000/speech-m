@@ -9,34 +9,16 @@
 
 "use client";
 
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Briefcase01Icon,
   CheckmarkCircle01Icon,
-  DashboardSquare01Icon,
-  FileEditIcon,
-  Settings01Icon,
-  BookOpen01Icon,
   RefreshIcon,
-  AlertCircleIcon,
-  LinkSquare01Icon,
   Copy01Icon
 } from "@hugeicons/core-free-icons";
 import { AppShell } from "@/components/app/layout/app-shell";
-import { getNavItemsForRole } from "@/components/app/layout/nav-items";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardBody,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ListRow } from "@/components/ui/list-row";
-import { OptionPill } from "@/components/ui/option-pill";
 import type { UserRole } from "@/lib/auth/session";
 import { cn } from "@/lib/ui/cn";
 
@@ -167,65 +149,7 @@ const THEMES: Record<ThemeKey, ThemePreset> = {
   }
 };
 
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-xl font-extrabold leading-[1.1] tracking-tight text-gray-900">
-          {title}
-        </h2>
-        {description && (
-          <p className="mt-1 text-sm font-medium leading-tight text-gray-500">
-            {description}
-          </p>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
 
-function TokenSwatch({
-  name,
-  hex,
-  note,
-}: {
-  name: string;
-  hex: string;
-  note?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition-transform duration-200 hover:-translate-y-1">
-      <div
-        className="h-14 rounded-xl border border-black/5"
-        style={{ backgroundColor: hex }}
-      />
-      <div className="mt-2.5 flex items-start justify-between gap-2">
-        <div>
-          <p className="text-xs font-bold leading-tight text-gray-900">
-            {name}
-          </p>
-          <p className="mt-0.5 text-[11px] font-medium leading-none text-gray-500">
-            {hex}
-          </p>
-        </div>
-        {note && (
-          <span className="rounded-full border border-gray-150 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold leading-none text-gray-600">
-            {note}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export function PrototypeCatalog({
   userName,

@@ -16,7 +16,6 @@ import {
   CheckmarkCircle01Icon,
   Cancel01Icon,
   Briefcase01Icon,
-  BookOpen01Icon,
   DashboardSquare01Icon,
 } from "@hugeicons/core-free-icons";
 

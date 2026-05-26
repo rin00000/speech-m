@@ -21,7 +21,7 @@ export async function getCurrentUser() {
         role: mockRole as UserRole,
       };
     }
-  } catch (e) {
+  } catch {
     // 빌드 정적 분석 시 에러 방지
   }
 

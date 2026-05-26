@@ -3,7 +3,6 @@ import {
   companyMatchesBroadcaster,
   fieldTextMatches,
   foldCase,
-  isShortAsciiKeyword,
 } from "./keyword-match";
 import {
   JOB_FIT_BROADCASTER_PENDING_ROLE_KEYWORDS,

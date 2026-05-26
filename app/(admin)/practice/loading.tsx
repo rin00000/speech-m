@@ -5,7 +5,6 @@
 
 import {
   Skeleton,
-  SkeletonCard,
   SkeletonLine,
   SkeletonPageHeader,
 } from "@/components/ui/skeleton";

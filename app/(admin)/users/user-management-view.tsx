@@ -4,11 +4,8 @@ import { useState } from "react";
 import { updateUserRole } from "./actions";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  UserIcon,
   CheckmarkCircle01Icon,
   Cancel01Icon,
-  UserGroupIcon,
-  ArrowUpDownIcon,
 } from "@hugeicons/core-free-icons";
 
 interface ProfileItem {

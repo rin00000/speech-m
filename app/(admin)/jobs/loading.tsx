@@ -4,7 +4,6 @@
  */
 
 import {
-  Skeleton,
   SkeletonLine,
   SkeletonPageHeader,
   SkeletonStatCard,

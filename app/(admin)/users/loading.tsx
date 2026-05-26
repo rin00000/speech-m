@@ -4,8 +4,6 @@
  */
 
 import {
-  Skeleton,
-  SkeletonLine,
   SkeletonPageHeader,
   SkeletonTable,
 } from "@/components/ui/skeleton";

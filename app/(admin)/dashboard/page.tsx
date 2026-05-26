@@ -36,7 +36,7 @@ export default async function DashboardPage() {
 }
 
 // 1. 관리자 전용 대시보드 뷰 (기존 구현)
-async function AdminDashboardView({ userName }: { userName: string | null }) {
+async function AdminDashboardView({}: { userName: string | null }) {
   const supabase = createAdminClient();
   const activeDeadline = activeDeadlineOrExpression();
 
