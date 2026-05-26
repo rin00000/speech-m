@@ -9,7 +9,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-3xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-[0_8px_30px_rgba(77,114,179,0.06)] hover:border-periwinkle-300/80 hover:-translate-y-0.5",
+        "rounded-3xl bg-white shadow-island ring-1 ring-gray-200/45 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_34px_rgba(77,114,179,0.08)] hover:ring-periwinkle-200/70",
         className,
       )}
       {...props}
@@ -77,7 +77,7 @@ export function CardFooter({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("border-t border-gray-200 px-6 py-4", className)}
+      className={cn("px-6 py-4 ring-1 ring-inset ring-gray-100", className)}
       {...props}
     >
       {children}

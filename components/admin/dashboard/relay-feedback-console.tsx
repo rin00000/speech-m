@@ -124,10 +124,10 @@ export function RelayFeedbackConsole() {
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3 border-b border-gray-100">
+    <Card className="h-full overflow-hidden">
+      <CardHeader className="bg-gray-50/45 pb-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-periwinkle-100 text-periwinkle-700">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-periwinkle-700 shadow-sm ring-1 ring-periwinkle-100">
             <HugeiconsIcon icon={UserGroupIcon} size={15} color="currentColor" strokeWidth={2} />
           </span>
           <div>
@@ -151,16 +151,16 @@ export function RelayFeedbackConsole() {
                 <button
                   key={stud.id}
                   onClick={() => selectStudent(stud.id)}
-                  className={`w-full text-left p-2.5 rounded-2xl border transition-all duration-200 flex items-center gap-3 ${
+                  className={`w-full text-left p-2.5 rounded-2xl transition-all duration-200 flex items-center gap-3 ${
                     isSelected
-                      ? "border-periwinkle-300 bg-periwinkle-50/60 ring-2 ring-periwinkle-100/50"
-                      : "border-gray-150 bg-white hover:bg-gray-50/60"
+                      ? "bg-periwinkle-50/80 shadow-sm ring-1 ring-periwinkle-200/70"
+                      : "bg-gray-50/60 hover:bg-gray-100/70"
                   }`}
                 >
-                  <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[10px] font-extrabold border ${
+                  <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[10px] font-extrabold ${
                     isSelected
-                      ? "bg-periwinkle-600 text-white border-periwinkle-700 shadow-sm"
-                      : "bg-periwinkle-50 text-periwinkle-700 border-periwinkle-100"
+                      ? "bg-periwinkle-600 text-white shadow-sm"
+                      : "bg-white text-periwinkle-700 ring-1 ring-periwinkle-100"
                   }`}>
                     {getInitials(stud.name)}
                   </div>
@@ -168,11 +168,11 @@ export function RelayFeedbackConsole() {
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-xs font-bold text-gray-800 truncate">{stud.name}</span>
                       {stud.status === "completed" ? (
-                        <span className="rounded-full bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">
+                        <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700 ring-1 ring-emerald-100/80">
                           완료
                         </span>
                       ) : (
-                        <span className="rounded-full bg-amber-50 border border-amber-100 px-1.5 py-0.5 text-[8px] font-bold text-amber-700 animate-pulse">
+                        <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold text-amber-700 ring-1 ring-amber-100/80 animate-pulse">
                           대기
                         </span>
                       )}
@@ -198,7 +198,7 @@ export function RelayFeedbackConsole() {
             </div>
 
             {/* Audio Wave Player Box */}
-            <div className="p-3.5 rounded-2xl border border-gray-150 bg-gray-50/80 space-y-2">
+            <div className="p-3.5 rounded-2xl bg-gray-50/80 space-y-2 ring-1 ring-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-gray-400 shrink-0">
@@ -261,7 +261,7 @@ export function RelayFeedbackConsole() {
               <textarea
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
-                className="w-full text-xs p-3 border border-gray-200 bg-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-periwinkle-500/30 font-medium text-gray-700 leading-normal"
+                className="w-full text-xs p-3 bg-gray-50/80 rounded-2xl ring-1 ring-gray-100 focus:outline-none focus:ring-2 focus:ring-periwinkle-500/30 font-medium text-gray-700 leading-normal"
                 rows={3.5}
                 placeholder="과제 낭독에 대한 구체적인 피드백을 남겨주세요..."
               />
@@ -271,7 +271,7 @@ export function RelayFeedbackConsole() {
           {/* Action button */}
           <div className="space-y-2 pt-2">
             {submitSuccess ? (
-              <div className="p-2.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-extrabold text-center flex items-center justify-center gap-1.5 animate-fadeIn">
+              <div className="p-2.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-extrabold text-center flex items-center justify-center gap-1.5 ring-1 ring-emerald-100 animate-fadeIn">
                 <HugeiconsIcon icon={CheckmarkCircle01Icon} size={13} color="currentColor" strokeWidth={2.5} />
                 피드백이 전송되었습니다! 실시간 카카오톡 알림이 완료되었습니다.
               </div>

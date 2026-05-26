@@ -123,10 +123,10 @@ export function CrawlerControlHub() {
   } as const;
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3 border-b border-gray-100">
+    <Card className="h-full overflow-hidden">
+      <CardHeader className="bg-gray-50/45 pb-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-periwinkle-100 text-periwinkle-700">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-periwinkle-700 shadow-sm ring-1 ring-periwinkle-100">
             <HugeiconsIcon icon={GlobalIcon} size={15} color="currentColor" strokeWidth={2} />
           </span>
           <div>
@@ -140,11 +140,11 @@ export function CrawlerControlHub() {
       <CardBody className="pt-4 space-y-4">
         {/* 통계 요약 (Stat row) */}
         <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="p-3 bg-gray-50 border border-gray-150 rounded-2xl">
+          <div className="p-3 bg-gray-50/80 rounded-2xl ring-1 ring-gray-100">
             <span className="text-[10px] font-bold text-gray-400">금일 스캔 수량</span>
             <p className="text-lg font-extrabold text-gray-800 mt-0.5">247건</p>
           </div>
-          <div className="p-3 bg-periwinkle-50 border border-periwinkle-100 rounded-2xl">
+          <div className="p-3 bg-periwinkle-50 rounded-2xl ring-1 ring-periwinkle-100/80">
             <span className="text-[10px] font-bold text-periwinkle-700">AI 통과 Curation</span>
             <p className="text-lg font-extrabold text-periwinkle-600 mt-0.5">18건</p>
           </div>
@@ -161,17 +161,17 @@ export function CrawlerControlHub() {
 
             const buttonStyle =
               state.status === "loading"
-                ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                ? "bg-gray-100 text-gray-400 ring-1 ring-gray-200 cursor-not-allowed"
                 : state.status === "success"
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 hover:bg-emerald-100"
                 : state.status === "error"
-                ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
-                : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300";
+                ? "bg-red-50 text-red-700 ring-1 ring-red-100 hover:bg-red-100"
+                : "bg-white text-gray-700 ring-1 ring-gray-100 hover:bg-gray-50 hover:ring-gray-200";
 
             return (
               <div
                 key={source}
-                className="flex items-center justify-between p-3 rounded-2xl border border-gray-150 bg-gray-50/30 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/55 transition-colors hover:bg-gray-100/70"
               >
                 <div className="space-y-0.5">
                   <span className="text-xs font-extrabold text-gray-700">{SOURCE_LABELS[source]}</span>
@@ -204,10 +204,10 @@ export function CrawlerControlHub() {
         </div>
 
         {/* AI batch filter execution */}
-        <div className="pt-3 border-t border-gray-100 space-y-2">
+        <div className="space-y-2 rounded-2xl bg-gray-50/55 p-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">AI Curation</span>
-            <span className="inline-flex rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700 ring-1 ring-amber-100/80">
               최대 30개 검사
             </span>
           </div>
@@ -217,7 +217,7 @@ export function CrawlerControlHub() {
             disabled={aiState.status === "loading" || aiAction.isPending}
             className={`w-full py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
               aiState.status === "loading"
-                ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                ? "bg-gray-100 text-gray-400 ring-1 ring-gray-200 cursor-not-allowed"
                 : aiState.status === "success"
                 ? "bg-emerald-600 text-white hover:bg-emerald-700"
                 : aiState.status === "error"
