@@ -43,8 +43,8 @@ export default async function PracticePage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <Header
-        title="수강생 명품 원고 연습실"
-        description="최정상 아나운서 및 미디어 선배들의 안목으로 정제된 핵심 훈련 및 포트폴리오용 대본입니다."
+        title="수강생 연습실"
+        description="원장님이 직접 선별한 엄선된 고품질 방송 연습 원고 무제한 이용"
       />
 
       {isAuthorized ? (

@@ -58,7 +58,7 @@ export function PracticeListView({
                 }`}
               >
                 <HugeiconsIcon icon={Task01Icon} size={14} color="currentColor" />
-                <span>🎙️ 핵심 연습용</span>
+                <span>🎙️ 연습용</span>
               </button>
               <button
                 onClick={() => {
@@ -73,7 +73,7 @@ export function PracticeListView({
                 }`}
               >
                 <HugeiconsIcon icon={SparklesIcon} size={14} color="currentColor" />
-                <span>📁 명품 포트폴리오</span>
+                <span>📁 포트폴리오용</span>
               </button>
               <button
                 onClick={() => {
