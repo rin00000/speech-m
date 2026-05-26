@@ -1,15 +1,78 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/ui/cn";
 
+export type CardVariant = "surface" | "subtle" | "accent";
+
+const cardVariantStyles: Record<CardVariant, string> = {
+  surface: "border-gray-200 bg-white shadow-sm",
+  subtle: "border-gray-100 bg-gray-50/70",
+  accent: "border-periwinkle-100 bg-periwinkle-50",
+};
+
+const cardActionBaseClassName =
+  "rounded-2xl border bg-white shadow-sm transition-colors duration-200 md:rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-periwinkle-300/70";
+
+export function cardActionClassName({
+  selected = false,
+  className,
+}: {
+  selected?: boolean;
+  className?: string;
+} = {}) {
+  return cn(
+    cardActionBaseClassName,
+    selected
+      ? "border-periwinkle-200/80 bg-periwinkle-50/80"
+      : "border-gray-200 hover:border-gray-200 hover:bg-gray-50/70",
+    className,
+  );
+}
+
+export interface CardContainerProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: CardVariant;
+  interactive?: boolean;
+}
+
 export function Card({
   className,
   children,
+  variant = "surface",
+  interactive = false,
   ...props
-}: HTMLAttributes<HTMLDivElement>) {
+}: CardContainerProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl bg-white shadow-island ring-1 ring-gray-200/45 transition-all duration-300 hover:ring-periwinkle-200/70 md:rounded-3xl md:hover:-translate-y-0.5 md:hover:shadow-[0_10px_34px_rgba(77,114,179,0.08)]",
+        "rounded-2xl border transition-colors duration-200 md:rounded-3xl",
+        cardVariantStyles[variant],
+        interactive && "hover:border-periwinkle-200 hover:bg-periwinkle-50/20",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+export interface CardSurfaceProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: Exclude<CardVariant, "surface"> | "surface";
+  interactive?: boolean;
+}
+
+export function CardSurface({
+  className,
+  children,
+  variant = "subtle",
+  interactive = false,
+  ...props
+}: CardSurfaceProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border p-3 transition-colors duration-200",
+        cardVariantStyles[variant],
+        interactive && "hover:border-gray-200 hover:bg-gray-100/70",
         className,
       )}
       {...props}

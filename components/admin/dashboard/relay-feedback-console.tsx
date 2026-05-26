@@ -10,7 +10,7 @@ import {
   VolumeHighIcon,
   UserGroupIcon
 } from "@hugeicons/core-free-icons";
-import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardBody, CardSurface, cardActionClassName } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface StudentSubmission {
@@ -144,18 +144,17 @@ export function RelayFeedbackConsole() {
         {/* Left column: Student queue list */}
         <div className="space-y-3">
           <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">제출 대기 대열</h4>
-          <div className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1 md:max-h-[300px]">
+          <div className="flex max-h-64 flex-col gap-2 overflow-y-auto p-0.5 pr-1.5 md:max-h-[300px]">
             {submissions.map((stud) => {
               const isSelected = stud.id === selectedId;
               return (
                 <button
                   key={stud.id}
                   onClick={() => selectStudent(stud.id)}
-                  className={`w-full text-left p-2.5 rounded-2xl transition-all duration-200 flex items-center gap-3 ${
-                    isSelected
-                      ? "bg-periwinkle-50/80 shadow-sm ring-1 ring-periwinkle-200/70"
-                      : "bg-gray-50/60 hover:bg-gray-100/70"
-                  }`}
+                  className={cardActionClassName({
+                    selected: isSelected,
+                    className: "flex w-full items-center gap-3 p-2.5 text-left",
+                  })}
                 >
                   <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[10px] font-extrabold ${
                     isSelected
@@ -198,7 +197,7 @@ export function RelayFeedbackConsole() {
             </div>
 
             {/* Audio Wave Player Box */}
-            <div className="p-3.5 rounded-2xl bg-gray-50/80 space-y-2 ring-1 ring-gray-100">
+            <CardSurface className="space-y-2 p-3.5">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-gray-400 shrink-0">
@@ -247,7 +246,7 @@ export function RelayFeedbackConsole() {
                   />
                 </button>
               </div>
-            </div>
+            </CardSurface>
 
             {/* Textarea comment */}
             <div className="space-y-1">

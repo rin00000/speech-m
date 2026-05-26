@@ -151,6 +151,15 @@ body > * {
   z-index: 1;
 }
 
+:where(a, button, input, select, textarea, summary, [tabindex]):focus {
+  outline: none;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--periwinkle-300) 70%, transparent);
+}
+
 .shadow-island {
   box-shadow: var(--shadow-island);
 }

@@ -18,6 +18,7 @@ import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PublicJobsView } from "@/components/admin/jobs/public-jobs-view";
+import { cardActionClassName } from "@/components/ui/card";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 
@@ -194,9 +195,10 @@ export default async function JobsPage({
                 <Link
                   key={label}
                   href={href}
-                  className={`relative block overflow-hidden rounded-2xl border bg-white p-3 shadow-sm transition-shadow hover:shadow-sm md:rounded-3xl md:p-4 ${
-                    isActive ? "border-periwinkle-600 ring-1 ring-periwinkle-600" : "border-gray-200"
-                  }`}
+                  className={cardActionClassName({
+                    selected: isActive,
+                    className: "relative block overflow-hidden p-3 md:p-4",
+                  })}
                 >
                   <div className={`absolute left-0 top-0 h-full w-1 ${bar} rounded-l-xl`} />
                   <div className="flex items-center justify-between gap-2 pl-2">

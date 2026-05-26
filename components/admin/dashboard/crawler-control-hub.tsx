@@ -17,7 +17,7 @@ import {
   GlobalIcon
 } from "@hugeicons/core-free-icons";
 import { runCrawl, runAiFitBatch, type CrawlSource } from "@/app/(admin)/jobs/actions";
-import { Card, CardHeader, CardTitle, CardDescription, CardBody } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardBody, CardSurface } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAsyncAction } from "@/lib/ui/use-async-action";
 
@@ -140,14 +140,14 @@ export function CrawlerControlHub() {
       <CardBody className="space-y-4 pt-4">
         {/* 통계 요약 (Stat row) */}
         <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="p-3 bg-gray-50/80 rounded-2xl ring-1 ring-gray-100">
+          <CardSurface className="p-3">
             <span className="text-[10px] font-bold text-gray-400">금일 스캔 수량</span>
             <p className="text-lg font-extrabold text-gray-800 mt-0.5">247건</p>
-          </div>
-          <div className="p-3 bg-periwinkle-50 rounded-2xl ring-1 ring-periwinkle-100/80">
+          </CardSurface>
+          <CardSurface variant="accent" className="p-3">
             <span className="text-[10px] font-bold text-periwinkle-700">AI 통과 Curation</span>
             <p className="text-lg font-extrabold text-periwinkle-600 mt-0.5">18건</p>
-          </div>
+          </CardSurface>
         </div>
 
         {/* 수집원 리스트 */}
@@ -169,9 +169,10 @@ export function CrawlerControlHub() {
                 : "bg-white text-gray-700 ring-1 ring-gray-100 hover:bg-gray-50 hover:ring-gray-200";
 
             return (
-              <div
+              <CardSurface
                 key={source}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-gray-50/55 p-3 transition-colors hover:bg-gray-100/70"
+                interactive
+                className="flex items-center justify-between gap-3"
               >
                 <div className="min-w-0 space-y-0.5">
                   <span className="block truncate text-xs font-extrabold text-gray-700">{SOURCE_LABELS[source]}</span>
@@ -198,13 +199,13 @@ export function CrawlerControlHub() {
                     className={state.status === "loading" ? "animate-spin" : ""}
                   />
                 </button>
-              </div>
+              </CardSurface>
             );
           })}
         </div>
 
         {/* AI batch filter execution */}
-        <div className="space-y-2 rounded-2xl bg-gray-50/55 p-3">
+        <CardSurface className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">AI Curation</span>
             <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700 ring-1 ring-amber-100/80">
@@ -243,7 +244,7 @@ export function CrawlerControlHub() {
           <p className="text-[9px] text-center text-gray-400">
             수동으로 게시물을 분류하기 전, AI가 1차 필터링 및 앵커 점수를 부여합니다.
           </p>
-        </div>
+        </CardSurface>
       </CardBody>
     </Card>
   );
