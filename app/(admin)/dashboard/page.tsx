@@ -12,6 +12,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { LinkSquare01Icon } from "@hugeicons/core-free-icons";
 import { RelayFeedbackConsole } from "@/components/admin/dashboard/relay-feedback-console";
 import { CrawlerControlHub } from "@/components/admin/dashboard/crawler-control-hub";
+import { GuestUpgradeRequestCard } from "@/components/admin/dashboard/guest-upgrade-request-card";
+import {
+  StudentUpgradeRequestsPanel,
+  type StudentUpgradeRequestItem,
+} from "@/components/admin/dashboard/student-upgrade-requests-panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import Link from "next/link";
 
@@ -23,7 +28,7 @@ type JobPosting = Pick<
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) {
-    return <GuestDashboardView userName={null} email="" />;
+    return <GuestDashboardView userName={null} email="" isLoggedIn={false} />;
   }
 
   if (user.role === "admin") {
@@ -31,7 +36,7 @@ export default async function DashboardPage() {
   } else if (user.role === "student") {
     return <StudentDashboardView userName={user.name} />;
   } else {
-    return <GuestDashboardView userName={user.name} email={user.email} />;
+    return <GuestDashboardView userName={user.name} email={user.email} isLoggedIn={true} />;
   }
 }
 
@@ -50,11 +55,20 @@ async function AdminDashboardView({}: { userName: string | null }) {
     .limit(6)
     .returns<JobPosting[]>();
 
+  const pendingUpgradeRequestsResult = await supabase
+    .from("student_upgrade_requests")
+    .select("id,email,display_name,message,requested_at")
+    .eq("status", "pending")
+    .order("requested_at", { ascending: true })
+    .returns<StudentUpgradeRequestItem[]>();
+
   const hasJobsError = Boolean(recentPublishedJobsResult.error);
+  const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
 
   const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
     (job) => !isExpiredDeadline(job.deadline),
   );
+  const pendingUpgradeRequests = pendingUpgradeRequestsResult.data ?? [];
   const siteOrigin = getPublicSiteOrigin();
 
   return (
@@ -65,6 +79,14 @@ async function AdminDashboardView({}: { userName: string | null }) {
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+        {hasUpgradeRequestsError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600 md:rounded-3xl">
+            수강생 등업 문의를 불러오는 중 오류가 발생했습니다.
+          </div>
+        ) : (
+          <StudentUpgradeRequestsPanel initialRequests={pendingUpgradeRequests} />
+        )}
+
         {/* Top grid for 1:1 Relay Feedback Console & Crawler Control Hub */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr] lg:gap-6">
           <RelayFeedbackConsole />
@@ -262,7 +284,29 @@ function StudentDashboardView({ userName }: { userName: string | null }) {
 }
 
 // 3. 게스트 / 대기 승인용 대시보드 뷰
-function GuestDashboardView({ userName, email }: { userName: string | null; email: string }) {
+async function GuestDashboardView({
+  userName,
+  email,
+  isLoggedIn,
+}: {
+  userName: string | null;
+  email: string;
+  isLoggedIn: boolean;
+}) {
+  let pendingUpgradeRequest: { message: string; requested_at: string } | null = null;
+
+  if (isLoggedIn && email) {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("student_upgrade_requests")
+      .select("message,requested_at")
+      .eq("email", email)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    pendingUpgradeRequest = data ?? null;
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gradient-to-br from-slate-50 to-periwinkle-50/20">
       <Header
@@ -314,24 +358,35 @@ function GuestDashboardView({ userName, email }: { userName: string | null; emai
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <Link
-                href="/jobs"
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-2xl bg-periwinkle-600 px-6 py-3.5 text-xs font-extrabold text-white shadow-md transition-all active:scale-[0.98] hover:bg-periwinkle-700"
-              >
-                <span>Curated 채용 공고 보러가기</span>
-                <span>→</span>
-              </Link>
-              <a
-                href="https://open.kakao.com" // 예시용
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full sm:w-auto items-center justify-center rounded-2xl bg-gray-100 border border-gray-200 px-6 py-3.5 text-xs font-bold text-gray-600 transition-all hover:bg-gray-200"
-              >
-                원장님께 정회원 등업 문의
-              </a>
-            </div>
+            {isLoggedIn ? (
+              <>
+                <div className="mt-8 flex justify-center">
+                  <Link
+                    href="/jobs"
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-gray-100 px-6 py-3.5 text-xs font-extrabold text-gray-600 transition-all active:scale-[0.98] hover:bg-gray-200 sm:w-auto"
+                  >
+                    <span>Curated 채용 공고 보러가기</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+                <GuestUpgradeRequestCard pendingRequest={pendingUpgradeRequest} />
+              </>
+            ) : (
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+                <Link
+                  href="/login"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-periwinkle-600 px-6 py-3.5 text-xs font-extrabold text-white shadow-sm transition-all active:scale-[0.98] hover:bg-periwinkle-700 sm:w-auto"
+                >
+                  로그인하고 등업 문의 보내기
+                </Link>
+                <Link
+                  href="/jobs"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-gray-100 px-6 py-3.5 text-xs font-bold text-gray-600 transition-all hover:bg-gray-200 sm:w-auto"
+                >
+                  Curated 채용 공고 보러가기
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

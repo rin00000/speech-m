@@ -8,6 +8,7 @@ export type DbJson =
 
 export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "saramin" | "jobkorea" | "custom";
 export type JobStatus = "pending" | "approved" | "rejected";
+export type StudentUpgradeRequestStatus = "pending" | "approved" | "rejected";
 
 export interface Database {
   public: {
@@ -107,9 +108,46 @@ export interface Database {
         };
         Relationships: [];
       },
+      student_upgrade_requests: {
+        Row: {
+          id: string;
+          email: string;
+          display_name: string | null;
+          message: string;
+          status: StudentUpgradeRequestStatus;
+          requested_at: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          display_name?: string | null;
+          message?: string;
+          status?: StudentUpgradeRequestStatus;
+          requested_at?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          display_name?: string | null;
+          message?: string;
+          status?: StudentUpgradeRequestStatus;
+          requested_at?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+        };
+        Relationships: [];
+      },
     },
     Views: Record<string, never>,
     Functions: {
+      approve_student_upgrade_request: {
+        Args: { p_request_id: string; p_resolved_by: string };
+        Returns: undefined;
+      },
       batch_update_job_posting_crawl_meta: {
         Args: { p_rows: DbJson };
         Returns: undefined;
