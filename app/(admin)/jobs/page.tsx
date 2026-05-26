@@ -175,13 +175,13 @@ export default async function JobsPage({
   const hasJobs = jobList.length > 0;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="공고 관리"
         description="미디어잡, 회사 홈페이지 등에서 수집된 공고를 관리합니다."
       />
 
-        <div className="flex-1 space-y-3 p-6">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-6">
         {/* Stats cards + rejected visibility hint (state tabs removed; cards are the primary control) */}
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

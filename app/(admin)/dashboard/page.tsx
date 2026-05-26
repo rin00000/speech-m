@@ -58,13 +58,13 @@ async function AdminDashboardView({ userName }: { userName: string | null }) {
   const siteOrigin = getPublicSiteOrigin();
 
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="대시보드"
         description="Speech-M 아카데미 현황을 한눈에 확인하세요."
       />
 
-      <div className="flex-1 p-6 space-y-6">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
         {/* Top grid for 1:1 Relay Feedback Console & Crawler Control Hub */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6">
           <RelayFeedbackConsole />
@@ -168,13 +168,13 @@ async function AdminDashboardView({ userName }: { userName: string | null }) {
 // 2. 정회원 수강생용 전용 대시보드 뷰
 function StudentDashboardView({ userName }: { userName: string | null }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="나의 학습 대시보드"
         description="Speech-M 명품 스피치 클래스에 오신 것을 환영합니다."
       />
 
-      <div className="flex-1 p-6 space-y-6">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
         {/* Welcome Card with Periwinkle gradient */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-periwinkle-600 to-indigo-600 p-6 md:p-8 text-white shadow-md">
           <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl animate-pulse" />
@@ -264,13 +264,13 @@ function StudentDashboardView({ userName }: { userName: string | null }) {
 // 3. 게스트 / 대기 승인용 대시보드 뷰
 function GuestDashboardView({ userName, email }: { userName: string | null; email: string }) {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-periwinkle-50/20">
+    <div className="flex min-h-0 flex-1 flex-col bg-gradient-to-br from-slate-50 to-periwinkle-50/20">
       <Header
         title="Speech-M 멤버십 센터"
         description="Speech-M의 특별한 회원 권한 상태를 확인하실 수 있는 라운지입니다."
       />
 
-      <div className="flex-grow flex items-center justify-center p-6">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-6">
         <div className="max-w-2xl w-full rounded-3xl border border-gray-100 bg-white p-8 md:p-10 text-center shadow-[0_8px_30px_rgb(0,0,0,0.015)] relative overflow-hidden">
           {/* Decorative gradients */}
           <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-periwinkle-100/50 blur-3xl" />

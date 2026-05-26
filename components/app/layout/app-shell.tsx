@@ -32,7 +32,7 @@ function AppShellContent({
   const { isNavigating } = useLoading();
 
   return (
-    <div className="flex min-h-screen md:gap-4 md:p-4">
+    <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:gap-4 md:p-4">
       {!hideNav && (
         <SideRail
           userRole={userRole}
@@ -43,7 +43,7 @@ function AppShellContent({
 
       <main
         className={cn(
-          "flex min-h-screen min-w-0 flex-1 flex-col pb-24 md:min-h-[calc(100vh-2rem)] md:rounded-3xl md:border md:border-gray-200 md:bg-white md:pb-0 md:shadow-sm overflow-hidden transition-opacity duration-200",
+          "flex min-h-dvh min-w-0 flex-1 flex-col overflow-hidden pb-24 md:h-[calc(100vh-2rem)] md:min-h-0 md:rounded-3xl md:border md:border-gray-200 md:bg-white md:pb-0 md:shadow-sm transition-opacity duration-200",
           isNavigating ? "opacity-40 pointer-events-none" : "opacity-100"
         )}
       >

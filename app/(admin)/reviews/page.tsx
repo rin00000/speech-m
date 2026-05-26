@@ -4,13 +4,13 @@ import { FileEditIcon, LockIcon } from "@hugeicons/core-free-icons";
 
 export default function ReviewsPage() {
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="시험 후기"
         description="시험 경험 및 면접 질문 보관함 (보안 구역)"
       />
 
-      <div className="flex-1 p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <div className="mb-5">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">
             <HugeiconsIcon

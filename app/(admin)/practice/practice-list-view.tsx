@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { ScriptItem } from "./page";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -30,23 +30,16 @@ export function PracticeListView({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const filtered = scripts.filter((s) => s.category === activeCategory);
-  const selectedScript = scripts.find((s) => s.id === selectedScriptId);
-
-  // If a script gets added, we might want to auto-select it or just ensure something is selected
-  useEffect(() => {
-    if (!selectedScriptId && filtered.length > 0) {
-      setSelectedScriptId(filtered[0].id);
-    }
-  }, [filtered, selectedScriptId]);
-
-  useEffect(() => {
-    // 선택된 원고가 바뀔 때 수정 모드 해제
+  const effectiveSelectedScriptId = selectedScriptId ?? filtered[0]?.id ?? null;
+  const selectedScript = scripts.find((s) => s.id === effectiveSelectedScriptId);
+  const selectScript = (id: string | null) => {
+    setSelectedScriptId(id);
     setIsEditing(false);
-  }, [selectedScriptId]);
+  };
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_1.3fr]">
         {/* Left panel - Navigation and script list */}
         <div className="space-y-6">
           {/* Category switcher tabs & Upload Button */}
@@ -56,7 +49,7 @@ export function PracticeListView({
                 onClick={() => {
                   setActiveCategory("practice");
                   const sub = scripts.find((s) => s.category === "practice");
-                  if (sub) setSelectedScriptId(sub.id);
+                  selectScript(sub?.id ?? null);
                 }}
                 className={`flex-1 rounded-xl py-2.5 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   activeCategory === "practice"
@@ -71,7 +64,7 @@ export function PracticeListView({
                 onClick={() => {
                   setActiveCategory("portfolio");
                   const sub = scripts.find((s) => s.category === "portfolio");
-                  if (sub) setSelectedScriptId(sub.id);
+                  selectScript(sub?.id ?? null);
                 }}
                 className={`flex-1 rounded-xl py-2.5 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   activeCategory === "portfolio"
@@ -86,7 +79,7 @@ export function PracticeListView({
                 onClick={() => {
                   setActiveCategory("designated");
                   const sub = scripts.find((s) => s.category === "designated");
-                  if (sub) setSelectedScriptId(sub.id);
+                  selectScript(sub?.id ?? null);
                 }}
                 className={`flex-1 rounded-xl py-2.5 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
                   activeCategory === "designated"
@@ -110,18 +103,18 @@ export function PracticeListView({
           </div>
 
           {/* Script Cards List */}
-          <div className="space-y-4 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
+          <div className="space-y-4">
             {filtered.length === 0 ? (
               <div className="py-8 text-center text-sm font-semibold text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl">
                 등록된 원고가 없습니다.
               </div>
             ) : (
               filtered.map((script) => {
-                const isSelected = script.id === selectedScriptId;
+                const isSelected = script.id === effectiveSelectedScriptId;
                 return (
                   <div
                     key={script.id}
-                    onClick={() => setSelectedScriptId(script.id)}
+                    onClick={() => selectScript(script.id)}
                     className={`group cursor-pointer rounded-2xl border p-4 transition-all duration-200 ${
                       isSelected
                         ? "border-periwinkle-500 bg-periwinkle-50/50 shadow-sm"
@@ -172,7 +165,7 @@ export function PracticeListView({
         </div>
 
         {/* Right panel - Script Reader */}
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col h-full min-h-[500px]">
+        <div className="flex min-h-[500px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           {selectedScript ? (
             <div className="flex-1 flex flex-col">
               {isEditing ? (
@@ -285,7 +278,7 @@ export function PracticeListView({
                                 try {
                                   const res = await deletePracticeScript(selectedScript.id);
                                   if (res.success) {
-                                    setSelectedScriptId(null);
+                                    selectScript(null);
                                   } else {
                                     alert(res.error || "삭제에 실패했습니다.");
                                   }
@@ -305,7 +298,7 @@ export function PracticeListView({
                   </div>
 
                   {/* Script content view */}
-                  <div className="flex-1 mt-6 rounded-2xl bg-gray-50 border border-gray-100 p-6 md:p-8 overflow-y-auto max-h-[55vh]">
+                  <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-6 md:p-8">
                     <pre className="whitespace-pre-wrap font-sans text-sm md:text-base font-medium leading-[1.8] text-gray-800 tracking-wide select-all">
                       {selectedScript.content}
                     </pre>
@@ -343,8 +336,8 @@ export function PracticeListView({
 
       {/* Upload Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4 shrink-0">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 🎙️ 새 원고 등록

@@ -41,18 +41,18 @@ export default async function PracticePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="수강생 명품 원고 연습실"
         description="최정상 아나운서 및 미디어 선배들의 안목으로 정제된 핵심 훈련 및 포트폴리오용 대본입니다."
       />
 
       {isAuthorized ? (
-        <div className="flex-1 p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           <PracticeListView scripts={scripts} isAdmin={isAdmin} />
         </div>
       ) : (
-        <div className="flex-1 p-6 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-periwinkle-50/20">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-slate-50 to-periwinkle-50/20 p-6">
           <div className="max-w-md w-full rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-lg relative overflow-hidden">
             <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-periwinkle-100/50 blur-2xl" />
             

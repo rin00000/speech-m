@@ -4,13 +4,13 @@ import { BookOpen01Icon } from "@hugeicons/core-free-icons";
 
 export default function StudiesPage() {
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="스터디 관리"
         description="수강생 스터디 그룹을 개설하고 관리합니다."
       />
 
-      <div className="flex-1 p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <p className="mb-5 text-sm leading-tight text-gray-500">
           스터디 그룹 현황과 참여 수강생을 확인하세요.
         </p>

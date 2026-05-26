@@ -40,6 +40,7 @@ import { isExpiredDeadline } from "@/lib/jobs/deadline";
 import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
+const JOBS_PAGE_SIZE = 25;
 
 const DeadlineBadge = ({ deadline }: { deadline: string | null }) => {
   if (!deadline) return <span className="text-gray-400">—</span>;
@@ -286,6 +287,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
   const { isPending: isBulkPending, runAction: runBulkAction } = useAsyncAction();
   const [query, setQuery] = useState("");
   const [density, setDensity] = useState<"compact" | "comfortable">("compact");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -306,14 +308,29 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
     return true;
   }, [selectedIds, jobs]);
 
-  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
-  const someSelected = selectedIds.size > 0 && !allSelected;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / JOBS_PAGE_SIZE));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const pageStart = (currentPage - 1) * JOBS_PAGE_SIZE;
+  const pageItems = useMemo(
+    () => filtered.slice(pageStart, pageStart + JOBS_PAGE_SIZE),
+    [filtered, pageStart],
+  );
+  const pageIds = useMemo(() => new Set(pageItems.map((j) => j.id)), [pageItems]);
+  const selectedOnPageCount = pageItems.filter((j) => selectedIds.has(j.id)).length;
+  const allSelected = pageItems.length > 0 && selectedOnPageCount === pageItems.length;
+  const someSelected = selectedOnPageCount > 0 && !allSelected;
+  const visibleStart = filtered.length === 0 ? 0 : pageStart + 1;
+  const visibleEnd = Math.min(pageStart + pageItems.length, filtered.length);
 
   const toggleAll = () => {
     if (allSelected) {
-      setSelectedIds(new Set());
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of pageIds) next.delete(id);
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(filtered.map((j) => j.id)));
+      setSelectedIds(new Set(pageItems.map((j) => j.id)));
     }
   };
 
@@ -386,6 +403,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              setPage(1);
               setSelectedIds(new Set());
             }}
             placeholder="공고명 또는 회사명 검색…"
@@ -447,7 +465,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
 
         {selectedIds.size === 0 && (
           <span className="ml-auto text-xs text-gray-400 tabular-nums">
-            {filtered.length}건
+            {visibleStart}-{visibleEnd} / {filtered.length}건
             {query && jobs.length !== filtered.length && ` / 전체 ${jobs.length}건`}
           </span>
         )}
@@ -486,7 +504,8 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
       )}
 
       {showToolbar ? (
-      <div className="max-h-[70vh] overflow-auto overscroll-contain" tabIndex={0} role="region" aria-label="공고 목록">
+      <>
+      <div className="overflow-x-auto overscroll-x-contain" tabIndex={0} role="region" aria-label="공고 목록">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 shadow-sm">
@@ -523,7 +542,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
                 </td>
               </tr>
             ) : (
-              filtered.map((job) => {
+              pageItems.map((job) => {
                 const statusStyle = STATUS_STYLE[job.status];
                 const isSelected = selectedIds.has(job.id);
                 const expired = isExpiredDeadline(job.deadline);
@@ -599,6 +618,34 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
           </tbody>
         </table>
       </div>
+      <div className="flex flex-col gap-2 border-t border-gray-200 bg-gray-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-xs text-gray-500 tabular-nums">
+          {visibleStart}-{visibleEnd} / {filtered.length}건
+          {query && jobs.length !== filtered.length ? ` (전체 ${jobs.length}건)` : ""}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+            className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            이전
+          </button>
+          <span className="min-w-16 text-center text-xs font-semibold text-gray-700 tabular-nums">
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage >= totalPages}
+            className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            다음
+          </button>
+        </div>
+      </div>
+      </>
       ) : (
         emptyState
       )}

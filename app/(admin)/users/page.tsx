@@ -18,14 +18,14 @@ export default async function UserManagementPage() {
   const isAdmin = user && user.role === "admin";
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="회원 권한 콘솔"
         description="가입 회원들의 역할을 관리하고 수강생 정회원 권한을 승인 및 강등할 수 있는 총괄 권한실입니다."
       />
 
       {isAdmin ? (
-        <div className="flex-1 p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           {/* Fetch data */}
           {(() => {
             return (
@@ -51,7 +51,7 @@ export default async function UserManagementPage() {
           })()}
         </div>
       ) : (
-        <div className="flex-1 p-6 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-rose-50/10">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gradient-to-br from-slate-50 to-rose-50/10 p-6">
           <div className="max-w-md w-full rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-lg relative overflow-hidden">
             <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-rose-100/50 blur-2xl" />
             
