@@ -3,6 +3,7 @@
  * 인증: `Authorization: Bearer ${CRON_SECRET}` (일일 전체 크롤과 동일).
  */
 import { NextResponse } from "next/server";
+import { runExpiredDetailVerification } from "@/lib/jobs/expired-detail-verifier";
 import { purgeRejectedPastRetention } from "@/lib/jobs/purge-rejected-ttl";
 import { runStaleListingPurge } from "@/lib/jobs/purge-stale-listings";
 
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   }
 
   const staleListing = await runStaleListingPurge();
+  const detailExpired = await runExpiredDetailVerification();
   const rejectedTtl = await purgeRejectedPastRetention();
 
   if (!staleListing.success) {
@@ -26,6 +28,18 @@ export async function GET(request: Request) {
       {
         error: staleListing.error ?? "Stale listing purge failed",
         staleListing,
+        detailExpired,
+        rejectedTtl,
+      },
+      { status: 500 }
+    );
+  }
+  if (!detailExpired.success) {
+    return NextResponse.json(
+      {
+        error: detailExpired.error ?? "Expired detail verification failed",
+        staleListing,
+        detailExpired,
         rejectedTtl,
       },
       { status: 500 }
@@ -36,13 +50,14 @@ export async function GET(request: Request) {
       {
         error: rejectedTtl.error ?? "Rejected TTL purge failed",
         staleListing,
+        detailExpired,
         rejectedTtl,
       },
       { status: 500 }
     );
   }
 
-  const body = { staleListing, rejectedTtl };
+  const body = { staleListing, detailExpired, rejectedTtl };
   console.info("[cron/purge-stale-job-postings]", body);
   return NextResponse.json(body);
 }
