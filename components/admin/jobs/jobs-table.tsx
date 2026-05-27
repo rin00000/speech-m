@@ -310,13 +310,12 @@ const MobileJobCard = ({
   onToggle: () => void;
 }) => {
   const statusStyle = STATUS_STYLE[job.status];
-  const expired = isExpiredDeadline(job.deadline);
 
   return (
     <article
       className={`space-y-3 p-4 transition-colors ${
         isSelected ? "bg-periwinkle-50" : "bg-white"
-      } ${expired ? "text-gray-400 opacity-75" : ""}`}
+      }`}
     >
       <div className="flex items-start gap-3">
         <input
@@ -419,24 +418,29 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
   const [density, setDensity] = useState<"compact" | "comfortable">("compact");
   const [page, setPage] = useState(1);
 
+  const activeJobs = useMemo(
+    () => jobs.filter((job) => !isExpiredDeadline(job.deadline)),
+    [jobs],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return jobs;
-    return jobs.filter(
+    if (!q) return activeJobs;
+    return activeJobs.filter(
       (j) =>
         j.title.toLowerCase().includes(q) ||
         (j.company ?? "").toLowerCase().includes(q),
     );
-  }, [jobs, query]);
+  }, [activeJobs, query]);
 
   const selectionAllRejected = useMemo(() => {
     if (selectedIds.size === 0) return false;
     for (const id of selectedIds) {
-      const j = jobs.find((x) => x.id === id);
+      const j = activeJobs.find((x) => x.id === id);
       if (!j || j.status !== "rejected") return false;
     }
     return true;
-  }, [selectedIds, jobs]);
+  }, [selectedIds, activeJobs]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / JOBS_PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
@@ -503,9 +507,9 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
     });
   };
 
-  if (jobs.length === 0 && !sourceHeader && !emptyState) return null;
+  if (activeJobs.length === 0 && !sourceHeader && !emptyState) return null;
 
-  const showToolbar = jobs.length > 0;
+  const showToolbar = activeJobs.length > 0;
   const showHeaderBlock = Boolean(sourceHeader) || showToolbar;
   const tableColSpan = showAiRejectReasons ? 11 : 10;
 
@@ -596,7 +600,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
         {selectedIds.size === 0 && (
           <span className="text-xs text-gray-400 tabular-nums md:ml-auto">
             {visibleStart}-{visibleEnd} / {filtered.length}건
-            {query && jobs.length !== filtered.length && ` / 전체 ${jobs.length}건`}
+            {query && activeJobs.length !== filtered.length && ` / 전체 ${activeJobs.length}건`}
           </span>
         )}
 
@@ -692,13 +696,12 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
               pageItems.map((job) => {
                 const statusStyle = STATUS_STYLE[job.status];
                 const isSelected = selectedIds.has(job.id);
-                const expired = isExpiredDeadline(job.deadline);
                 return (
                   <tr
                     key={job.id}
                     className={`transition-colors hover:bg-gray-50/60 ${
                       isSelected ? "bg-periwinkle-50" : ""
-                    } ${expired ? "text-gray-400 opacity-70" : ""}`}
+                    }`}
                   >
                     <td className={cellPaddingClass}>
                       <input
@@ -768,7 +771,7 @@ export const JobsTable = ({ jobs, showAiRejectReasons = false, sourceHeader, emp
       <div className="flex flex-col gap-2 border-t border-gray-200 bg-gray-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-xs text-gray-500 tabular-nums">
           {visibleStart}-{visibleEnd} / {filtered.length}건
-          {query && jobs.length !== filtered.length ? ` (전체 ${jobs.length}건)` : ""}
+          {query && activeJobs.length !== filtered.length ? ` (전체 ${activeJobs.length}건)` : ""}
         </span>
         <div className="flex items-center gap-2">
           <button

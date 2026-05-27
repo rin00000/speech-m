@@ -14,6 +14,7 @@ import {
   GridViewIcon,
 } from "@hugeicons/core-free-icons";
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
+import { activeDeadlineOrExpression } from "@/lib/jobs/deadline";
 import { getRejectedJobRetentionDays } from "@/lib/jobs/rejected-retention";
 import type { Database, JobSource, JobStatus } from "@/types/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -54,6 +55,7 @@ export default async function JobsPage({
   const { status: rawStatus, source: rawSource, showRejected: rawShowRejected } = await searchParams;
 
   const supabase = createAdminClient();
+  const activeDeadline = activeDeadlineOrExpression();
 
   // 관리자가 아닐 때 (비로그인, 수강생, 게스트 등)
   if (!isAdmin) {
@@ -61,6 +63,7 @@ export default async function JobsPage({
       .from("job_postings")
       .select("*")
       .eq("status", "approved")
+      .or(activeDeadline)
       .order("published_at", { ascending: false })
       .returns<JobPosting[]>();
 
@@ -84,11 +87,12 @@ export default async function JobsPage({
   const rejectedRetentionDays = getRejectedJobRetentionDays();
 
   const [{ data: allForCounts }, { data: jobs, error }] = await Promise.all([
-    supabase.from("job_postings").select("status, source"),
+    supabase.from("job_postings").select("status, source").or(activeDeadline),
     (() => {
       let q = supabase
         .from("job_postings")
         .select("*")
+        .or(activeDeadline)
         .order("created_at", { ascending: false });
       if (activeStatus) q = q.eq("status", activeStatus);
       else if (hideRejectedInList) q = q.neq("status", "rejected");
