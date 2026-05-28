@@ -13,7 +13,14 @@ type AdminClient = SupabaseClient<Database>;
 
 export type ExpiredDetailCandidate = Pick<
   Database["public"]["Tables"]["job_postings"]["Row"],
-  "id" | "source" | "source_url" | "deadline"
+  | "id"
+  | "source"
+  | "source_url"
+  | "deadline"
+  | "status"
+  | "published_at"
+  | "last_seen_at"
+  | "detail_verified_at"
 >;
 
 export type ExpiredDetailCheckState = "expired" | "active" | "unknown";
@@ -36,6 +43,7 @@ export type ExpiredDetailVerificationResult = {
   checked: number;
   deleted: number;
   blocked: number;
+  verified: number;
   skipped: number;
   errors: ExpiredDetailVerificationError[];
   error?: string;
@@ -46,9 +54,15 @@ type ExpiredDetailRemovalResult = Pick<ExpiredDetailVerificationResult, "blocked
 type ExpiredDetailRemoval = (
   jobs: readonly ExpiredDetailCandidate[]
 ) => Promise<ExpiredDetailRemovalResult>;
+type ExpiredDetailTouch = (jobs: readonly ExpiredDetailCandidate[]) => Promise<number>;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const NON_ISO_DEADLINE_LIKE_PATTERN = "____-__-__";
+const DETAIL_CANDIDATE_OR_EXPRESSION = [
+  `deadline.not.like.${NON_ISO_DEADLINE_LIKE_PATTERN}`,
+  "status.eq.approved",
+  "published_at.not.is.null",
+].join(",");
 const DEFAULT_EXPIRED_DETAIL_VERIFY_LIMIT = 50;
 const MAX_EXPIRED_DETAIL_VERIFY_LIMIT = 200;
 const DEFAULT_EXPIRED_DETAIL_VERIFY_CONCURRENCY = 3;
@@ -62,6 +76,27 @@ const MEDIAJOB_EXPIRED_TEXT = "\uB9C8\uAC10\uB41C \uACF5\uACE0\uC785\uB2C8\uB2E4
 const normalizeText = (value: string): string => value.replace(/\s+/g, " ").trim();
 
 const isMediajobSource = (source: JobSource): boolean => source.startsWith("mediajob_");
+
+export function isExpiredDetailVerificationCandidate(job: ExpiredDetailCandidate): boolean {
+  const hasNonIsoDeadline = Boolean(job.deadline && !ISO_DATE.test(job.deadline));
+  return hasNonIsoDeadline || job.status === "approved" || Boolean(job.published_at);
+}
+
+function compareNullableIso(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (a == null) return -1;
+  if (b == null) return 1;
+  return a.localeCompare(b);
+}
+
+export function compareExpiredDetailCandidates(
+  a: ExpiredDetailCandidate,
+  b: ExpiredDetailCandidate
+): number {
+  const byDetailVerified = compareNullableIso(a.detail_verified_at, b.detail_verified_at);
+  if (byDetailVerified !== 0) return byDetailVerified;
+  return compareNullableIso(a.last_seen_at, b.last_seen_at);
+}
 
 const getEnvInt = (name: string, fallback: number, max: number): number => {
   const raw = process.env[name]?.trim();
@@ -221,12 +256,33 @@ export async function removeExpiredDetailJobs(
   return { blocked: rows.length, deleted };
 }
 
+export async function touchExpiredDetailJobs(
+  supabase: AdminClient,
+  jobs: readonly ExpiredDetailCandidate[],
+  verifiedAt: string = new Date().toISOString()
+): Promise<number> {
+  const ids = [...new Set(jobs.map((job) => job.id).filter(Boolean))];
+  if (!ids.length) return 0;
+
+  let touched = 0;
+  for (const part of chunk(ids, MUTATION_CHUNK)) {
+    const { error } = await supabase
+      .from("job_postings")
+      .update({ detail_verified_at: verifiedAt })
+      .in("id", part);
+    if (error) throw new Error(error.message);
+    touched += part.length;
+  }
+  return touched;
+}
+
 export async function verifyExpiredDetailCandidates(
   candidates: readonly ExpiredDetailCandidate[],
   options: {
     fetcher?: DetailFetch;
     concurrency?: number;
     removeExpired?: ExpiredDetailRemoval;
+    touchVerified?: ExpiredDetailTouch;
   } = {}
 ): Promise<ExpiredDetailVerificationResult> {
   const fetcher = options.fetcher ?? fetch;
@@ -252,17 +308,27 @@ export async function verifyExpiredDetailCandidates(
   const expiredJobs = checks
     .filter((item) => item.result?.state === "expired")
     .map((item) => item.job);
+  const verifiedJobs = checks
+    .filter((item) => item.result?.state !== "expired")
+    .map((item) => item.job);
+
+  let removed: ExpiredDetailRemovalResult = { blocked: 0, deleted: 0 };
+  let verified = 0;
 
   try {
-    const removed = expiredJobs.length
+    removed = expiredJobs.length
       ? await (options.removeExpired ?? (async () => ({ blocked: 0, deleted: 0 })))(expiredJobs)
-      : { blocked: 0, deleted: 0 };
+      : removed;
+    verified = verifiedJobs.length
+      ? await (options.touchVerified ?? (async () => 0))(verifiedJobs)
+      : 0;
 
     return {
       success: true,
       checked: candidates.length,
       deleted: removed.deleted,
       blocked: removed.blocked,
+      verified,
       skipped: candidates.length - expiredJobs.length,
       errors,
     };
@@ -271,8 +337,9 @@ export async function verifyExpiredDetailCandidates(
     return {
       success: false,
       checked: candidates.length,
-      deleted: 0,
-      blocked: 0,
+      deleted: removed.deleted,
+      blocked: removed.blocked,
+      verified,
       skipped: candidates.length,
       errors: [...errors, { message }],
       error: message,
@@ -286,17 +353,19 @@ async function fetchExpiredDetailCandidates(
 ): Promise<ExpiredDetailCandidate[]> {
   const { data, error } = await supabase
     .from("job_postings")
-    .select("id, source, source_url, deadline")
+    .select("id, source, source_url, deadline, status, published_at, last_seen_at, detail_verified_at")
     .in("source", [...STALE_PURGE_LISTING_SOURCES])
     .in("status", ["pending", "approved"])
-    .not("deadline", "is", null)
-    .not("deadline", "like", NON_ISO_DEADLINE_LIKE_PATTERN)
+    .or(DETAIL_CANDIDATE_OR_EXPRESSION)
+    .order("detail_verified_at", { ascending: true, nullsFirst: true })
     .order("last_seen_at", { ascending: true, nullsFirst: true })
     .limit(limit)
     .returns<ExpiredDetailCandidate[]>();
 
   if (error) throw new Error(error.message);
-  return (data ?? []).filter((job) => job.deadline != null && !ISO_DATE.test(job.deadline));
+  return (data ?? [])
+    .filter(isExpiredDetailVerificationCandidate)
+    .sort(compareExpiredDetailCandidates);
 }
 
 export async function runExpiredDetailVerification(options: {
@@ -320,6 +389,7 @@ export async function runExpiredDetailVerification(options: {
       fetcher: options.fetcher,
       concurrency: options.concurrency,
       removeExpired: (expiredJobs) => removeExpiredDetailJobs(supabase, expiredJobs),
+      touchVerified: (verifiedJobs) => touchExpiredDetailJobs(supabase, verifiedJobs),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -328,6 +398,7 @@ export async function runExpiredDetailVerification(options: {
       checked: 0,
       deleted: 0,
       blocked: 0,
+      verified: 0,
       skipped: 0,
       errors: [{ message }],
       error: message,

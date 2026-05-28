@@ -5,10 +5,13 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildExpiredDetailVerificationUrl,
   checkJobDetailExpired,
+  compareExpiredDetailCandidates,
+  isExpiredDetailVerificationCandidate,
   isJobkoreaExpiredStatus,
   isMediajobExpiredHtml,
   isSaraminExpiredHtml,
   removeExpiredDetailJobs,
+  touchExpiredDetailJobs,
   toSaraminCanonicalDetailUrl,
   verifyExpiredDetailCandidates,
   type ExpiredDetailCandidate,
@@ -20,6 +23,10 @@ const makeCandidate = (
   id: overrides.id,
   source: overrides.source ?? "mediajob_reporter",
   source_url: overrides.source_url,
+  status: overrides.status ?? "pending",
+  published_at: overrides.published_at ?? null,
+  last_seen_at: overrides.last_seen_at ?? null,
+  detail_verified_at: overrides.detail_verified_at ?? null,
   deadline: overrides.deadline ?? "채용시까지",
 });
 
@@ -90,6 +97,65 @@ describe("expired detail parsers", () => {
     expect(expired.state).toBe("expired");
     expect(active.state).toBe("active");
   });
+
+  it("includes non-ISO, approved, or published jobs and excludes pending ISO jobs", () => {
+    expect(
+      isExpiredDetailVerificationCandidate(
+        makeCandidate({ id: "text", source_url: "https://example.com/text", deadline: "채용시까지" })
+      )
+    ).toBe(true);
+    expect(
+      isExpiredDetailVerificationCandidate(
+        makeCandidate({
+          id: "pending-iso",
+          source_url: "https://example.com/iso",
+          deadline: "2026-12-31",
+        })
+      )
+    ).toBe(false);
+    expect(
+      isExpiredDetailVerificationCandidate(
+        makeCandidate({
+          id: "approved-iso",
+          source_url: "https://example.com/approved",
+          status: "approved",
+          deadline: "2026-12-31",
+        })
+      )
+    ).toBe(true);
+    expect(
+      isExpiredDetailVerificationCandidate(
+        makeCandidate({
+          id: "published",
+          source_url: "https://example.com/published",
+          deadline: "2026-12-31",
+          published_at: "2026-05-27T00:00:00.000Z",
+        })
+      )
+    ).toBe(true);
+  });
+
+  it("sorts never-verified candidates before older verified candidates", () => {
+    const ordered = [
+      makeCandidate({
+        id: "newer",
+        source_url: "https://example.com/newer",
+        detail_verified_at: "2026-05-27T00:00:00.000Z",
+      }),
+      makeCandidate({
+        id: "never",
+        source_url: "https://example.com/never",
+        last_seen_at: "2026-05-26T00:00:00.000Z",
+      }),
+      makeCandidate({
+        id: "older",
+        source_url: "https://example.com/older",
+        detail_verified_at: "2026-05-26T00:00:00.000Z",
+      }),
+    ].sort(compareExpiredDetailCandidates);
+
+    expect(ordered.map((job) => job.id)).toEqual(["never", "older", "newer"]);
+  });
 });
 
 describe("verifyExpiredDetailCandidates", () => {
@@ -109,6 +175,7 @@ describe("verifyExpiredDetailCandidates", () => {
       }),
     ];
     const removed: ExpiredDetailCandidate[] = [];
+    const touched: ExpiredDetailCandidate[] = [];
     const fetcher = vi.fn(async (input: string) => {
       if (input.endsWith("rec_idx=1")) {
         return new Response(
@@ -132,15 +199,21 @@ describe("verifyExpiredDetailCandidates", () => {
         removed.push(...jobs);
         return { blocked: jobs.length, deleted: jobs.length };
       },
+      touchVerified: async (jobs) => {
+        touched.push(...jobs);
+        return jobs.length;
+      },
     });
 
     expect(result.success).toBe(true);
     expect(result.checked).toBe(3);
     expect(result.deleted).toBe(1);
     expect(result.blocked).toBe(1);
+    expect(result.verified).toBe(2);
     expect(result.skipped).toBe(2);
     expect(result.errors).toHaveLength(1);
     expect(removed.map((job) => job.id)).toEqual(["expired"]);
+    expect(touched.map((job) => job.id)).toEqual(["active", "failed"]);
   });
 });
 
@@ -175,5 +248,36 @@ describe("removeExpiredDetailJobs", () => {
 
     expect(result).toEqual({ blocked: 2, deleted: 2 });
     expect(calls).toEqual(["block:2", "delete:2"]);
+  });
+
+  it("updates detail verification time for non-expired rows", async () => {
+    const calls: unknown[] = [];
+    const supabase = {
+      from() {
+        return {
+          update: (payload: unknown) => ({
+            in: async (_column: string, values: unknown[]) => {
+              calls.push(payload, values);
+              return { error: null };
+            },
+          }),
+        };
+      },
+    } as unknown as Parameters<typeof touchExpiredDetailJobs>[0];
+
+    const touched = await touchExpiredDetailJobs(
+      supabase,
+      [
+        makeCandidate({ id: "job-1", source_url: "https://example.com/1" }),
+        makeCandidate({ id: "job-2", source_url: "https://example.com/2" }),
+      ],
+      "2026-05-27T00:00:00.000Z"
+    );
+
+    expect(touched).toBe(2);
+    expect(calls).toEqual([
+      { detail_verified_at: "2026-05-27T00:00:00.000Z" },
+      ["job-1", "job-2"],
+    ]);
   });
 });

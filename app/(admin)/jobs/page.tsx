@@ -5,6 +5,7 @@ import { CrawlButton } from "@/components/admin/crawl/crawl-button";
 import { AiFitButton } from "@/components/admin/ai/ai-fit-button";
 import { JobsSourceTabs } from "@/components/admin/jobs/jobs-source-tabs";
 import { JobsTable } from "@/components/admin/jobs/jobs-table";
+import { ManualJobForm } from "@/components/admin/jobs/manual-job-form";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Briefcase01Icon,
@@ -253,6 +254,8 @@ export default async function JobsPage({
 
         {/* Actions row (above list card) */}
         <div className="flex flex-col gap-4">
+          <ManualJobForm />
+
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
             <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
             <CrawlButton source="saramin" label="사람인 즉시 동기화" />

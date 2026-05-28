@@ -12,6 +12,13 @@ import {
   type BenchmarkResult,
 } from "@/lib/ai/job-fit";
 import { buildJobPostDraftPrompt } from "@/lib/ai/post/prompt";
+import { isDeadlineActiveForDedup } from "@/lib/crawl/fingerprint";
+import { getCurrentUser } from "@/lib/auth/session";
+import {
+  buildManualJobPostingPayload,
+  type ManualJobPostingFieldErrors,
+  type ManualJobPostingInput,
+} from "@/lib/jobs/manual-job-posting";
 import type { JobStatus } from "@/types/database.types";
 export type { CrawlSource } from "@/lib/crawl/trigger";
 
@@ -39,6 +46,10 @@ export type RunAiFitResult = {
   failed?: number;
   error?: string;
 };
+
+export type CreateManualJobPostingResult =
+  | { success: true; id?: string }
+  | { success: false; error: string; fieldErrors?: ManualJobPostingFieldErrors };
 
 /** 서버 액션에서 즉시 판정. 외부 배치·curl은 `POST /api/admin/benchmark-job-fit`(동일 `x-crawl-secret`) 사용. */
 export const evaluateAiFilterBenchmark = async (
@@ -95,6 +106,95 @@ export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
       error: err instanceof Error ? err.message : String(err),
     };
   }
+};
+
+type DuplicateFingerprintRow = {
+  id: string;
+  deadline: string | null;
+  status: JobStatus;
+};
+
+export const createManualJobPosting = async (
+  input: ManualJobPostingInput
+): Promise<CreateManualJobPostingResult> => {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "admin") {
+    return { success: false, error: "관리자 권한이 필요합니다." };
+  }
+
+  const built = buildManualJobPostingPayload(input);
+  if (!built.success) {
+    return {
+      success: false,
+      error: built.error,
+      fieldErrors: built.fieldErrors,
+    };
+  }
+
+  const supabase = createAdminClient();
+  const { payload } = built;
+
+  const { data: existingByUrl, error: urlLookupError } = await supabase
+    .from("job_postings")
+    .select("id")
+    .eq("source_url", payload.source_url)
+    .maybeSingle();
+
+  if (urlLookupError) {
+    console.error("createManualJobPosting URL lookup error:", urlLookupError);
+    return { success: false, error: "기존 공고 확인 중 오류가 발생했습니다." };
+  }
+  if (existingByUrl) {
+    return {
+      success: false,
+      error: "이미 등록된 원문 URL입니다.",
+      fieldErrors: { sourceUrl: "이미 등록된 원문 URL입니다." },
+    };
+  }
+
+  if (payload.fingerprint) {
+    const { data: fingerprintRows, error: fingerprintLookupError } = await supabase
+      .from("job_postings")
+      .select("id,deadline,status")
+      .eq("fingerprint", payload.fingerprint)
+      .in("status", ["pending", "approved"])
+      .returns<DuplicateFingerprintRow[]>();
+
+    if (fingerprintLookupError) {
+      console.error("createManualJobPosting fingerprint lookup error:", fingerprintLookupError);
+      return { success: false, error: "중복 공고 확인 중 오류가 발생했습니다." };
+    }
+
+    const hasActiveDuplicate = (fingerprintRows ?? []).some((row) =>
+      isDeadlineActiveForDedup(row.deadline)
+    );
+    if (hasActiveDuplicate) {
+      return {
+        success: false,
+        error: "같은 회사명과 공고명으로 등록된 활성 공고가 있습니다.",
+        fieldErrors: {
+          title: "같은 회사명과 공고명으로 등록된 활성 공고가 있습니다.",
+        },
+      };
+    }
+  }
+
+  const { data, error } = await supabase.from("job_postings").insert(payload).select("id");
+
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        success: false,
+        error: "이미 등록된 원문 URL입니다.",
+        fieldErrors: { sourceUrl: "이미 등록된 원문 URL입니다." },
+      };
+    }
+    console.error("createManualJobPosting insert error:", error);
+    return { success: false, error: "수동 공고 저장 중 오류가 발생했습니다." };
+  }
+
+  revalidateJobsViews();
+  return { success: true, id: data?.[0]?.id };
 };
 
 /**

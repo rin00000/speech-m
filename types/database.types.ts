@@ -29,6 +29,7 @@ export interface Database {
           created_at: string;
           fingerprint: string | null;
           last_seen_at: string | null;
+          detail_verified_at: string | null;
           /** runJobFitBatch 판정 스냅샷(보류 포함). 수동 상태 변경 시 null. */
           ai_fit_snapshot: DbJson | null;
         };
@@ -46,6 +47,7 @@ export interface Database {
           created_at?: string;
           fingerprint?: string | null;
           last_seen_at?: string | null;
+          detail_verified_at?: string | null;
           ai_fit_snapshot?: DbJson | null;
         };
         Update: {
@@ -62,6 +64,7 @@ export interface Database {
           created_at?: string;
           fingerprint?: string | null;
           last_seen_at?: string | null;
+          detail_verified_at?: string | null;
           ai_fit_snapshot?: DbJson | null;
         };
         Relationships: [];
