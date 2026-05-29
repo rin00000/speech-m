@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import type { PracticeScriptCategory, PracticeScriptDifficulty } from "@/types/database.types";
+
+const PRACTICE_SCRIPT_CATEGORIES: PracticeScriptCategory[] = ["practice", "portfolio", "designated"];
+const PRACTICE_SCRIPT_DIFFICULTIES: PracticeScriptDifficulty[] = ["쉬움", "보통", "어려움"];
 
 export async function addPracticeScript(formData: FormData) {
   const user = await getCurrentUser();
@@ -20,6 +24,9 @@ export async function addPracticeScript(formData: FormData) {
 
   if (!category || !type || !difficulty || !title || !content) {
     return { success: false, error: "필수 입력 항목이 누락되었습니다." };
+  }
+  if (!isPracticeScriptCategory(category) || !isPracticeScriptDifficulty(difficulty)) {
+    return { success: false, error: "원고 분류 또는 난이도가 올바르지 않습니다." };
   }
 
   content = cleanScriptContent(content);
@@ -60,6 +67,9 @@ export async function updatePracticeScript(id: string, formData: FormData) {
 
   if (!category || !type || !difficulty || !title || !content) {
     return { success: false, error: "필수 입력 항목이 누락되었습니다." };
+  }
+  if (!isPracticeScriptCategory(category) || !isPracticeScriptDifficulty(difficulty)) {
+    return { success: false, error: "원고 분류 또는 난이도가 올바르지 않습니다." };
   }
 
   content = cleanScriptContent(content);
@@ -111,3 +121,10 @@ function cleanScriptContent(rawContent: string) {
     .trim();
 }
 
+function isPracticeScriptCategory(value: string): value is PracticeScriptCategory {
+  return PRACTICE_SCRIPT_CATEGORIES.includes(value as PracticeScriptCategory);
+}
+
+function isPracticeScriptDifficulty(value: string): value is PracticeScriptDifficulty {
+  return PRACTICE_SCRIPT_DIFFICULTIES.includes(value as PracticeScriptDifficulty);
+}

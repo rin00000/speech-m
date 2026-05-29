@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
+import type { DbJson } from "@/types/database.types";
 
 /**
  * 1. 현재 사용자의 프로필 닉네임(display_name)을 업데이트합니다.
@@ -92,6 +93,9 @@ export async function updateSystemSetting(
     if (!key) {
       return { success: false, error: "설정 키가 유효하지 않습니다." };
     }
+    if (!isDbJson(value)) {
+      return { success: false, error: "설정 값은 JSON으로 저장 가능한 값이어야 합니다." };
+    }
 
     const supabase = createAdminClient();
     const { error } = await supabase
@@ -116,4 +120,27 @@ export async function updateSystemSetting(
     const message = err instanceof Error ? err.message : "서버 내부 오류가 발생했습니다.";
     return { success: false, error: message };
   }
+}
+
+function isDbJson(value: unknown): value is DbJson {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isDbJson);
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).every(
+      (item) => item === undefined || isDbJson(item),
+    );
+  }
+
+  return false;
 }

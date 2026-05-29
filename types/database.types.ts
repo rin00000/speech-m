@@ -9,6 +9,11 @@ export type DbJson =
 export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "saramin" | "jobkorea" | "custom";
 export type JobStatus = "pending" | "approved" | "rejected";
 export type StudentUpgradeRequestStatus = "pending" | "approved" | "rejected";
+export type PracticeScriptCategory = "practice" | "portfolio" | "designated";
+export type PracticeScriptDifficulty = "쉬움" | "보통" | "어려움";
+export type StudyGroupType = "relay";
+export type StudyGroupStatus = "active" | "archived";
+export type StudyQuestStatus = "open" | "closed";
 
 export interface Database {
   public: {
@@ -87,6 +92,57 @@ export interface Database {
         };
         Relationships: [];
       },
+      practice_scripts: {
+        Row: {
+          id: string;
+          title: string;
+          content: string;
+          category: PracticeScriptCategory;
+          type: string;
+          difficulty: PracticeScriptDifficulty;
+          description: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          content: string;
+          category: PracticeScriptCategory;
+          type?: string;
+          difficulty?: PracticeScriptDifficulty;
+          description?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          content?: string;
+          category?: PracticeScriptCategory;
+          type?: string;
+          difficulty?: PracticeScriptDifficulty;
+          description?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
+      system_settings: {
+        Row: {
+          key: string;
+          value: DbJson;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: DbJson;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          value?: DbJson;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
       user_profiles: {
         Row: {
           email: string;
@@ -144,6 +200,162 @@ export interface Database {
         };
         Relationships: [];
       },
+      study_groups: {
+        Row: {
+          id: string;
+          type: StudyGroupType;
+          title: string;
+          description: string;
+          status: StudyGroupStatus;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          type?: StudyGroupType;
+          title: string;
+          description?: string;
+          status?: StudyGroupStatus;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: StudyGroupType;
+          title?: string;
+          description?: string;
+          status?: StudyGroupStatus;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
+      study_group_members: {
+        Row: {
+          id: string;
+          group_id: string;
+          student_email: string;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          student_email: string;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          student_email?: string;
+          display_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
+      study_quests: {
+        Row: {
+          id: string;
+          group_id: string;
+          script_title: string;
+          script_content: string;
+          due_at: string;
+          status: StudyQuestStatus;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          script_title: string;
+          script_content: string;
+          due_at: string;
+          status?: StudyQuestStatus;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          script_title?: string;
+          script_content?: string;
+          due_at?: string;
+          status?: StudyQuestStatus;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
+      study_relay_submissions: {
+        Row: {
+          id: string;
+          quest_id: string;
+          student_email: string;
+          audio_path: string;
+          audio_file_name: string;
+          audio_content_type: string;
+          audio_size_bytes: number;
+          sequence_number: number;
+          submitted_at: string;
+          audio_deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          quest_id: string;
+          student_email: string;
+          audio_path: string;
+          audio_file_name: string;
+          audio_content_type: string;
+          audio_size_bytes: number;
+          sequence_number: number;
+          submitted_at?: string;
+          audio_deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          quest_id?: string;
+          student_email?: string;
+          audio_path?: string;
+          audio_file_name?: string;
+          audio_content_type?: string;
+          audio_size_bytes?: number;
+          sequence_number?: number;
+          submitted_at?: string;
+          audio_deleted_at?: string | null;
+        };
+        Relationships: [];
+      },
+      study_relay_feedback: {
+        Row: {
+          id: string;
+          submission_id: string;
+          feedback_author_email: string;
+          comment: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          submission_id: string;
+          feedback_author_email: string;
+          comment: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          submission_id?: string;
+          feedback_author_email?: string;
+          comment?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
     },
     Views: Record<string, never>,
     Functions: {
@@ -158,6 +370,39 @@ export interface Database {
       purge_stale_job_listings: {
         Args: { p_cutoff_iso: string; p_include_published?: boolean };
         Returns: number;
+      },
+      submit_relay_first_submission: {
+        Args: {
+          p_quest_id: string;
+          p_student_email: string;
+          p_audio_path: string;
+          p_audio_file_name: string;
+          p_audio_content_type: string;
+          p_audio_size_bytes: number;
+        };
+        Returns: string;
+      },
+      submit_relay_feedback_and_submission: {
+        Args: {
+          p_quest_id: string;
+          p_student_email: string;
+          p_target_submission_id: string;
+          p_comment: string;
+          p_audio_path: string;
+          p_audio_file_name: string;
+          p_audio_content_type: string;
+          p_audio_size_bytes: number;
+        };
+        Returns: string;
+      },
+      submit_relay_final_feedback: {
+        Args: {
+          p_quest_id: string;
+          p_student_email: string;
+          p_target_submission_id: string;
+          p_comment: string;
+        };
+        Returns: string;
       },
     },
     Enums: Record<string, never>;

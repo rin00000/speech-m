@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { runExpiredDetailVerification } from "@/lib/jobs/expired-detail-verifier";
 import { purgeRejectedPastRetention } from "@/lib/jobs/purge-rejected-ttl";
 import { runStaleListingPurge } from "@/lib/jobs/purge-stale-listings";
+import { purgeOldStudyAudio } from "@/lib/studies/purge-old-audio";
 
 const verifyCronRequest = (request: Request): boolean => {
   const cronSecret = process.env.CRON_SECRET;
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
   const staleListing = await runStaleListingPurge();
   const detailExpired = await runExpiredDetailVerification();
   const rejectedTtl = await purgeRejectedPastRetention();
+  const studyAudio = await purgeOldStudyAudio();
 
   if (!staleListing.success) {
     return NextResponse.json(
@@ -30,6 +32,7 @@ export async function GET(request: Request) {
         staleListing,
         detailExpired,
         rejectedTtl,
+        studyAudio,
       },
       { status: 500 }
     );
@@ -41,6 +44,7 @@ export async function GET(request: Request) {
         staleListing,
         detailExpired,
         rejectedTtl,
+        studyAudio,
       },
       { status: 500 }
     );
@@ -52,12 +56,25 @@ export async function GET(request: Request) {
         staleListing,
         detailExpired,
         rejectedTtl,
+        studyAudio,
+      },
+      { status: 500 }
+    );
+  }
+  if (!studyAudio.success) {
+    return NextResponse.json(
+      {
+        error: studyAudio.error ?? "Study audio purge failed",
+        staleListing,
+        detailExpired,
+        rejectedTtl,
+        studyAudio,
       },
       { status: 500 }
     );
   }
 
-  const body = { staleListing, detailExpired, rejectedTtl };
+  const body = { staleListing, detailExpired, rejectedTtl, studyAudio };
   console.info("[cron/purge-stale-job-postings]", body);
   return NextResponse.json(body);
 }
