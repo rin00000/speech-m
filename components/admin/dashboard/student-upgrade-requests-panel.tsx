@@ -7,7 +7,7 @@ import { Cancel01Icon, CheckmarkCircle01Icon, UserIcon } from "@hugeicons/core-f
 import {
   approveStudentUpgradeRequest,
   rejectStudentUpgradeRequest,
-} from "@/app/(admin)/dashboard/student-upgrade-actions";
+} from "@/app/(admin)/dashboard/actions";
 
 /**
  * Renders pending student upgrade requests and admin approval controls.

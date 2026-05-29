@@ -1,13 +1,14 @@
 "use server";
 
+/**
+ * 대시보드 등업 문의 Server Actions.
+ * 게스트의 등업 요청 등록과 관리자의 승인·반려 처리를 담당한다.
+ */
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/server";
-
-/**
- * Coordinates student upgrade request submission and admin resolution from the dashboard.
- */
 
 type ActionResult = {
   success: boolean;

@@ -1,10 +1,15 @@
+/**
+ * /studies 라우트 페이지.
+ * 사용자 역할에 따라 관리자 스터디 운영 화면 또는 수강생 스터디 목록을 렌더링한다.
+ */
+
 import Link from "next/link";
 import { Header } from "@/components/admin/layout/header";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { LockIcon } from "@hugeicons/core-free-icons";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudentProfiles, getStudiesForViewer } from "@/lib/studies/data";
-import { StudiesIndexView } from "./studies-index-view";
+import { StudiesIndexView } from "./_components/studies-index-view";
 
 export default async function StudiesPage() {
   const user = await getCurrentUser();

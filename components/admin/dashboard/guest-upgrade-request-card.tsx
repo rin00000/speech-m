@@ -4,7 +4,7 @@ import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkCircle01Icon, UserIcon } from "@hugeicons/core-free-icons";
-import { submitStudentUpgradeRequest } from "@/app/(admin)/dashboard/student-upgrade-actions";
+import { submitStudentUpgradeRequest } from "@/app/(admin)/dashboard/actions";
 
 /**
  * Handles guest self-service student upgrade requests from the dashboard.

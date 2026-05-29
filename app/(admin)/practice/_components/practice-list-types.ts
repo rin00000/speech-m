@@ -3,7 +3,7 @@
  * page.tsx의 서버 조회 타입을 type-only로 재사용한다.
  */
 
-import type { ScriptItem } from "./page";
+import type { ScriptItem } from "../page";
 
 export type { ScriptItem };
 export type PracticeCategory = ScriptItem["category"];

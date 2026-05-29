@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { deletePracticeScript } from "@/app/actions/practice";
+import { deletePracticeScript } from "../actions";
 import { PracticeCategoryTabs } from "./practice-category-tabs";
 import { PracticeScriptCreateModal } from "./practice-script-create-modal";
 import { PracticeScriptList } from "./practice-script-list";

@@ -7,11 +7,35 @@ alwaysApply: true
 
 **Git 병렬 워크트리** 경로·브랜치 소유는 `docs/worktree-parallel-status.md`만 본다. 아래는 **단일 클론 안의 코드 디렉터리** 규약이다.
 
+## 현재 채택 패턴
+
+Speech-M은 `src/` 없는 **App Router 기능/라우트 기반 + lib 도메인 로직** 하이브리드다.
+
+```txt
+app/
+  (admin)/<route>/
+    page.tsx | layout.tsx | loading.tsx
+    actions.ts              # 해당 라우트 Server Action 공개 진입점
+    _components/            # 해당 라우트 전용 UI
+    _actions/               # actions.ts 뒤의 구현/helper
+    _lib/                   # 해당 라우트 안에서만 쓰는 비-UI helper
+  api/<feature>/route.ts    # HTTP 경계
+components/
+  admin/<feature>/          # 여러 라우트/패널에서 재사용되는 관리자 UI
+  app/layout/               # 앱 셸·탭·사이드 레일
+  ui/                       # 디자인 시스템 원자 컴포넌트
+lib/
+  <domain>/                 # jobs, crawl, studies, auth 등 테스트 가능한 도메인 로직
+types/
+  database.types.ts         # 생성 타입, 수동 편집 금지
+supabase/migrations/        # DB 스키마/RLS
+```
+
 ## 구역별 기준
 
 | 구역 | 넣는 것 | 넣지 않는 것 |
 |------|---------|----------------|
-| `app/` | URL·HTTP 경계: `page.tsx`, `layout.tsx`, Route Handler(`route.ts`), 해당 라우트 전용 Server Action | 순수 유틸·도메인 규칙만 있는 모듈(→ `lib/`) |
+| `app/` | URL·HTTP 경계: `page.tsx`, `layout.tsx`, Route Handler(`route.ts`), 해당 라우트 전용 Server Action·전용 UI | 순수 유틸·도메인 규칙만 있는 모듈(→ `lib/`) |
 | `components/` | 재사용 UI(클라이언트/서버 컴포넌트). 관리자 전용은 `components/admin/<기능>/` | DB 직접 호출·비밀키·장문의 비즈니스 규칙(→ `lib/`) |
 | `lib/` | 테스트·import 가능한 로직, Supabase/외부 API 헬퍼 | React 컴포넌트(예외: 명시적으로 합의된 경우만) |
 | `types/` | DB·API 공용 타입 | 도메인 로직 |
@@ -22,9 +46,11 @@ alwaysApply: true
 ## 관리자 UI (`components/admin/`)
 
 - `layout/` — 셸·사이드바·헤더 (`admin-shell`, `sidebar`, `header`)
+- `dashboard/` — 대시보드 패널·카드·운영 콘솔
 - `jobs/` — 채용 목록·탭·네이버 공유 링크 등 공고 관리 UI
 - `crawl/` — 크롤 트리거 버튼 등
 - `ai/` — job-fit 등 AI 실행 버튼
+- `settings/` — 관리자 설정 탭·패널
 
 새 관리자 조각은 **어느 화면 기능에 속하는지**로 위 폴더 중 하나에만 둔다. 공통이면 `layout/`.
 
@@ -57,3 +83,9 @@ alwaysApply: true
 ## 선택: co-location
 
 여러 라우트에서 재사용되면 `components/admin/<기능>/`. 한 세그먼트에만 묶일 때만 `_components/`를 고려한다.
+
+### 라우트 내부 private 폴더
+
+- `_components/`: 해당 route segment에서만 쓰는 UI.
+- `_actions/`: route `actions.ts`가 re-export하거나 호출하는 Server Action 구현/helper.
+- `_lib/`: 해당 route에서만 쓰는 비-UI helper. 여러 route가 쓰기 시작하면 `lib/<domain>/`으로 승격.

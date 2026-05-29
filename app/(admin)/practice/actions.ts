@@ -1,5 +1,10 @@
 "use server";
 
+/**
+ * /practice 라우트 전용 원고 관리 Server Actions.
+ * 관리자 권한 확인 후 연습 원고 생성·수정·삭제와 라우트 재검증을 수행한다.
+ */
+
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";

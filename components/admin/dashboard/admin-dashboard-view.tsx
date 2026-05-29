@@ -1,0 +1,79 @@
+/**
+ * 관리자 대시보드 서버 뷰.
+ * 등업 요청, 릴레이 피드백, 크롤러 제어, 최근 게시 공고 데이터를 조립한다.
+ */
+
+import { Header } from "@/components/admin/layout/header";
+import { activeDeadlineOrExpression, isExpiredDeadline } from "@/lib/jobs/deadline";
+import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
+import { createAdminClient } from "@/lib/supabase/server";
+import { CrawlerControlHub } from "./crawler-control-hub";
+import { RelayFeedbackConsole } from "./relay-feedback-console";
+import {
+  RecentPublishedJobsPanel,
+  type RecentPublishedJob,
+} from "./recent-published-jobs-panel";
+import {
+  StudentUpgradeRequestsPanel,
+  type StudentUpgradeRequestItem,
+} from "./student-upgrade-requests-panel";
+
+export async function AdminDashboardView() {
+  const supabase = createAdminClient();
+  const activeDeadline = activeDeadlineOrExpression();
+
+  const recentPublishedJobsResult = await supabase
+    .from("job_postings")
+    .select("id,title,company,location,source,source_url,deadline,published_at")
+    .eq("status", "approved")
+    .not("published_at", "is", null)
+    .or(activeDeadline)
+    .order("published_at", { ascending: false })
+    .limit(6)
+    .returns<RecentPublishedJob[]>();
+
+  const pendingUpgradeRequestsResult = await supabase
+    .from("student_upgrade_requests")
+    .select("id,email,display_name,message,requested_at")
+    .eq("status", "pending")
+    .order("requested_at", { ascending: true })
+    .returns<StudentUpgradeRequestItem[]>();
+
+  const hasJobsError = Boolean(recentPublishedJobsResult.error);
+  const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
+  const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
+    (job) => !isExpiredDeadline(job.deadline),
+  );
+  const pendingUpgradeRequests = pendingUpgradeRequestsResult.data ?? [];
+  const siteOrigin = getPublicSiteOrigin();
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Header
+        title="대시보드"
+        description="Speech-M 아카데미 현황을 한눈에 확인하세요."
+      />
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+        {hasUpgradeRequestsError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600 md:rounded-3xl">
+            수강생 등업 문의를 불러오는 중 오류가 발생했습니다.
+          </div>
+        ) : (
+          <StudentUpgradeRequestsPanel initialRequests={pendingUpgradeRequests} />
+        )}
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr] lg:gap-6">
+          <RelayFeedbackConsole />
+          <CrawlerControlHub />
+        </div>
+
+        <RecentPublishedJobsPanel
+          jobs={recentPublishedJobs}
+          hasError={hasJobsError}
+          siteOrigin={siteOrigin}
+        />
+      </div>
+    </div>
+  );
+}

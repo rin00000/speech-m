@@ -1,6 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+/**
+ * /jobs 라우트에서 공개하는 공고 관리 Server Actions.
+ * 크롤 실행, AI fit 배치, 수동 공고, 검수 상태 변경, 내부 게시 처리를 담당한다.
+ */
+
 import { headers } from "next/headers";
 import { addBlockedSourceUrls } from "@/lib/crawl/blocked-source-urls";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -16,47 +20,32 @@ import { isDeadlineActiveForDedup } from "@/lib/crawl/fingerprint";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   buildManualJobPostingPayload,
-  type ManualJobPostingFieldErrors,
   type ManualJobPostingInput,
 } from "@/lib/jobs/manual-job-posting";
 import type { JobStatus } from "@/types/database.types";
+import {
+  DELETE_REJECTED_CHUNK,
+  revalidateJobsViews,
+  statusUpdatePayload,
+  type CreateManualJobPostingResult,
+  type DuplicateFingerprintRow,
+  type JobPostDraftPromptResult,
+  type MarkPublishedResult,
+  type RunAiFitResult,
+  type RunCrawlResult,
+} from "./_actions/jobs-action-helpers";
 export type { CrawlSource } from "@/lib/crawl/trigger";
-
-/** 공고 데이터 변경 시 공고 관리·대시보드(같은 DB를 읽는 모든 관리자 화면)를 함께 갱신. */
-const revalidateJobsViews = () => {
-  revalidatePath("/jobs");
-  revalidatePath("/dashboard");
-};
-
-export type RunCrawlResult = {
-  success: boolean;
-  saved?: number;
-  inserted?: number;
-  updated?: number;
-  total?: number;
-  error?: string;
-};
-
-export type RunAiFitResult = {
-  success: boolean;
-  scanned?: number;
-  approved?: number;
-  rejected?: number;
-  pending?: number;
-  failed?: number;
-  error?: string;
-};
-
-export type CreateManualJobPostingResult =
-  | { success: true; id?: string }
-  | { success: false; error: string; fieldErrors?: ManualJobPostingFieldErrors };
+export type {
+  CreateManualJobPostingResult,
+  JobPostDraftPromptResult,
+  MarkPublishedResult,
+  RunAiFitResult,
+  RunCrawlResult,
+} from "./_actions/jobs-action-helpers";
 
 /** 서버 액션에서 즉시 판정. 외부 배치·curl은 `POST /api/admin/benchmark-job-fit`(동일 `x-crawl-secret`) 사용. */
-export const evaluateAiFilterBenchmark = async (
-  metrics: BenchmarkMetrics
-): Promise<BenchmarkResult> => {
-  return evaluateBenchmarkPassFail(metrics);
-};
+export const evaluateAiFilterBenchmark = async (metrics: BenchmarkMetrics): Promise<BenchmarkResult> =>
+  evaluateBenchmarkPassFail(metrics);
 
 export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => {
   const secret = process.env.CRAWL_API_SECRET;
@@ -106,12 +95,6 @@ export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
       error: err instanceof Error ? err.message : String(err),
     };
   }
-};
-
-type DuplicateFingerprintRow = {
-  id: string;
-  deadline: string | null;
-  status: JobStatus;
 };
 
 export const createManualJobPosting = async (
@@ -202,19 +185,6 @@ export const createManualJobPosting = async (
  * 검수 상태가 approved가 아니면 내부 게시 시각(`published_at`)을 비운다.
  * rejected로 확정될 때 `rejected_at`을 채우고, 그 외로 되돌리면 null로 둔다.
  */
-const nowIso = () => new Date().toISOString();
-
-const statusUpdatePayload = (status: JobStatus) => {
-  const clearAiSnapshot = { ai_fit_snapshot: null };
-  if (status === "approved") {
-    return { status, rejected_at: null, ...clearAiSnapshot };
-  }
-  if (status === "rejected") {
-    return { status, published_at: null, rejected_at: nowIso(), ...clearAiSnapshot };
-  }
-  return { status, published_at: null, rejected_at: null, ...clearAiSnapshot };
-};
-
 export const updateJobStatus = async (id: string, status: JobStatus) => {
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -237,8 +207,6 @@ export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
   if (error) throw new Error(error.message);
   revalidateJobsViews();
 };
-
-const DELETE_REJECTED_CHUNK = 200;
 
 /**
  * `status === "rejected"`인 행만 하드 삭제한다. id 목록에 다른 상태가 섞여 있어도 DB 조건으로 제외된다.
@@ -263,12 +231,6 @@ export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> =>
     if (error) throw new Error(error.message);
   }
   revalidateJobsViews();
-};
-
-export type MarkPublishedResult = {
-  success: boolean;
-  updated?: number;
-  error?: string;
 };
 
 /** 승인된 공고만 내부 게시 처리: `published_at`에 내부 게시 시각을 최초 1회 설정(idempotent). */
@@ -308,10 +270,6 @@ export const markJobsPublished = async (ids: string[]): Promise<MarkPublishedRes
   revalidateJobsViews();
   return { success: true, updated: eligible.length };
 };
-
-export type JobPostDraftPromptResult =
-  | { success: true; prompt: string }
-  | { success: false; error: string };
 
 /** 승인·내부 게시 확정 공고만: 외부 LLM에 붙일 초안용 한국어 프롬프트 문자열을 반환한다. */
 export const getJobPostDraftPrompt = async (id: string): Promise<JobPostDraftPromptResult> => {

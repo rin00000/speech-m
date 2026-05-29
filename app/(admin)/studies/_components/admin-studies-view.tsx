@@ -1,126 +1,51 @@
 "use client";
 
 /**
- * /studies 진입 화면.
- * 관리자는 릴레이 스터디 그룹/멤버/퀘스트를 관리하고, 수강생은 가입된 스터디 목록을 연다.
+ * 관리자용 스터디 운영 화면.
+ * 스터디 생성/선택 상태와 멤버·퀘스트 저장 액션을 한곳에서 조율한다.
  */
 
 import { useMemo, useState, useTransition } from "react";
-import type { InputHTMLAttributes } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Add01Icon,
   ArrowRight01Icon,
-  BookOpen01Icon,
   Calendar01Icon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import type { StudyAdminProfile, StudyListItem } from "@/lib/studies/data";
-import type { UserRole } from "@/lib/auth/session";
 import {
   createStudyGroup,
   createStudyQuest,
   saveStudyGroupMembers,
   updateStudyGroup,
-} from "./actions";
+} from "../actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState, TextInput } from "./studies-index-common";
 
-type StudiesIndexViewProps = {
-  role: UserRole;
+type AdminStudiesViewProps = {
   studies: StudyListItem[];
   studentProfiles: StudyAdminProfile[];
 };
 
-export function StudiesIndexView({
-  role,
-  studies,
-  studentProfiles,
-}: StudiesIndexViewProps) {
-  if (role === "admin") {
-    return <AdminStudiesView studies={studies} studentProfiles={studentProfiles} />;
-  }
-
-  return <StudentStudiesView studies={studies} />;
-}
-
-function StudentStudiesView({ studies }: { studies: StudyListItem[] }) {
-  if (studies.length === 0) {
-    return (
-      <EmptyState
-        title="참여 중인 스터디가 없습니다"
-        description="관리자가 스터디 멤버로 추가하면 이곳에 표시됩니다."
-      />
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {studies.map((study) => (
-        <Link
-          key={study.id}
-          href={`/studies/${study.id}`}
-          className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:border-periwinkle-200 hover:bg-periwinkle-50/30 md:rounded-3xl md:p-5"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700">
-              <HugeiconsIcon icon={UserGroupIcon} size={18} color="currentColor" />
-            </span>
-            <span className="inline-flex items-center rounded-full border border-periwinkle-200 bg-periwinkle-50 px-2.5 py-1 text-[11px] font-bold leading-none text-periwinkle-700">
-              릴레이
-            </span>
-          </div>
-
-          <h2 className="mt-4 text-base font-extrabold leading-tight text-gray-900">
-            {study.title}
-          </h2>
-          <p className="mt-2 line-clamp-2 text-xs font-medium leading-snug text-gray-500">
-            {study.description || "이번 주 원고를 읽고 학생끼리 피드백을 이어갑니다."}
-          </p>
-
-          <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-            <Metric label="멤버" value={`${study.memberCount}`} />
-            <Metric label="진행" value={`${study.openQuestCount}`} />
-            <Metric label="전체" value={`${study.questCount}`} />
-          </div>
-
-          <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4 text-xs font-bold text-gray-500">
-            <span>{study.nextDueAt ? `${formatDate(study.nextDueAt)} 마감` : "열린 퀘스트 없음"}</span>
-            <span className="inline-flex items-center gap-1 text-periwinkle-700">
-              입장
-              <HugeiconsIcon icon={ArrowRight01Icon} size={14} color="currentColor" />
-            </span>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function AdminStudiesView({
-  studies,
-  studentProfiles,
-}: {
-  studies: StudyListItem[];
-  studentProfiles: StudyAdminProfile[];
-}) {
+export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewProps) {
   const router = useRouter();
   const [selectedStudyId, setSelectedStudyId] = useState(studies[0]?.id ?? "");
   const selectedStudy = useMemo(
     () => studies.find((study) => study.id === selectedStudyId) ?? studies[0] ?? null,
     [selectedStudyId, studies],
   );
-  const [selectedEmailsByStudyId, setSelectedEmailsByStudyId] = useState<Record<string, string[]>>(() =>
-    Object.fromEntries(studies.map((study) => [study.id, study.memberEmails])),
+  const [selectedEmailsByStudyId, setSelectedEmailsByStudyId] = useState<Record<string, string[]>>(
+    () => Object.fromEntries(studies.map((study) => [study.id, study.memberEmails])),
   );
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const selectedEmails =
-    selectedStudy
-      ? selectedEmailsByStudyId[selectedStudy.id] ?? selectedStudy.memberEmails
-      : [];
+  const selectedEmails = selectedStudy
+    ? selectedEmailsByStudyId[selectedStudy.id] ?? selectedStudy.memberEmails
+    : [];
   const setSelectedEmails = (updater: (prev: string[]) => string[]) => {
     if (!selectedStudy) return;
     setSelectedEmailsByStudyId((prev) => ({
@@ -160,8 +85,7 @@ function AdminStudiesView({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <HugeiconsIcon icon={Add01Icon} size={18} color="currentColor" />
-              새 스터디
+              <HugeiconsIcon icon={Add01Icon} size={18} color="currentColor" />새 스터디
             </CardTitle>
           </CardHeader>
           <CardBody>
@@ -332,8 +256,7 @@ function AdminStudiesView({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <HugeiconsIcon icon={Calendar01Icon} size={18} color="currentColor" />
-                새 퀘스트
+                <HugeiconsIcon icon={Calendar01Icon} size={18} color="currentColor" />새 퀘스트
               </CardTitle>
             </CardHeader>
             <CardBody>
@@ -370,44 +293,4 @@ function AdminStudiesView({
       )}
     </div>
   );
-}
-
-function TextInput({
-  className = "",
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:border-periwinkle-300 ${className}`}
-    />
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white px-2 py-2">
-      <p className="text-base font-extrabold leading-none text-gray-900">{value}</p>
-      <p className="mt-1 text-[10px] font-bold leading-none text-gray-400">{label}</p>
-    </div>
-  );
-}
-
-function EmptyState({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-12 text-center shadow-sm md:rounded-3xl">
-      <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-400">
-        <HugeiconsIcon icon={BookOpen01Icon} size={26} color="currentColor" />
-      </span>
-      <p className="mt-4 text-sm font-extrabold text-gray-700">{title}</p>
-      <p className="mt-1 text-xs font-medium text-gray-400">{description}</p>
-    </div>
-  );
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("ko-KR", {
-    month: "short",
-    day: "numeric",
-  });
 }

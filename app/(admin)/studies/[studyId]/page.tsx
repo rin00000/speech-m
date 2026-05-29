@@ -1,10 +1,15 @@
+/**
+ * /studies/[studyId] 릴레이 스터디 상세 페이지.
+ * 접근 가능한 스터디 상세 데이터를 조회하고 제출·피드백 화면을 렌더링한다.
+ */
+
 import Link from "next/link";
 import { Header } from "@/components/admin/layout/header";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, LockIcon } from "@hugeicons/core-free-icons";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudyDetail } from "@/lib/studies/data";
-import { RelayStudyDetailView } from "./relay-study-detail-view";
+import { RelayStudyDetailView } from "./_components/relay-study-detail-view";
 
 export default async function RelayStudyPage({
   params,

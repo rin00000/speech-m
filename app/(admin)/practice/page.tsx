@@ -1,3 +1,8 @@
+/**
+ * /practice 라우트 페이지.
+ * 수강생·관리자 권한에 따라 연습 원고 목록 또는 권한 안내 화면을 렌더링한다.
+ */
+
 import { getCurrentUser } from "@/lib/auth/session";
 import { Header } from "@/components/admin/layout/header";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -7,7 +12,7 @@ import {
   LockIcon,
 } from "@hugeicons/core-free-icons";
 import Link from "next/link";
-import { PracticeListView } from "./practice-list-view";
+import { PracticeListView } from "./_components/practice-list-view";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export interface ScriptItem {

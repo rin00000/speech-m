@@ -11,60 +11,27 @@ import {
   titleHasJobFitTargetRole,
   titleHasTargetBroadcasterMarker,
   titleHasTargetBroadcastRole,
-  titleMatchesTargetBroadcaster,
 } from "./company-newspaper";
 import {
   companyMatchesBlocklist,
   companyMatchesBroadcaster,
   fieldTextMatches,
-  foldCase,
   titleMatchesAnyKeyword,
 } from "./keyword-match";
 import {
-  JOB_FIT_ALWAYS_REJECT_TITLE_KEYWORDS,
   JOB_FIT_BLOCK_COMPANIES,
-  JOB_FIT_INTERN_ALLOWED_KEYWORDS,
   JOB_FIT_INTERN_SOURCE,
   JOB_FIT_KEYWORD_HARD_EXCLUDE,
   JOB_FIT_TITLE_ENTERTAINMENT,
   JOB_FIT_TITLE_HARD_EXCLUDE,
   JOB_FIT_RULES,
 } from "./rules";
-
-const synthetic = (partial: Omit<JobFitResult, "label" | "score" | "reasons" | "matched_rules"> & Partial<JobFitResult>): JobFitResult => ({
-  label: partial.label ?? "rejected",
-  score: partial.score ?? 12,
-  reasons: partial.reasons ?? ["Deterministic policy gate."],
-  matched_rules: partial.matched_rules ?? ["deterministic_gate"],
-});
-
-/** Segment-based match so "취재기자" does not count as token "기자". */
-const internHasAllowedKeyword = (input: JobFitInput): boolean => {
-  const raw = `${input.title}\n${input.company ?? ""}`;
-  const segments = raw.split(/[\s,.·…|/&\\\-–—\n]+/).filter(Boolean);
-  const allowed = new Set(JOB_FIT_INTERN_ALLOWED_KEYWORDS.map((k) => foldCase(k)));
-  return segments.some((seg) => {
-    const normalized = foldCase(
-      seg.replace(/[()（）]/g, "").replace(/[\[\]]/g, "")
-    );
-    return allowed.has(normalized);
-  });
-};
-
-const titleWithoutDlive = (title: string): string => title.split("딜라이브").join("");
-
-const findAlwaysRejectTitleKeyword = (title: string): string | null => {
-  for (const kw of JOB_FIT_ALWAYS_REJECT_TITLE_KEYWORDS) {
-    const field = kw === "라이브" ? titleWithoutDlive(title) : title;
-    if (fieldTextMatches(field, kw)) return kw;
-  }
-  return null;
-};
-
-const hasTargetBroadcasterContext = (input: JobFitInput): boolean =>
-  companyMatchesBroadcaster(input.company, JOB_FIT_RULES.targetBroadcasters) ||
-  titleMatchesTargetBroadcaster(input.title) ||
-  titleHasTargetBroadcasterMarker(input.title);
+import {
+  findAlwaysRejectTitleKeyword,
+  hasTargetBroadcasterContext,
+  internHasAllowedKeyword,
+  synthetic,
+} from "./deterministic-helpers";
 
 /** Absolute rejects: blocklist company, hard keywords, entertainment in title. */
 const hitsAbsoluteExclude = (input: JobFitInput): JobFitResult | null => {

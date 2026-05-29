@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { updatePracticeScript } from "@/app/actions/practice";
+import { updatePracticeScript } from "../actions";
 import type { ScriptItem } from "./practice-list-types";
 
 export const PracticeScriptEditForm = ({

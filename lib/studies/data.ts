@@ -19,6 +19,8 @@ import {
   type StudyViewer,
 } from "./relay";
 import type { Database, StudyGroupStatus, StudyQuestStatus } from "@/types/database.types";
+export { getStudentProfiles } from "./admin-profiles";
+export type { StudyAdminProfile } from "./admin-profiles";
 
 type StudyGroupRow = Database["public"]["Tables"]["study_groups"]["Row"];
 type StudyGroupMemberRow = Database["public"]["Tables"]["study_group_members"]["Row"];
@@ -38,12 +40,6 @@ export type StudyListItem = {
   openQuestCount: number;
   nextDueAt: string | null;
   createdAt: string;
-};
-
-export type StudyAdminProfile = {
-  email: string;
-  displayName: string;
-  role: "admin" | "student" | "guest";
 };
 
 export type StudyQuestDetail = {
@@ -118,24 +114,6 @@ export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyLis
         createdAt: group.created_at,
       };
     });
-}
-
-export async function getStudentProfiles(): Promise<StudyAdminProfile[]> {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("user_profiles")
-    .select("email, display_name, role")
-    .eq("role", "student")
-    .order("display_name", { ascending: true });
-
-  return ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "role">[]).map((profile) => ({
-    email: profile.email,
-    displayName: getDisplayName({
-      email: profile.email,
-      displayName: profile.display_name,
-    }),
-    role: profile.role,
-  }));
 }
 
 export async function getStudyDetail({
