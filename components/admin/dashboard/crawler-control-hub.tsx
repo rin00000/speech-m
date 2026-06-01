@@ -3,7 +3,7 @@
 /**
  * 크롤러 제어 허브 컴포넌트 (대시보드).
  * 각 소스별 즉시 크롤 트리거 버튼과 AI 배치 필터 실행 버튼을 제공.
- * useAsyncAction 훅으로 모든 버튼이 글로벌 Progress Bar와 연동된다.
+ * 크롤은 글로벌 Progress Bar와 연동하고, 긴 AI 배치는 백그라운드로 시작한다.
  */
 
 import { useState } from "react";
@@ -16,7 +16,7 @@ import {
   CpuIcon,
   GlobalIcon
 } from "@hugeicons/core-free-icons";
-import { runCrawl, runAiFitBatch, type CrawlSource } from "@/app/(admin)/jobs/actions";
+import { runCrawl, type CrawlSource } from "@/app/(admin)/jobs/actions";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody, CardSurface } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAsyncAction } from "@/lib/ui/use-async-action";
@@ -43,7 +43,6 @@ export function CrawlerControlHub() {
   const mediajobAction = useAsyncAction();
   const saraminAction = useAsyncAction();
   const jobkoreaAction = useAsyncAction();
-  const aiAction = useAsyncAction();
 
   const getSourceAction = (source: CrawlSource) => {
     if (source === "mediajob") return mediajobAction;
@@ -88,26 +87,34 @@ export function CrawlerControlHub() {
     });
   };
 
-  const triggerAiBatch = () => {
+  const triggerAiBatch = async () => {
     setAiState({ status: "loading", message: "" });
 
-    aiAction.runAction(async () => {
-      const result = await runAiFitBatch();
-      if (!result.success) {
-        setAiState({ status: "error", message: result.error ?? "AI 필터 실행 실패" });
+    try {
+      const response = await fetch("/api/admin/job-fit/run", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        setAiState({ status: "error", message: result.error ?? "AI 필터 시작 실패" });
         return;
       }
 
-      const scanned = result.scanned ?? 0;
-      const approved = result.approved ?? 0;
-      const msg = `검사 ${scanned}건 (승인 ${approved}건)`;
-
-      setAiState({ status: "success", message: msg });
-      router.refresh();
+      setAiState({ status: "success", message: "백그라운드 실행 중" });
       setTimeout(() => {
         setAiState({ status: "idle", message: "" });
       }, 5000);
-    });
+    } catch (error) {
+      setAiState({
+        status: "error",
+        message: error instanceof Error ? error.message : "AI 필터 시작 실패",
+      });
+    }
   };
 
   const SOURCE_LABELS: Record<CrawlSource, string> = {
@@ -214,8 +221,8 @@ export function CrawlerControlHub() {
           </div>
 
           <Button
-            onClick={triggerAiBatch}
-            disabled={aiState.status === "loading" || aiAction.isPending}
+            onClick={() => void triggerAiBatch()}
+            disabled={aiState.status === "loading" || aiState.status === "success"}
             className={`w-full py-2.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
               aiState.status === "loading"
                 ? "bg-gray-100 text-gray-400 ring-1 ring-gray-200 cursor-not-allowed"
@@ -234,9 +241,9 @@ export function CrawlerControlHub() {
               className={aiState.status === "loading" ? "animate-spin" : ""}
             />
             {aiState.status === "loading"
-              ? "AI 자동 적합성 평가 중..."
+              ? "AI 자동 적합성 시작 중..."
               : aiState.status === "success"
-              ? `평가 완료: ${aiState.message}`
+              ? `평가 시작됨: ${aiState.message}`
               : aiState.status === "error"
               ? `평가 오류: ${aiState.message}`
               : "AI 자동 적합성 일괄 평가 실행"}

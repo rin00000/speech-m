@@ -14,6 +14,7 @@ import { buildAiFitSnapshotPayload } from "../domain/ai-fit-snapshot";
 import { evaluateJobFit } from "./evaluate";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
+type JobPostingUpdate = Database["public"]["Tables"]["job_postings"]["Update"];
 
 export type RunJobFitBatchResult = {
   success: boolean;
@@ -22,6 +23,7 @@ export type RunJobFitBatchResult = {
   rejected: number;
   pending: number;
   failed: number;
+  skipped: number;
   error?: string;
 };
 
@@ -36,7 +38,7 @@ const resolveJobFitBatchConcurrency = (): number => {
   return Math.min(n, MAX_JOB_FIT_BATCH_CONCURRENCY);
 };
 
-type JobOutcome = "approved" | "rejected" | "pending" | "failed";
+type JobOutcome = "approved" | "rejected" | "pending" | "failed" | "skipped";
 
 export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> => {
   const supabase = createAdminClient();
@@ -56,6 +58,7 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
       rejected: 0,
       pending: 0,
       failed: 0,
+      skipped: 0,
       error: error.message,
     };
   }
@@ -75,12 +78,15 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
       });
 
       const snapshot = buildAiFitSnapshotPayload(decision);
-
-      if (decision.finalStatus === "pending") {
-        const { error: updateError } = await supabase
+      const updatePendingJob = async (row: JobPostingUpdate): Promise<JobOutcome | null> => {
+        const { data: updatedRows, error: updateError } = await supabase
           .from("job_postings")
-          .update({ ai_fit_snapshot: snapshot })
-          .eq("id", job.id);
+          .update(row)
+          .eq("id", job.id)
+          .eq("status", "pending")
+          .select("id")
+          .returns<{ id: string }[]>();
+
         if (updateError) {
           console.error("[job-fit] evaluation failed", {
             id: job.id,
@@ -88,6 +94,14 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
           });
           return "failed";
         }
+
+        if ((updatedRows ?? []).length === 0) return "skipped";
+        return null;
+      };
+
+      if (decision.finalStatus === "pending") {
+        const updateOutcome = await updatePendingJob({ ai_fit_snapshot: snapshot });
+        if (updateOutcome) return updateOutcome;
       } else {
         const nowIso = new Date().toISOString();
         const row =
@@ -103,14 +117,8 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
                 rejected_at: nowIso,
                 ai_fit_snapshot: snapshot,
               };
-        const { error: updateError } = await supabase.from("job_postings").update(row).eq("id", job.id);
-        if (updateError) {
-          console.error("[job-fit] evaluation failed", {
-            id: job.id,
-            error: updateError.message,
-          });
-          return "failed";
-        }
+        const updateOutcome = await updatePendingJob(row);
+        if (updateOutcome) return updateOutcome;
       }
 
       console.info("[job-fit] decision", {
@@ -142,6 +150,7 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
   let rejected = 0;
   let pending = 0;
   let failed = 0;
+  let skipped = 0;
 
   for (const r of settled) {
     if (r.status === "rejected") {
@@ -152,6 +161,7 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
     if (outcome === "approved") approved += 1;
     else if (outcome === "rejected") rejected += 1;
     else if (outcome === "pending") pending += 1;
+    else if (outcome === "skipped") skipped += 1;
     else failed += 1;
   }
 
@@ -162,5 +172,6 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
     rejected,
     pending,
     failed,
+    skipped,
   };
 };
