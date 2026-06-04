@@ -1,0 +1,20 @@
+language: "ko-KR"
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  review_status: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    ignore_title_keywords:
+      - "wip"
+      - "draft"
+      - "skip review"
+    labels:
+      - "!skip-review"
+
+chat:
+  auto_reply: true
