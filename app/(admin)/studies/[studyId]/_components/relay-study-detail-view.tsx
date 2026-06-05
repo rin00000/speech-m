@@ -201,24 +201,27 @@ export function RelayStudyDetailView({
                 </div>
               )}
 
-              <QuestHeader quest={activeQuest} />
-
-              <div className="grid items-start gap-4 xl:grid-cols-[1fr_1.1fr_0.75fr]">
-                <CompletedStackCard quest={activeQuest} />
-                <PendingRelayCard
-                  quest={activeQuest}
-                  role={role}
-                  currentUserEmail={currentUserEmail}
-                  comment={comment}
-                  file={file}
-                  isPending={isPending}
-                  onCommentChange={setComment}
-                  onFileChange={setFile}
-                  onFirstSubmit={handleFirstSubmit}
-                  onFeedbackAndUpload={handleFeedbackAndUpload}
-                  onFinalFeedback={handleFinalFeedback}
-                />
-                <UnsubmittedMembersCard quest={activeQuest} />
+              <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+                <div className="xl:sticky xl:top-4">
+                  <QuestHeader quest={activeQuest} />
+                </div>
+                <div className="grid items-start gap-4">
+                  <PendingRelayCard
+                    quest={activeQuest}
+                    role={role}
+                    currentUserEmail={currentUserEmail}
+                    comment={comment}
+                    file={file}
+                    isPending={isPending}
+                    onCommentChange={setComment}
+                    onFileChange={setFile}
+                    onFirstSubmit={handleFirstSubmit}
+                    onFeedbackAndUpload={handleFeedbackAndUpload}
+                    onFinalFeedback={handleFinalFeedback}
+                  />
+                  <CompletedStackCard quest={activeQuest} />
+                  <UnsubmittedMembersCard quest={activeQuest} />
+                </div>
               </div>
             </>
           )}
