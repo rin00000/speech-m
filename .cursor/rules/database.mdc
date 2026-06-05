@@ -1,6 +1,6 @@
 ---
-description: Rules for Supabase, Zod validation, and Server Actions
-globs: lib/supabase/**/*.{ts,tsx}, services/**/*.{ts,tsx}, actions/**/*.{ts,tsx}
+description: Rules for Supabase, Zod validation, Server Actions, and SQL migrations
+globs: lib/supabase/**/*.{ts,tsx}, services/**/*.{ts,tsx}, actions/**/*.{ts,tsx}, supabase/**/*.sql, scripts/**/*.{js,mjs,ts,tsx,ps1}
 ---
 # Database & Data Handling
 - Database/Auth: Supabase
@@ -9,3 +9,5 @@ globs: lib/supabase/**/*.{ts,tsx}, services/**/*.{ts,tsx}, actions/**/*.{ts,tsx}
 - Validation: Use Zod for runtime schema validation (API responses, Form data).
 - Error/Loading States: Always implement declarative error handling with error.tsx and loading states with loading.tsx or Suspense.
 - Database Migrations: Every database schema change, RLS policy modification, or DDL operation MUST be documented in a new SQL migration file within `supabase/migrations/` using a timestamp prefix (e.g. `YYYYMMDDHHMMSS_name.sql`). Do not apply direct, manual DDL alterations to the production database without a corresponding file.
+- Deployment Boundary: Treat `supabase/migrations/` as deployable remote migration history. Do not place local-only reset patches, mock-only baseline SQL, or Docker-only helpers in this folder.
+- Local-only SQL: Put local-only database helpers under `supabase/local/` and apply them only through a local Docker/Postgres command or `npm run db:local:sql -- <path>`. Local-only SQL must never be pushed to the remote Supabase database or marked as a deployable migration.

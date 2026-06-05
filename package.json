@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "bench:job-fit": "tsx --tsconfig tsconfig.bench.json lib/ai/job-fit/bench/golden-llm-run.ts",
     "check:job-fit-benchmark": "node scripts/check-job-fit-benchmark.mjs",
+    "db:local:sql": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/apply-local-sql.ps1",
     "seed:relay-study": "node scripts/seed-relay-study-dev.mjs",
     "cleanup:relay-study": "node scripts/cleanup-relay-study-dev.mjs"
   },
