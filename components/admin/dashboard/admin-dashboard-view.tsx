@@ -18,6 +18,10 @@ import {
   StudentUpgradeRequestsPanel,
   type StudentUpgradeRequestItem,
 } from "./student-upgrade-requests-panel";
+import {
+  TodayTasksPanel,
+  type TodayTaskAiPendingJob,
+} from "./today-tasks-panel";
 
 export async function AdminDashboardView() {
   const supabase = createAdminClient();
@@ -39,14 +43,26 @@ export async function AdminDashboardView() {
     .eq("status", "pending")
     .order("requested_at", { ascending: true })
     .returns<StudentUpgradeRequestItem[]>();
+  const aiPendingJobsResult = await supabase
+    .from("job_postings")
+    .select("id,title,company,source,created_at,ai_fit_snapshot", { count: "exact" })
+    .eq("status", "pending")
+    .not("ai_fit_snapshot", "is", null)
+    .or(activeDeadline)
+    .order("created_at", { ascending: false })
+    .limit(4)
+    .returns<TodayTaskAiPendingJob[]>();
   const studyProgressResult = await getAdminStudyProgress();
 
   const hasJobsError = Boolean(recentPublishedJobsResult.error);
   const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
+  const hasAiPendingJobsError = Boolean(aiPendingJobsResult.error);
   const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
     (job) => !isExpiredDeadline(job.deadline),
   );
   const pendingUpgradeRequests = pendingUpgradeRequestsResult.data ?? [];
+  const aiPendingJobs = aiPendingJobsResult.data ?? [];
+  const aiPendingJobCount = aiPendingJobsResult.count ?? aiPendingJobs.length;
   const siteOrigin = getPublicSiteOrigin();
 
   return (
@@ -57,6 +73,14 @@ export async function AdminDashboardView() {
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+        <TodayTasksPanel
+          pendingUpgradeRequests={pendingUpgradeRequests}
+          hasUpgradeRequestsError={hasUpgradeRequestsError}
+          aiPendingJobs={aiPendingJobs}
+          aiPendingJobCount={aiPendingJobCount}
+          hasAiPendingJobsError={hasAiPendingJobsError}
+        />
+
         {hasUpgradeRequestsError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600 md:rounded-3xl">
             수강생 등업 문의를 불러오는 중 오류가 발생했습니다.

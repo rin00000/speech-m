@@ -1,7 +1,7 @@
-/**
+ /**
  * 대시보드 페이지 로딩 스켈레톤.
  * 서버 컴포넌트 데이터 패칭 중 표시되는 뼈대 UI.
- * StudyProgressDashboard, CrawlerControlHub, 공고 목록 영역을 반영.
+ * TodayTasksPanel, StudyProgressDashboard, CrawlerControlHub, 공고 목록 영역을 반영.
  */
 
 import {
@@ -17,6 +17,24 @@ export default function DashboardLoading() {
       <SkeletonPageHeader />
 
       <div className="flex-1 space-y-6 p-6">
+        {/* TodayTasksPanel 스켈레톤 */}
+        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-1.5">
+                <SkeletonLine size="sm" width="1/3" />
+                <SkeletonLine size="xs" width="1/2" />
+              </div>
+            </div>
+            <Skeleton className="h-6 w-14 rounded-full" />
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <Skeleton className="h-32 rounded-2xl" />
+            <Skeleton className="h-32 rounded-2xl" />
+          </div>
+        </div>
+
         {/* StudyProgressDashboard + CrawlerControlHub 그리드 */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
           {/* StudyProgressDashboard 스켈레톤 */}

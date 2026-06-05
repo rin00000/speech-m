@@ -65,7 +65,10 @@ export function StudentUpgradeRequestsPanel({
   if (requests.length === 0 && !notice) return null;
 
   return (
-    <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm md:rounded-3xl md:p-5">
+    <section
+      id="student-upgrade-requests"
+      className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm md:rounded-3xl md:p-5"
+    >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-3">
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-white text-amber-600">
