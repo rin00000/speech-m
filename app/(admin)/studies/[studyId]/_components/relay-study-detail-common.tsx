@@ -30,10 +30,19 @@ export function getStatusLabel(status: StudyQuestDetail["relay"]["status"]) {
 }
 
 export function formatDateTime(value: string) {
-  return new Date(value).toLocaleString("ko-KR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const baseDate = new Date(value);
+
+  if (Number.isNaN(baseDate.getTime())) {
+    return value;
+  }
+
+  const seoulDate = new Date(baseDate.getTime() + 9 * 60 * 60 * 1000);
+  const month = seoulDate.getUTCMonth() + 1;
+  const day = seoulDate.getUTCDate();
+  const hour24 = seoulDate.getUTCHours();
+  const hour12 = hour24 % 12 || 12;
+  const period = hour24 < 12 ? "오전" : "오후";
+  const minute = seoulDate.getUTCMinutes().toString().padStart(2, "0");
+
+  return `${month}월 ${day}일 ${period} ${hour12.toString().padStart(2, "0")}:${minute}`;
 }

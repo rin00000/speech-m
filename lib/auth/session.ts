@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/options";
 import { createAdminClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import { getDevPersonaFromCookieValue } from "./dev-personas";
 
 export type UserRole = "admin" | "student" | "guest";
 
@@ -12,14 +13,8 @@ export async function getCurrentUser() {
     const cookieStore = await cookies();
     const mockRole = cookieStore.get("mock_role")?.value;
     if (mockRole && process.env.NODE_ENV !== "production") {
-      if (mockRole === "none") {
-        return null; // 비로그인 모사
-      }
-      return {
-        email: `mock-${mockRole}@speech-m.com`,
-        name: mockRole === "admin" ? "모의 원장님" : mockRole === "student" ? "모의 수강생" : "모의 게스트",
-        role: mockRole as UserRole,
-      };
+      const devPersona = getDevPersonaFromCookieValue(mockRole);
+      if (devPersona !== undefined) return devPersona;
     }
   } catch {
     // 빌드 정적 분석 시 에러 방지

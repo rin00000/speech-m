@@ -41,8 +41,13 @@ export function EmptyState({ title, description }: { title: string; description:
 }
 
 export function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("ko-KR", {
-    month: "short",
-    day: "numeric",
-  });
+  const baseDate = new Date(value);
+
+  if (Number.isNaN(baseDate.getTime())) {
+    return value;
+  }
+
+  const seoulDate = new Date(baseDate.getTime() + 9 * 60 * 60 * 1000);
+
+  return `${seoulDate.getUTCMonth() + 1}월 ${seoulDate.getUTCDate()}일`;
 }
