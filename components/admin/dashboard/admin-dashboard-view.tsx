@@ -1,18 +1,19 @@
 /**
  * 관리자 대시보드 서버 뷰.
- * 등업 요청, 릴레이 피드백, 크롤러 제어, 최근 게시 공고 데이터를 조립한다.
+ * 등업 요청, 스터디 진행 현황, 크롤러 제어, 최근 게시 공고 데이터를 조립한다.
  */
 
 import { Header } from "@/components/admin/layout/header";
 import { activeDeadlineOrExpression, isExpiredDeadline } from "@/lib/jobs/deadline";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
+import { getAdminStudyProgress } from "@/lib/studies/admin-progress";
 import { createAdminClient } from "@/lib/supabase/server";
 import { CrawlerControlHub } from "./crawler-control-hub";
-import { RelayFeedbackConsole } from "./relay-feedback-console";
 import {
   RecentPublishedJobsPanel,
   type RecentPublishedJob,
 } from "./recent-published-jobs-panel";
+import { StudyProgressDashboard } from "./study-progress-dashboard";
 import {
   StudentUpgradeRequestsPanel,
   type StudentUpgradeRequestItem,
@@ -38,6 +39,7 @@ export async function AdminDashboardView() {
     .eq("status", "pending")
     .order("requested_at", { ascending: true })
     .returns<StudentUpgradeRequestItem[]>();
+  const studyProgressResult = await getAdminStudyProgress();
 
   const hasJobsError = Boolean(recentPublishedJobsResult.error);
   const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
@@ -64,7 +66,10 @@ export async function AdminDashboardView() {
         )}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr] lg:gap-6">
-          <RelayFeedbackConsole />
+          <StudyProgressDashboard
+            progress={studyProgressResult.progress}
+            hasError={studyProgressResult.hasError}
+          />
           <CrawlerControlHub />
         </div>
 

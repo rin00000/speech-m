@@ -1,7 +1,7 @@
 /**
  * 대시보드 페이지 로딩 스켈레톤.
  * 서버 컴포넌트 데이터 패칭 중 표시되는 뼈대 UI.
- * CrawlerControlHub, RelayFeedbackConsole, 공고 목록 영역을 반영.
+ * StudyProgressDashboard, CrawlerControlHub, 공고 목록 영역을 반영.
  */
 
 import {
@@ -17,9 +17,9 @@ export default function DashboardLoading() {
       <SkeletonPageHeader />
 
       <div className="flex-1 space-y-6 p-6">
-        {/* CrawlerControlHub + RelayFeedbackConsole 그리드 */}
+        {/* StudyProgressDashboard + CrawlerControlHub 그리드 */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
-          {/* RelayFeedbackConsole 스켈레톤 */}
+          {/* StudyProgressDashboard 스켈레톤 */}
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <Skeleton className="h-7 w-7 rounded-full" />
@@ -28,22 +28,29 @@ export default function DashboardLoading() {
                 <SkeletonLine size="xs" width="1/2" />
               </div>
             </div>
-            {/* 메시지 목록 스켈레톤 */}
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                  <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <SkeletonLine size="sm" width="3/4" />
-                    <SkeletonLine size="xs" width="full" />
+            {/* 지표 요약 스켈레톤 */}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+                  <div className="flex items-center justify-between">
                     <SkeletonLine size="xs" width="1/2" />
+                    <Skeleton className="h-4 w-4 rounded-full" />
                   </div>
+                  <Skeleton className="mt-3 h-5 w-1/3" />
+                  <Skeleton className="mt-2 h-3 w-3/4" />
                 </div>
               ))}
             </div>
-            {/* 입력창 스켈레톤 */}
-            <Skeleton className="mt-4 h-20 w-full rounded-2xl" />
-            <Skeleton className="mt-2 ml-auto h-8 w-24 rounded-full" />
+            {/* 진행률/퀘스트 스켈레톤 */}
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+            </div>
+            <div className="mt-4 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-2xl" />
+              ))}
+            </div>
           </div>
 
           {/* CrawlerControlHub 스켈레톤 */}
