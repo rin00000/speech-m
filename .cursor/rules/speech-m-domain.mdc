@@ -25,6 +25,7 @@ globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*
 # Extended Product Modules
 - Script automation: collect recent reusable news/radio scripts and deliver merged HWP/PDF in async batches.
 - Study operations: support recording bundle automation, attendance/deposit calculations, and relay-style feedback workflows.
+- Relay study order is determined by first-come audio submission order. Admin member configuration defines the eligible participant pool, not a manual feedback sequence.
 - Private CRM: archive exam reviews privately and support counseling reservation flows with stale lead cleanup.
 
 # Data Security Constraints
