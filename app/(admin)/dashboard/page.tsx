@@ -2,6 +2,7 @@ import { AdminDashboardView } from "@/components/admin/dashboard/admin-dashboard
 import { GuestDashboardView } from "@/components/admin/dashboard/guest-dashboard-view";
 import { StudentDashboardView } from "@/components/admin/dashboard/student-dashboard-view";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getStudentDashboardData } from "@/lib/studies/student-dashboard";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -14,7 +15,8 @@ export default async function DashboardPage() {
   }
 
   if (user.role === "student") {
-    return <StudentDashboardView userName={user.name} />;
+    const dashboardData = await getStudentDashboardData(user.email);
+    return <StudentDashboardView userName={user.name} data={dashboardData} />;
   }
 
   return <GuestDashboardView userName={user.name} email={user.email} isLoggedIn />;
