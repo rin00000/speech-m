@@ -12,6 +12,7 @@ type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"];
 export type StudyAdminProfile = {
   email: string;
   displayName: string;
+  realName: string | null;
   role: "admin" | "student" | "guest";
 };
 
@@ -19,17 +20,18 @@ export async function getStudentProfiles(): Promise<StudyAdminProfile[]> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("user_profiles")
-    .select("email, display_name, role")
+    .select("email, display_name, real_name, role")
     .eq("role", "student")
     .order("display_name", { ascending: true });
 
-  return ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "role">[]).map(
+  return ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "real_name" | "role">[]).map(
     (profile) => ({
       email: profile.email,
       displayName: getDisplayName({
         email: profile.email,
-        displayName: profile.display_name,
+        displayName: profile.real_name ?? profile.display_name,
       }),
+      realName: profile.real_name,
       role: profile.role,
     }),
   );

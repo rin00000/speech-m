@@ -35,12 +35,16 @@ export async function requireAdminActor(): Promise<ActionResult<{ email: string 
   return { success: true, data: { email: user.email } };
 }
 
-export async function requireStudentActor(): Promise<ActionResult<{ email: string }>> {
+export async function requireStudentActor(): Promise<ActionResult<{ email: string; realName: string }>> {
   const user = await getCurrentUser();
   if (!user?.email || user.role !== "student") {
     return { success: false, error: "정회원 수강생만 이용할 수 있습니다." };
   }
-  return { success: true, data: { email: user.email } };
+  const realName = user.realName?.trim();
+  if (!realName) {
+    return { success: false, error: "스터디 참여 전에 실명을 먼저 저장하세요." };
+  }
+  return { success: true, data: { email: user.email, realName } };
 }
 
 export async function getQuestRelayState(questId: string, currentUserEmail: string) {

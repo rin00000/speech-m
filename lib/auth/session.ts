@@ -14,7 +14,22 @@ export async function getCurrentUser() {
     const mockRole = cookieStore.get("mock_role")?.value;
     if (mockRole && process.env.NODE_ENV !== "production") {
       const devPersona = getDevPersonaFromCookieValue(mockRole);
-      if (devPersona !== undefined) return devPersona;
+      if (devPersona === null) return null;
+      if (devPersona !== undefined) {
+        const supabase = createAdminClient();
+        const { data } = await supabase
+          .from("user_profiles")
+          .select("role, display_name, real_name")
+          .eq("email", devPersona.email)
+          .maybeSingle();
+
+        return {
+          ...devPersona,
+          name: data?.display_name ?? devPersona.name,
+          realName: data?.real_name ?? null,
+          role: (data?.role as UserRole | undefined) ?? devPersona.role,
+        };
+      }
     }
   } catch {
     // 빌드 정적 분석 시 에러 방지
@@ -26,13 +41,14 @@ export async function getCurrentUser() {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("user_profiles")
-    .select("role, display_name")
+    .select("role, display_name, real_name")
     .eq("email", session.user.email)
     .maybeSingle();
 
   return {
     email: session.user.email,
     name: data?.display_name ?? session.user.name ?? null,
+    realName: data?.real_name ?? null,
     role: (data?.role as UserRole | undefined) ?? "guest",
   };
 }

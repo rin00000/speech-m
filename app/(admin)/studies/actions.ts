@@ -17,6 +17,9 @@ import {
   submitRelayFinalFeedback as submitRelayFinalFeedbackAction,
   submitRelayFirstSubmission as submitRelayFirstSubmissionAction,
 } from "./_actions/relay-submit-actions";
+import {
+  saveStudyRealName as saveStudyRealNameAction,
+} from "./_actions/study-profile-actions";
 
 export async function createStudyGroup(formData: FormData) {
   return createStudyGroupAction(formData);
@@ -32,6 +35,14 @@ export async function saveStudyGroupMembers(groupId: string, studentEmails: stri
 
 export async function createStudyQuest(groupId: string, formData: FormData) {
   return createStudyQuestAction(groupId, formData);
+}
+
+export async function saveStudyRealName(
+  studyId: string,
+  prevState: Parameters<typeof saveStudyRealNameAction>[1],
+  formData: FormData,
+) {
+  return saveStudyRealNameAction(studyId, prevState, formData);
 }
 
 export async function createStudyAudioUploadTarget(

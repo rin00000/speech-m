@@ -157,7 +157,9 @@ export async function getStudyDetail({
     email: member.student_email,
     displayName: getDisplayName({
       email: member.student_email,
-      displayName: profilesByEmail.get(member.student_email)?.display_name,
+      displayName:
+        profilesByEmail.get(member.student_email)?.real_name ??
+        profilesByEmail.get(member.student_email)?.display_name,
     }),
     displayOrder: member.display_order,
   }));
@@ -199,7 +201,9 @@ export async function getStudyDetail({
       authorEmail: item.feedback_author_email,
       authorName: getDisplayName({
         email: item.feedback_author_email,
-        displayName: participantProfilesByEmail.get(item.feedback_author_email)?.display_name,
+        displayName:
+          participantProfilesByEmail.get(item.feedback_author_email)?.real_name ??
+          participantProfilesByEmail.get(item.feedback_author_email)?.display_name,
       }),
       comment: item.comment,
       createdAt: item.created_at,
@@ -217,7 +221,9 @@ export async function getStudyDetail({
         studentEmail: submission.student_email,
         studentName: getDisplayName({
           email: submission.student_email,
-          displayName: participantProfilesByEmail.get(submission.student_email)?.display_name,
+          displayName:
+            participantProfilesByEmail.get(submission.student_email)?.real_name ??
+            participantProfilesByEmail.get(submission.student_email)?.display_name,
         }),
         audioPath: submission.audio_path,
         audioUrl: signedAudioUrls.get(submission.id) ?? null,
@@ -262,16 +268,16 @@ export async function getStudyDetail({
 
 async function getProfilesByEmail(emails: string[]) {
   const uniqueEmails = [...new Set(emails)].filter(Boolean);
-  if (uniqueEmails.length === 0) return new Map<string, Pick<UserProfileRow, "email" | "display_name">>();
+  if (uniqueEmails.length === 0) return new Map<string, Pick<UserProfileRow, "email" | "display_name" | "real_name">>();
 
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("user_profiles")
-    .select("email, display_name")
+    .select("email, display_name, real_name")
     .in("email", uniqueEmails);
 
   return new Map(
-    ((data ?? []) as Pick<UserProfileRow, "email" | "display_name">[]).map((profile) => [
+    ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "real_name">[]).map((profile) => [
       profile.email,
       profile,
     ]),

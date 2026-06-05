@@ -13,6 +13,7 @@ export type DevPersona = {
   label: string;
   email: string;
   name: string;
+  realName: string | null;
   role: UserRole;
 };
 
@@ -22,6 +23,7 @@ export const DEV_PERSONAS = {
     label: "Admin",
     email: "mock-admin@speech-m.com",
     name: "Mock Admin",
+    realName: null,
     role: "admin",
   },
   student: {
@@ -29,6 +31,7 @@ export const DEV_PERSONAS = {
     label: "Student A",
     email: "mock-student@speech-m.com",
     name: "Mock Student A",
+    realName: null,
     role: "student",
   },
   student2: {
@@ -36,6 +39,7 @@ export const DEV_PERSONAS = {
     label: "Student B",
     email: "relay.student2@speech-m.local",
     name: "Mock Student B",
+    realName: null,
     role: "student",
   },
   student3: {
@@ -43,6 +47,7 @@ export const DEV_PERSONAS = {
     label: "Student C",
     email: "relay.student3@speech-m.local",
     name: "Mock Student C",
+    realName: null,
     role: "student",
   },
   guest: {
@@ -50,6 +55,7 @@ export const DEV_PERSONAS = {
     label: "Guest",
     email: "relay.guest1@speech-m.local",
     name: "Mock Guest",
+    realName: null,
     role: "guest",
   },
 } satisfies Record<DevPersonaId, DevPersona>;

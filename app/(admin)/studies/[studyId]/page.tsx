@@ -10,6 +10,7 @@ import { ArrowRight01Icon, LockIcon } from "@hugeicons/core-free-icons";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudyDetail } from "@/lib/studies/data";
 import { RelayStudyDetailView } from "./_components/relay-study-detail-view";
+import { StudyRealNameGate } from "./_components/study-real-name-gate";
 
 export default async function RelayStudyPage({
   params,
@@ -20,6 +21,9 @@ export default async function RelayStudyPage({
   const role = user?.role ?? "guest";
   const email = user?.email ?? null;
   const detail = await getStudyDetail({ studyId, viewer: { role, email } });
+  const needsRealName = Boolean(
+    detail && role === "student" && !user?.realName?.trim(),
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -28,7 +32,13 @@ export default async function RelayStudyPage({
         description="원고별 음성 제출과 학생 간 피드백을 릴레이로 이어갑니다."
       />
 
-      {detail ? (
+      {detail && needsRealName ? (
+        <StudyRealNameGate
+          studyId={studyId}
+          studyTitle={detail.group.title}
+          displayName={user?.name ?? null}
+        />
+      ) : detail ? (
         <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
           <RelayStudyDetailView detail={detail} currentUserEmail={email} role={role} />
         </div>

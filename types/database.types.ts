@@ -148,6 +148,7 @@ export interface Database {
           email: string;
           role: "admin" | "student" | "guest";
           display_name: string | null;
+          real_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -155,6 +156,7 @@ export interface Database {
           email: string;
           role?: "admin" | "student" | "guest";
           display_name?: string | null;
+          real_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -162,6 +164,7 @@ export interface Database {
           email?: string;
           role?: "admin" | "student" | "guest";
           display_name?: string | null;
+          real_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
