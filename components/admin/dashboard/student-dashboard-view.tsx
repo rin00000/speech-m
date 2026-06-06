@@ -13,6 +13,7 @@ import {
   UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
+import { ManagementClassNoticesPanel } from "@/components/admin/dashboard/management-class-notices-panel";
 import type {
   StudentDashboardData,
   StudentDashboardDueState,
@@ -77,6 +78,8 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+        <ManagementClassNoticesPanel notices={data.managementClassNotices} />
+
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">

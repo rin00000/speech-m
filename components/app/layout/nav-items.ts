@@ -1,6 +1,7 @@
 import {
   BookOpen01Icon,
   Briefcase01Icon,
+  CalendarUserIcon,
   DashboardSquare01Icon,
   FileEditIcon,
   Settings01Icon,
@@ -52,6 +53,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "스터디 관리",
     href: "/studies",
     icon: BookOpen01Icon,
+    role: "admin",
+  },
+  {
+    label: "관리반",
+    href: "/management-classes",
+    icon: CalendarUserIcon,
     role: "admin",
   },
   {
