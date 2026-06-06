@@ -6,13 +6,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   BookOpen01Icon,
   Briefcase01Icon,
-  FilterIcon,
   LinkSquare01Icon,
   Search01Icon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
-import type { Database, JobSource } from "@/types/database.types";
-import { SOURCE_LABEL } from "@/lib/jobs/constants";
+import type { Database } from "@/types/database.types";
 import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -29,7 +27,6 @@ export function PublicJobsView({
   userRole: "admin" | "student" | "guest";
 }) {
   const [search, setSearch] = useState("");
-  const [selectedSource, setSelectedSource] = useState<"all" | JobSource>("all");
   const [page, setPage] = useState(1);
 
   const filteredJobs = initialJobs.filter((job) => {
@@ -38,17 +35,9 @@ export function PublicJobsView({
       !q ||
       job.title.toLowerCase().includes(q) ||
       (job.company ?? "").toLowerCase().includes(q);
-    const matchesSource = selectedSource === "all" || job.source === selectedSource;
-    return matchesSearch && matchesSource;
+    return matchesSearch;
   });
 
-  const sources: ("all" | JobSource)[] = [
-    "all",
-    "mediajob_announcer",
-    "arang",
-    "saramin",
-    "jobkorea",
-  ];
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / PUBLIC_JOBS_PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
   const pageStart = (currentPage - 1) * PUBLIC_JOBS_PAGE_SIZE;
@@ -96,7 +85,7 @@ export function PublicJobsView({
       </div>
 
       <div className="mb-4 flex flex-col items-stretch justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm md:mb-6 md:flex-row md:items-center md:gap-4 md:p-4">
-        <div className="relative w-full md:max-w-md">
+        <div className="relative w-full">
           <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
             <HugeiconsIcon icon={Search01Icon} size={16} color="currentColor" />
           </span>
@@ -111,33 +100,6 @@ export function PublicJobsView({
             className="w-full rounded-full border border-gray-200 bg-gray-50/50 py-2 pl-10 pr-4 text-sm font-medium text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:border-periwinkle-500 focus:bg-white focus:ring-1 focus:ring-periwinkle-500"
           />
         </div>
-
-        <div className="flex w-full items-center gap-1.5 overflow-x-auto pb-1 md:w-auto md:pb-0">
-          <span className="mr-2 hidden shrink-0 items-center gap-1 text-xs font-bold text-gray-500 lg:flex">
-            <HugeiconsIcon icon={FilterIcon} size={14} color="currentColor" />
-            <span>출처</span>
-          </span>
-          {sources.map((src) => {
-            const isActive = selectedSource === src;
-            return (
-              <button
-                key={src}
-                type="button"
-                onClick={() => {
-                  setSelectedSource(src);
-                  resetPaging();
-                }}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
-                  isActive
-                    ? "bg-periwinkle-600 text-white"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                }`}
-              >
-                {src === "all" ? "전체" : SOURCE_LABEL[src] ?? src}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {filteredJobs.length === 0 ? (
@@ -146,7 +108,7 @@ export function PublicJobsView({
             <HugeiconsIcon icon={Briefcase01Icon} size={24} color="currentColor" />
           </span>
           <p className="mt-4 text-sm font-semibold text-gray-700">검색 조건에 맞는 공고가 없습니다.</p>
-          <p className="mt-1 text-xs text-gray-400">키워드나 출처 필터를 바꿔보세요.</p>
+          <p className="mt-1 text-xs text-gray-400">검색 키워드를 확인해 보세요.</p>
         </div>
       ) : (
         <>
@@ -166,10 +128,7 @@ export function PublicJobsView({
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
-                    <span className="inline-block rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold text-gray-500">
-                      {SOURCE_LABEL[job.source] ?? "일반"}
-                    </span>
-                    <span className="text-[10px] font-medium text-gray-400">
+                    <span className="text-[10px] font-medium text-gray-400 ml-auto">
                       {job.published_at ? relativeTime(job.published_at) : "방금 전"}
                     </span>
                   </div>
