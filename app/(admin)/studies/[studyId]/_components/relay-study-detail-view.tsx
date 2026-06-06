@@ -219,7 +219,10 @@ export function RelayStudyDetailView({
                     onFeedbackAndUpload={handleFeedbackAndUpload}
                     onFinalFeedback={handleFinalFeedback}
                   />
-                  <CompletedStackCard quest={activeQuest} />
+                  <CompletedStackCard
+                    quest={activeQuest}
+                    currentUserEmail={currentUserEmail}
+                  />
                   <UnsubmittedMembersCard quest={activeQuest} />
                 </div>
               </div>

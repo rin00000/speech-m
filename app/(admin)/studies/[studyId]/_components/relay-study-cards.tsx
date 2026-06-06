@@ -19,7 +19,13 @@ import { AudioFeedbackCard } from "./relay-study-audio-feedback-card";
 import { EmptyPanel } from "./relay-study-detail-common";
 import { FeedbackTextarea, UploadControl } from "./relay-study-submission-controls";
 
-export function CompletedStackCard({ quest }: { quest: StudyQuestDetail }) {
+export function CompletedStackCard({
+  quest,
+  currentUserEmail,
+}: {
+  quest: StudyQuestDetail;
+  currentUserEmail: string | null;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -33,7 +39,12 @@ export function CompletedStackCard({ quest }: { quest: StudyQuestDetail }) {
           <EmptyPanel text="아직 피드백 완료된 음성이 없습니다." />
         ) : (
           quest.relay.completedSubmissions.map((submission) => (
-            <AudioFeedbackCard key={submission.id} submission={submission} compact />
+            <AudioFeedbackCard
+              key={submission.id}
+              submission={submission}
+              currentUserEmail={currentUserEmail}
+              compact
+            />
           ))
         )}
       </CardBody>
@@ -97,7 +108,10 @@ export function PendingRelayCard({
           )
         ) : (
           <>
-            <AudioFeedbackCard submission={pendingSubmission} />
+            <AudioFeedbackCard
+              submission={pendingSubmission}
+              currentUserEmail={currentUserEmail}
+            />
 
             {quest.relay.canFeedbackAndUpload && (
               <div className="space-y-3">

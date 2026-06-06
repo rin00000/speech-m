@@ -5,20 +5,39 @@
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileAudioIcon } from "@hugeicons/core-free-icons";
+import { cn } from "@/lib/ui/cn";
 import type { RelaySubmission } from "@/lib/studies/relay";
 import { formatDateTime } from "./relay-study-detail-common";
 
 export function AudioFeedbackCard({
   submission,
+  currentUserEmail,
   compact = false,
 }: {
   submission: RelaySubmission;
+  currentUserEmail: string | null;
   compact?: boolean;
 }) {
+  const isOwnAudio = submission.studentEmail === currentUserEmail;
+  const isOwnFeedback = submission.feedback?.authorEmail === currentUserEmail;
+  const hasOwnMark = isOwnAudio || isOwnFeedback;
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+    <div
+      className={cn(
+        "rounded-2xl border bg-white p-3 shadow-sm",
+        hasOwnMark
+          ? "border-periwinkle-200 bg-periwinkle-50/45 ring-1 ring-periwinkle-100"
+          : "border-gray-200",
+      )}
+    >
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-periwinkle-50 text-periwinkle-700">
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-periwinkle-700",
+            hasOwnMark ? "bg-white" : "bg-periwinkle-50",
+          )}
+        >
           <HugeiconsIcon icon={FileAudioIcon} size={17} color="currentColor" />
         </span>
         <div className="min-w-0 flex-1">
@@ -26,6 +45,8 @@ export function AudioFeedbackCard({
             <p className="truncate text-sm font-extrabold text-gray-900">
               {submission.sequenceNumber}. {submission.studentName}
             </p>
+            {isOwnAudio && <OwnBadge label="내 음성" />}
+            {isOwnFeedback && <OwnBadge label="내 피드백" />}
             <span className="text-[11px] font-bold text-gray-400">
               {formatDateTime(submission.submittedAt)}
             </span>
@@ -49,7 +70,18 @@ export function AudioFeedbackCard({
       )}
 
       {submission.feedback && (
-        <div className={`mt-3 rounded-2xl bg-gray-50 px-3 py-2 ${compact ? "" : "py-3"}`}>
+        <div
+          className={cn(
+            "mt-3 rounded-2xl px-3 py-2",
+            isOwnFeedback ? "border border-periwinkle-100 bg-white" : "bg-gray-50",
+            compact ? "" : "py-3",
+          )}
+        >
+          {isOwnFeedback && (
+            <p className="mb-1 text-[11px] font-extrabold text-periwinkle-700">
+              내가 남긴 피드백
+            </p>
+          )}
           <p className="line-clamp-2 text-xs font-semibold leading-snug text-gray-700">
             {submission.feedback.comment}
           </p>
@@ -59,5 +91,13 @@ export function AudioFeedbackCard({
         </div>
       )}
     </div>
+  );
+}
+
+function OwnBadge({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-periwinkle-200 bg-white px-2 py-1 text-[11px] font-extrabold leading-none text-periwinkle-700">
+      {label}
+    </span>
   );
 }

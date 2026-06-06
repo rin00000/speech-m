@@ -18,12 +18,16 @@ function AppShellContent({
   children,
   userRole,
   userName,
+  userEmail,
+  isAuthenticated,
   previewPathname,
   hideNav,
 }: {
   children: ReactNode;
   userRole: UserRole;
   userName?: string | null;
+  userEmail?: string | null;
+  isAuthenticated?: boolean;
   previewPathname?: string;
   hideNav: boolean;
 }) {
@@ -35,6 +39,8 @@ function AppShellContent({
         <SideRail
           userRole={userRole}
           userName={userName}
+          userEmail={userEmail}
+          isAuthenticated={isAuthenticated}
           previewPathname={previewPathname}
         />
       )}
@@ -61,12 +67,16 @@ export function AppShell({
   children,
   userRole,
   userName,
+  userEmail,
+  isAuthenticated,
   previewPathname,
   hideNav = false,
 }: {
   children: ReactNode;
   userRole: UserRole;
   userName?: string | null;
+  userEmail?: string | null;
+  isAuthenticated?: boolean;
   previewPathname?: string;
   hideNav?: boolean;
 }) {
@@ -75,6 +85,8 @@ export function AppShell({
       <AppShellContent
         userRole={userRole}
         userName={userName}
+        userEmail={userEmail}
+        isAuthenticated={isAuthenticated}
         previewPathname={previewPathname}
         hideNav={hideNav}
       >

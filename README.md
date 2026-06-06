@@ -106,11 +106,11 @@ npm run dev
 
 ## Vercel 배포 (실행 체크리스트)
 
-루트 [vercel.json](vercel.json)에 **Cron**이 있어 Vercel 배포를 전제로 합니다. 둘 다 `Authorization: Bearer ${CRON_SECRET}`로 검증합니다.
+루트 [vercel.json](vercel.json)에 **Cron**이 있어 Vercel 배포를 전제로 합니다. 보호된 Cron 라우트와 내부 kick 라우트는 `Authorization: Bearer ${CRON_SECRET}`로 검증합니다.
 
-- `GET /api/crawl/all` — 일일 크롤([app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)). 종료 후 **별도 invocation**으로 `GET /api/cron/job-fit`을 kick(`after`, await 없음).  
-- `GET /api/cron/job-fit` — pending 공고 LLM 일괄 판별([app/api/cron/job-fit/route.ts](app/api/cron/job-fit/route.ts)). Cron 슬롯은 추가하지 않음.  
-- `GET /api/cron/purge-stale-job-postings` — (1) 미디어잡·사람인·잡코리아 등 **리스트형 소스** 중 **ISO 형식** `deadline`이 KST 기준 유예일 이하인 행: [`lib/jobs/purge-stale-listings.ts`](lib/jobs/purge-stale-listings.ts)가 Supabase RPC **`purge_stale_job_listings`** 를 호출해 **`crawl_blocked_source_urls`에 URL을 넣은 뒤 삭제**(한 트랜잭션, [`supabase/migrations/20260514120000_job_postings_fingerprint_meta_purge_rpc.sql`](supabase/migrations/20260514120000_job_postings_fingerprint_meta_purge_rpc.sql)). `published_at`이 있는 행은 기본 제외(`STALE_LISTING_PURGE_INCLUDE_PUBLISHED`). 아랑·`custom`은 (1)에서 제외. (2) **거절** TTL: [`lib/jobs/purge-rejected-ttl.ts`](lib/jobs/purge-rejected-ttl.ts) — `REJECTED_JOB_RETENTION_DAYS`(기본 10일, [`lib/jobs/rejected-retention.ts`](lib/jobs/rejected-retention.ts)) 경과 시 블록 이관 후 삭제. `rejected_at` 마이그레이션: [`supabase/migrations/20260512140000_job_postings_rejected_at.sql`](supabase/migrations/20260512140000_job_postings_rejected_at.sql).
+- `GET /api/crawl/all` — 일일 크롤([app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)). 종료 후 **별도 invocation**으로 `GET /api/cron/purge-stale-job-postings`를 kick(`after`, await 없음).
+- `GET /api/cron/job-fit` — pending 공고 LLM 일괄 판별([app/api/cron/job-fit/route.ts](app/api/cron/job-fit/route.ts)). 크롤 완료 후 자동 kick이 아니라 [vercel.json](vercel.json)의 **별도 일일 Cron**으로 실행됨.
+- `GET /api/cron/purge-stale-job-postings` — [vercel.json](vercel.json)에 직접 등록된 Cron은 아니며, `/api/crawl/all` 종료 후 내부 kick으로 호출됨. (1) 미디어잡·사람인·잡코리아 등 **리스트형 소스** 중 **ISO 형식** `deadline`이 KST 기준 유예일 이하인 행: [`lib/jobs/purge-stale-listings.ts`](lib/jobs/purge-stale-listings.ts)가 Supabase RPC **`purge_stale_job_listings`** 를 호출해 **`crawl_blocked_source_urls`에 URL을 넣은 뒤 삭제**(한 트랜잭션, [`supabase/migrations/20260514120000_job_postings_fingerprint_meta_purge_rpc.sql`](supabase/migrations/20260514120000_job_postings_fingerprint_meta_purge_rpc.sql)). `published_at`이 있는 행은 기본 제외(`STALE_LISTING_PURGE_INCLUDE_PUBLISHED`). 아랑·`custom`은 (1)에서 제외. (2) **거절** TTL: [`lib/jobs/purge-rejected-ttl.ts`](lib/jobs/purge-rejected-ttl.ts) — `REJECTED_JOB_RETENTION_DAYS`(기본 10일, [`lib/jobs/rejected-retention.ts`](lib/jobs/rejected-retention.ts)) 경과 시 블록 이관 후 삭제. `rejected_at` 마이그레이션: [`supabase/migrations/20260512140000_job_postings_rejected_at.sql`](supabase/migrations/20260512140000_job_postings_rejected_at.sql).
 
 ### 1) 프로젝트 연결
 
@@ -130,7 +130,7 @@ Vercel **Settings → Environment Variables**에서 Production(필요 시 Previe
 | `SUPABASE_SERVICE_ROLE_KEY` | 서버 전용(관리자·`/jobs/[id]/share` 등). Preview에 넣을지는 팀 정책으로 결정 |
 | `NEXT_PUBLIC_APP_URL` | (권장) 공개 사이트 절대 URL. 네이버 공유·OG용으로 [`lib/jobs/site-url.ts`](lib/jobs/site-url.ts)에서 사용. 예: `https://<프로젝트>.vercel.app` 또는 커스텀 도메인 |
 | `CRAWL_API_SECRET` | `/api/crawl/*` 호출 시 내부 트리거에 필요 |
-| `CRON_SECRET` | Vercel Cron·내부 kick이 `/api/crawl/all`·`/api/cron/job-fit`·`/api/cron/purge-stale-job-postings` 호출 시 Bearer 검증에 필요 |
+| `CRON_SECRET` | Vercel Cron(`/api/crawl/all`, `/api/cron/job-fit`)과 내부 purge kick(`/api/cron/purge-stale-job-postings`)의 Bearer 검증에 필요 |
 | `JOB_FIT_BATCH_LIMIT` | (선택) Cron job-fit 한 번에 처리할 pending 상한. 기본 `12`, 최대 `30`. 관리자 수동 배치(30)와 별도 |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | (선택) **Vercel Authentication** 등 배포 보호가 켜져 있을 때만. 대시보드에서 Automation Bypass 시크릿을 추가하면 주입되며, `/api/crawl/all` → 소스별 `POST /api/crawl/*` 내부 호출에 우회 헤더로 사용됨 |
 | `STALE_LISTING_PURGE_MIN_AGE_DAYS` | (선택) 마감일 이후 며칠 지난 뒤 purge할지. 기본 `1`(KST “어제” 이전 마감까지 삭제) |
@@ -161,14 +161,14 @@ Vercel **Domains**에서 도메인 연결 후 DNS가 **Valid**인지 확인하�
 
 ### 6) Vercel Cron 실행 점검
 
-[vercel.json](vercel.json)에는 **일일 크롤**(`GET /api/crawl/all`)과 **마감 지난 공고 정리**(`GET /api/cron/purge-stale-job-postings`)만 스케줄되어 있습니다. job-fit은 크롤이 끝난 뒤 같은 Bearer로 `/api/cron/job-fit`을 **별도 Function**으로 kick합니다(LLM 시간 분리). 크롤 라우트는 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`을 검증하고, 내부 소스 호출에 `CRAWL_API_SECRET`을 사용합니다.
+[vercel.json](vercel.json)에는 **일일 크롤**(`GET /api/crawl/all`)과 **일일 job-fit**(`GET /api/cron/job-fit`)이 별도 Cron으로 등록되어 있습니다. **마감 지난 공고 정리**(`GET /api/cron/purge-stale-job-postings`)는 별도 Cron이 아니라 크롤 라우트가 끝난 뒤 같은 Bearer로 `after()`에서 kick합니다. 크롤 라우트는 [app/api/crawl/all/route.ts](app/api/crawl/all/route.ts)에서 `Authorization: Bearer ${CRON_SECRET}`을 검증하고, 내부 소스 호출에 `CRAWL_API_SECRET`을 사용합니다.
 
 1. Vercel 프로젝트 **Settings → Cron Jobs**(또는 배포 **Functions** 로그)에서 최근 호출 여부 확인.
 2. **Logs**에서 `/api/crawl/all` 또는 `purge-stale-job-postings` 검색 후 **401 Unauthorized**가 반복되면 `CRON_SECRET` 미설정·불일치 가능성이 큼. `GET /api/crawl/all`은 **200/207**인데 **External APIs**에서 동일 호스트로 `POST /api/crawl/*`만 **401**이면 **Deployment Protection**(Vercel Authentication)에 막힌 경우가 많음 — **Protection Bypass for Automation**을 켜고 재배포해 `VERCEL_AUTOMATION_BYPASS_SECRET`이 주입되는지 확인.
 3. **500**과 함께 `CRAWL_API_SECRET` 문구가 보이면 해당 환경 변수 미설정을 확인.
 4. 로컬에서 수동 검증: `curl -sS -H "Authorization: Bearer <CRON_SECRET>" "https://<배포도메인>/api/crawl/all"` (값은 노출되지 않게 터미널 히스토리 주의).
-5. job-fit 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/job-fit` 호출. 응답 `jobFit`의 `scanned`·`approved`·`rejected` 확인. 크롤 직후 Functions 로그에 `/api/cron/job-fit` invocation이 따로 찍히는지 확인.
-6. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON은 `staleListing`·`rejectedTtl` 객체 각각의 `cutoffIso`·`deleted` 등을 확인한다. (stale 쪽은 RPC 적용 후 `deleted`가 곧 처리 건수.) 거절 TTL purge는 **별도 Cron이 아니라** 이 라우트 안의 두 번째 단계이다.
+5. job-fit 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/job-fit` 호출. 응답 `jobFit`의 `scanned`·`approved`·`rejected` 확인. Vercel Cron Jobs와 Functions 로그에서 `/api/cron/job-fit`이 예약 시각 이후 별도 invocation으로 찍히는지 확인.
+6. purge 단독 검증: 동일 Bearer로 `https://<배포도메인>/api/cron/purge-stale-job-postings` 호출. 응답 JSON은 `staleListing`·`rejectedTtl` 객체 각각의 `cutoffIso`·`deleted` 등을 확인한다. (stale 쪽은 RPC 적용 후 `deleted`가 곧 처리 건수.) 이 라우트는 **별도 Cron이 아니라** `/api/crawl/all` 완료 후 내부 kick으로 실행된다.
 7. 크롤 단독 검증(선택): 관리자 또는 `x-crawl-secret`으로 `POST /api/crawl/saramin` 등 — 응답에 `inserted`·`updated`·`skipped_fingerprint_dup`·`skipped_cross_source_dup` 등이 포함되는지 확인. 마이그레이션 미적용 시 500이 날 수 있음.
 
 ## 스크립트 · 품질

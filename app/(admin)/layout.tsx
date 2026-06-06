@@ -9,9 +9,15 @@ export default async function AdminLayout({
   const user = await getCurrentUser();
   const role = user?.role ?? "guest";
   const name = user?.name ?? null;
+  const email = user?.email ?? null;
 
   return (
-    <AdminLayoutGate userName={name} userRole={role}>
+    <AdminLayoutGate
+      isAuthenticated={!!user}
+      userEmail={email}
+      userName={name}
+      userRole={role}
+    >
       {children}
     </AdminLayoutGate>
   );

@@ -4,6 +4,7 @@
  */
 
 import Link from "next/link";
+import { LogoutButton } from "@/components/app/layout/logout-button";
 import { Header } from "@/components/admin/layout/header";
 import { createAdminClient } from "@/lib/supabase/server";
 import { GuestUpgradeRequestCard } from "./guest-upgrade-request-card";
@@ -96,6 +97,9 @@ export async function GuestDashboardView({
                     <span>Curated 채용 공고 보러가기</span>
                     <span>→</span>
                   </Link>
+                </div>
+                <div className="mt-3 md:hidden">
+                  <LogoutButton />
                 </div>
                 <GuestUpgradeRequestCard pendingRequest={pendingUpgradeRequest} />
               </>

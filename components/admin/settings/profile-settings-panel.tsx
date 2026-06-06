@@ -6,6 +6,7 @@
  */
 
 import type { FormEvent } from "react";
+import { LogoutButton } from "@/components/app/layout/logout-button";
 import type { UserProfile } from "./settings-types";
 
 const getRoleBadge = (role: string) => {
@@ -82,6 +83,10 @@ export const ProfileSettingsPanel = ({
             </div>
           </div>
         </form>
+
+        <div className="border-t border-gray-100 pt-4 md:hidden">
+          <LogoutButton />
+        </div>
       </div>
     </div>
   );
