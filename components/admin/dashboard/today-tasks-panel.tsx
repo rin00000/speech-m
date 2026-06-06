@@ -22,7 +22,7 @@ import type { Database } from "@/types/database.types";
 
 export type TodayTaskAiPendingJob = Pick<
   Database["public"]["Tables"]["job_postings"]["Row"],
-  "id" | "title" | "company" | "source" | "created_at" | "ai_fit_snapshot"
+  "id" | "title" | "company" | "source" | "created_at" | "ai_fit_snapshot" | "source_url"
 >;
 
 type TodayTasksPanelProps = {
@@ -191,8 +191,19 @@ function AiPendingJobPreview({ job }: { job: TodayTaskAiPendingJob }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white px-3 py-2">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-extrabold text-gray-800">{job.title}</p>
+        <div className="min-w-0 flex-1">
+          {job.source_url ? (
+            <a
+              href={job.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block truncate text-xs font-extrabold text-gray-800 hover:text-periwinkle-600 hover:underline transition-colors cursor-pointer"
+            >
+              {job.title}
+            </a>
+          ) : (
+            <p className="truncate text-xs font-extrabold text-gray-800">{job.title}</p>
+          )}
           <p className="mt-1 truncate text-[11px] font-semibold text-gray-400">
             {job.company ?? "회사명 미상"} · {SOURCE_LABEL[job.source]}
           </p>

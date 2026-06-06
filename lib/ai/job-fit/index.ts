@@ -1,6 +1,10 @@
 /** Public entrypoints for job-fit. Prefer `@/lib/ai/job-fit` over deep paths in app code. */
 
-export { evaluateJobFit } from "./pipeline/evaluate";
+export {
+  evaluateDeterministicJobFit,
+  evaluateJobFit,
+  evaluateLlmJobFit,
+} from "./pipeline/evaluate";
 export { runJobFitBatch, type RunJobFitBatchResult } from "./pipeline/batch";
 export { evaluateByPriority } from "./pipeline/providers";
 

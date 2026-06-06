@@ -175,7 +175,18 @@ export function PublicJobsView({
                   </div>
 
                   <h3 className="mt-4 text-base font-extrabold leading-snug text-gray-900 transition-colors group-hover:text-periwinkle-700">
-                    {job.title}
+                    {job.source_url ? (
+                      <a
+                        href={job.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-periwinkle-600 hover:underline transition-colors cursor-pointer"
+                      >
+                        {job.title}
+                      </a>
+                    ) : (
+                      job.title
+                    )}
                   </h3>
 
                   <p className="mt-2 text-xs font-semibold text-gray-600">

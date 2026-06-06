@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchWithExponentialBackoff } from "./fetch-with-exponential-backoff";
+import {
+  fetchWithExponentialBackoff,
+  resolveRetryAfterDelayMs,
+} from "./fetch-with-exponential-backoff";
 
 const fastRetry = {
   maxAttempts: 5,
@@ -79,5 +82,25 @@ describe("fetchWithExponentialBackoff", () => {
     });
     expect(res.status).toBe(503);
     expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("resolveRetryAfterDelayMs", () => {
+  it("parses second-based Retry-After values", () => {
+    expect(resolveRetryAfterDelayMs("2")).toBe(2000);
+    expect(resolveRetryAfterDelayMs("0")).toBe(0);
+  });
+
+  it("parses HTTP-date Retry-After values", () => {
+    const nowMs = Date.parse("Sat, 06 Jun 2026 00:00:00 GMT");
+    const retryAt = "Sat, 06 Jun 2026 00:00:03 GMT";
+
+    expect(resolveRetryAfterDelayMs(retryAt, nowMs)).toBe(3000);
+  });
+
+  it("ignores invalid Retry-After values", () => {
+    expect(resolveRetryAfterDelayMs(null)).toBeNull();
+    expect(resolveRetryAfterDelayMs("soon")).toBeNull();
+    expect(resolveRetryAfterDelayMs("-1")).toBeNull();
   });
 });
