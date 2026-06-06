@@ -1,12 +1,19 @@
 ---
 description: Speech-M domain constraints and business boundaries
 globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*.{ts,mts,tsx},data/**/*,docs/**/*.{md,mdx}
+alwaysApply: true
 ---
 
 # Speech-M Domain Rules
 - Primary persona: academy director (admin curator).
 - Primary interface: admin dashboard with dense but readable information.
 - Keep icon consistency with `@hugeicons/react` unless unavailable.
+
+# User Roles & Routing
+- The system strictly uses 3 roles: `admin` (원장/관리자), `student` (정회원 수강생), and `guest` (준비생/게스트).
+- Role-based UI polymorphism is preferred over separate route groups for dashboards (e.g., `DashboardPage` dynamically rendering `AdminDashboardView`, `StudentDashboardView`, or `GuestDashboardView` based on role).
+- Navigation visibility is controlled centrally via `getNavItemsForRole()` in `nav-items.ts`.
+- Route protection is handled at the Server Component or Server Action level using `requireUser()`, `requireAdmin()`, and `getCurrentUser()` from `lib/auth/session.ts` instead of middleware.
 
 # Pipeline Intent
 - Optimize the workflow `Scrape -> AI Filter -> Human-in-the-loop -> AI Post`.

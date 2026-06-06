@@ -74,7 +74,7 @@ supabase/migrations/        # DB 스키마/RLS
 ## 결정 트리 (요약)
 
 1. 새 **HTTP 엔드포인트** → `app/api/.../route.ts`
-2. 새 **페이지·레이아웃** → `app/...`(라우트 그룹 `(admin)` 등 기존 패턴 유지)
+2. 새 **페이지·레이아웃** → 인증 화면은 `app/(admin)/...` 안에, 공개 화면은 `(admin)` 바깥에 둔다 (단일 인증 셸 패턴).
 3. **크롤/수집 로직** → `lib/crawl/` (라우트는 얇게 유지)
 4. **job-fit·LLM 배치** → `lib/ai/job-fit/`
 5. **관리자 화면용 컴포넌트** → `components/admin/<기능>/`
