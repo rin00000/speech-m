@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * AI 적합도 일괄 판별 버튼 컴포넌트.
- * pending 상태의 공고를 AI로 일괄 필터링한다.
+ * AI 적합도 1차 판별 큐 실행 버튼 컴포넌트.
+ * pending 상태의 공고를 규칙 우선 판별 후 LLM 제한 큐로 필터링한다.
  * 긴 LLM 배치는 API 라우트에서 백그라운드로 시작해 목록 작업을 막지 않는다.
  */
 
@@ -39,16 +39,16 @@ export const AiFitButton = () => {
 
       if (!response.ok || !result.success) {
         setState("error");
-        setMessage(result.error ?? "AI 판별 시작 실패");
+        setMessage(result.error ?? "AI 판별 큐 시작 실패");
         return;
       }
 
       setState("queued");
-      setMessage("백그라운드 실행 중");
+      setMessage("큐 등록 완료 · 규칙 우선");
       setTimeout(() => setState("idle"), 5000);
     } catch (err) {
       setState("error");
-      setMessage(err instanceof Error ? err.message : "AI 판별 시작 실패");
+      setMessage(err instanceof Error ? err.message : "AI 판별 큐 시작 실패");
     }
   };
 
@@ -71,7 +71,7 @@ export const AiFitButton = () => {
       onClick={() => void run()}
       disabled={state === "loading" || state === "queued"}
       className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold leading-none shadow-sm transition-colors ${styles[state]}`}
-      title="pending 공고를 AI로 일괄 판별"
+      title="pending 공고를 규칙 우선 큐로 판별"
     >
       <HugeiconsIcon
         icon={icon}
@@ -80,8 +80,8 @@ export const AiFitButton = () => {
         strokeWidth={2}
         className={state === "loading" ? "animate-pulse" : ""}
       />
-      {state === "idle" && "AI 적합도 판별 실행"}
-      {state === "loading" && "AI 판별 시작 중…"}
+      {state === "idle" && "AI 1차 판별 큐"}
+      {state === "loading" && "판별 큐 등록 중…"}
       {state === "queued" && message}
       {state === "error" && `오류 · ${message}`}
     </button>

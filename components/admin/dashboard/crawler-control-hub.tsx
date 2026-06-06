@@ -2,7 +2,7 @@
 
 /**
  * 크롤러 제어 허브 컴포넌트 (대시보드).
- * 각 소스별 즉시 크롤 트리거 버튼과 AI 배치 필터 실행 버튼을 제공.
+ * 각 소스별 즉시 크롤 트리거 버튼과 AI 판별 큐 실행 버튼을 제공.
  * 크롤은 글로벌 Progress Bar와 연동하고, 긴 AI 배치는 백그라운드로 시작한다.
  */
 
@@ -36,7 +36,7 @@ export function CrawlerControlHub() {
     jobkorea: { status: "idle", message: "" },
   });
 
-  // AI 배치 필터 상태
+  // AI 판별 큐 상태
   const [aiState, setAiState] = useState<SyncState>({ status: "idle", message: "" });
 
   // 크롤 소스별 개별 useAsyncAction 훅 (각 소스가 독립적으로 로딩 상태 관리)
@@ -101,18 +101,18 @@ export function CrawlerControlHub() {
       };
 
       if (!response.ok || !result.success) {
-        setAiState({ status: "error", message: result.error ?? "AI 필터 시작 실패" });
+        setAiState({ status: "error", message: result.error ?? "AI 판별 큐 시작 실패" });
         return;
       }
 
-      setAiState({ status: "success", message: "백그라운드 실행 중" });
+      setAiState({ status: "success", message: "규칙 우선 처리 중" });
       setTimeout(() => {
         setAiState({ status: "idle", message: "" });
       }, 5000);
     } catch (error) {
       setAiState({
         status: "error",
-        message: error instanceof Error ? error.message : "AI 필터 시작 실패",
+        message: error instanceof Error ? error.message : "AI 판별 큐 시작 실패",
       });
     }
   };
@@ -139,7 +139,7 @@ export function CrawlerControlHub() {
           <div>
             <CardTitle className="text-sm font-extrabold text-gray-800">크롤러 제어 허브</CardTitle>
             <CardDescription className="text-xs text-gray-400">
-              실시간 채용 공고 수집 및 AI 자동 적합도 배치 실행
+              실시간 채용 공고 수집 및 AI 1차 판별 큐 실행
             </CardDescription>
           </div>
         </div>
@@ -216,7 +216,7 @@ export function CrawlerControlHub() {
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">AI Curation</span>
             <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700 ring-1 ring-amber-100/80">
-              최대 30개 검사
+              최대 30개 · 규칙 우선
             </span>
           </div>
 
@@ -241,15 +241,15 @@ export function CrawlerControlHub() {
               className={aiState.status === "loading" ? "animate-spin" : ""}
             />
             {aiState.status === "loading"
-              ? "AI 자동 적합성 시작 중..."
+              ? "AI 판별 큐 등록 중..."
               : aiState.status === "success"
-              ? `평가 시작됨: ${aiState.message}`
+              ? `큐 실행 중: ${aiState.message}`
               : aiState.status === "error"
-              ? `평가 오류: ${aiState.message}`
-              : "AI 자동 적합성 일괄 평가 실행"}
+              ? `큐 오류: ${aiState.message}`
+              : "AI 1차 판별 큐 실행"}
           </Button>
           <p className="text-[9px] text-center text-gray-400">
-            수동으로 게시물을 분류하기 전, AI가 1차 필터링 및 앵커 점수를 부여합니다.
+            명확한 공고는 규칙으로 먼저 분류하고, LLM 필요 공고만 제한 큐에서 처리합니다.
           </p>
         </CardSurface>
       </CardBody>
