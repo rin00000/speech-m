@@ -20,6 +20,7 @@ import { runCrawl, type CrawlSource } from "@/app/(admin)/jobs/actions";
 import { Card, CardHeader, CardTitle, CardDescription, CardBody, CardSurface } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAsyncAction } from "@/lib/ui/use-async-action";
+import { AI_BATCH_REENABLE_MS } from "@/lib/ai/job-fit/constants";
 
 type SyncState = {
   status: "idle" | "loading" | "success" | "error";
@@ -98,6 +99,7 @@ export function CrawlerControlHub() {
       const result = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         error?: string;
+        alreadyRunning?: boolean;
       };
 
       if (!response.ok || !result.success) {
@@ -105,10 +107,13 @@ export function CrawlerControlHub() {
         return;
       }
 
-      setAiState({ status: "success", message: "규칙 우선 처리 중" });
+      setAiState({
+        status: "success",
+        message: result.alreadyRunning ? "이미 백그라운드 실행 중" : "규칙 우선 처리 중",
+      });
       setTimeout(() => {
         setAiState({ status: "idle", message: "" });
-      }, 5000);
+      }, AI_BATCH_REENABLE_MS);
     } catch (error) {
       setAiState({
         status: "error",

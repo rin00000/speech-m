@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { runJobFitBatch } from "@/lib/ai/job-fit";
+import { ADMIN_JOB_FIT_BATCH_LIMIT } from "@/lib/ai/job-fit/constants";
+import { acquireAdminJobFitRunLock } from "@/lib/ai/job-fit/pipeline/admin-run-lock";
 
 export const maxDuration = 300;
 
@@ -16,15 +18,34 @@ export async function POST() {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const lock = await acquireAdminJobFitRunLock();
+  if (!lock.acquired) {
+    return NextResponse.json(
+      { success: true, queued: true, alreadyRunning: true },
+      { status: 202 }
+    );
+  }
+
   after(async () => {
     const startedAt = Date.now();
-    const result = await runJobFitBatch(30);
-    revalidatePath("/jobs");
-    revalidatePath("/dashboard");
-    console.info("[admin/job-fit/run]", {
-      durationMs: Date.now() - startedAt,
-      result,
-    });
+    try {
+      const result = await runJobFitBatch(ADMIN_JOB_FIT_BATCH_LIMIT);
+      revalidatePath("/jobs");
+      revalidatePath("/dashboard");
+      console.info("[admin/job-fit/run]", {
+        durationMs: Date.now() - startedAt,
+        limit: ADMIN_JOB_FIT_BATCH_LIMIT,
+        result,
+      });
+    } catch (error) {
+      console.error("[admin/job-fit/run] failed", {
+        durationMs: Date.now() - startedAt,
+        limit: ADMIN_JOB_FIT_BATCH_LIMIT,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      await lock.release();
+    }
   });
 
   return NextResponse.json({ success: true, queued: true }, { status: 202 });

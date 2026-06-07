@@ -13,12 +13,14 @@ import {
   CheckmarkCircle01Icon,
   AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
+import { AI_BATCH_REENABLE_MS } from "@/lib/ai/job-fit/constants";
 
 type State = "idle" | "loading" | "queued" | "error";
 
 type QueueResponse = {
   success?: boolean;
   error?: string;
+  alreadyRunning?: boolean;
 };
 
 export const AiFitButton = () => {
@@ -44,8 +46,8 @@ export const AiFitButton = () => {
       }
 
       setState("queued");
-      setMessage("큐 등록 완료 · 규칙 우선");
-      setTimeout(() => setState("idle"), 5000);
+      setMessage(result.alreadyRunning ? "이미 백그라운드 실행 중" : "큐 등록 완료 · 규칙 우선");
+      setTimeout(() => setState("idle"), AI_BATCH_REENABLE_MS);
     } catch (err) {
       setState("error");
       setMessage(err instanceof Error ? err.message : "AI 판별 큐 시작 실패");

@@ -1,3 +1,8 @@
+/**
+ * Job-Fit LLM 공급자 통합 모듈.
+ * Gemini 호출, 속도 제한, 재시도 메타데이터 추출을 담당하며 evaluateByPriority가 배치 파이프라인의 진입점이다.
+ */
+
 import {
   fetchWithExponentialBackoff,
   resolveRetryAfterDelayMs,
@@ -15,7 +20,9 @@ type ProviderResult = {
 export class JobFitProviderHttpError extends Error {
   constructor(
     readonly provider: string,
-    readonly status: number
+    readonly status: number,
+    readonly detail?: string,
+    readonly retryAfterMs?: number | null
   ) {
     super(`${provider} API failed: HTTP ${status}`);
     this.name = "JobFitProviderHttpError";
@@ -25,6 +32,7 @@ export class JobFitProviderHttpError extends Error {
 const GEMINI_MODEL_PRIMARY =
   process.env.JOB_FIT_MODEL_GEMINI ?? JOB_FIT_CONFIG.productionModel;
 const DEFAULT_GEMINI_RPM_LIMIT = 10;
+const MAX_PROVIDER_ERROR_DETAIL_LENGTH = 300;
 let geminiQueue = Promise.resolve();
 let nextGeminiRequestAt = 0;
 
@@ -116,6 +124,34 @@ const parseResult = (rawText: string): JobFitResult => {
   return jobFitResultSchema.parse(json);
 };
 
+const truncateProviderErrorDetail = (detail: string): string =>
+  detail.length > MAX_PROVIDER_ERROR_DETAIL_LENGTH
+    ? `${detail.slice(0, MAX_PROVIDER_ERROR_DETAIL_LENGTH)}...`
+    : detail;
+
+const readProviderErrorDetail = async (response: Response): Promise<string | undefined> => {
+  const text = await response.text().catch(() => "");
+  const trimmed = text.trim();
+  if (!trimmed) return undefined;
+
+  try {
+    const json = JSON.parse(trimmed) as Record<string, unknown>;
+    const error = json.error;
+    if (error && typeof error === "object") {
+      const errorRecord = error as Record<string, unknown>;
+      const status = typeof errorRecord.status === "string" ? errorRecord.status : undefined;
+      const message =
+        typeof errorRecord.message === "string" ? errorRecord.message : undefined;
+      const detail = [status, message].filter(Boolean).join(": ");
+      if (detail) return truncateProviderErrorDetail(detail);
+    }
+  } catch {
+    // Fall through to the raw body below.
+  }
+
+  return truncateProviderErrorDetail(trimmed.replace(/\s+/g, " "));
+};
+
 const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -148,10 +184,12 @@ const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> =
   );
 
   if (!response.ok) {
+    const retryAfterMs = resolveRetryAfterDelayMs(response.headers.get("retry-after"));
+    const detail = await readProviderErrorDetail(response);
     if (response.status === 429) {
       extendGeminiCooldown(response);
     }
-    throw new JobFitProviderHttpError("Gemini", response.status);
+    throw new JobFitProviderHttpError("Gemini", response.status, detail, retryAfterMs);
   }
 
   const json = (await response.json()) as {
