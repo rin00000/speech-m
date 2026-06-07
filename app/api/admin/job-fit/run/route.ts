@@ -7,11 +7,10 @@ import { revalidatePath } from "next/cache";
 import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { runJobFitBatch } from "@/lib/ai/job-fit";
+import { ADMIN_JOB_FIT_BATCH_LIMIT } from "@/lib/ai/job-fit/constants";
+import { acquireAdminJobFitRunLock } from "@/lib/ai/job-fit/pipeline/admin-run-lock";
 
 export const maxDuration = 300;
-
-const ADMIN_JOB_FIT_BATCH_LIMIT = 30;
-let adminJobFitRunInProgress = false;
 
 export async function POST() {
   const user = await getCurrentUser();
@@ -19,14 +18,13 @@ export async function POST() {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  if (adminJobFitRunInProgress) {
+  const lock = await acquireAdminJobFitRunLock();
+  if (!lock.acquired) {
     return NextResponse.json(
       { success: true, queued: true, alreadyRunning: true },
       { status: 202 }
     );
   }
-
-  adminJobFitRunInProgress = true;
 
   after(async () => {
     const startedAt = Date.now();
@@ -46,7 +44,7 @@ export async function POST() {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      adminJobFitRunInProgress = false;
+      await lock.release();
     }
   });
 

@@ -1,3 +1,8 @@
+/**
+ * Job-Fit LLM 공급자 통합 모듈.
+ * Gemini 호출, 속도 제한, 재시도 메타데이터 추출을 담당하며 evaluateByPriority가 배치 파이프라인의 진입점이다.
+ */
+
 import {
   fetchWithExponentialBackoff,
   resolveRetryAfterDelayMs,
