@@ -1,10 +1,15 @@
 "use client";
 
+/**
+ * 앱 라우트에서 발생한 렌더링 오류를 사용자에게 안내하는 에러 바운더리입니다.
+ * 재시도 버튼으로 Next.js error boundary의 reset 함수를 호출합니다.
+ */
+
 import { useEffect } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 
-export default function GlobalError({
+export default function RootError({
   error,
   reset,
 }: {

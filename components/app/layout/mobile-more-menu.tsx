@@ -1,10 +1,16 @@
 "use client";
 
+/**
+ * 모바일 하단 탭의 더보기 오버레이 메뉴입니다.
+ * 역할별 추가 메뉴와 계정 정보를 표시하고, 공용 네비게이션 활성화 규칙을 사용합니다.
+ */
+
 import { TransitionLink } from "@/components/ui/transition-link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { LogoutButton } from "./logout-button";
 import { cn } from "@/lib/ui/cn";
+import { isNavActive } from "./nav-items";
 import type { NavItem } from "./nav-items";
 import type { UserRole } from "@/lib/auth/session";
 
@@ -60,7 +66,7 @@ export function MobileMoreMenu({
             <h3 className="mb-3 px-2 text-sm font-bold text-gray-400">메뉴</h3>
             <div className="flex flex-col gap-1">
               {moreItems.map((item) => {
-                const active = activePath.startsWith(item.href);
+                const active = isNavActive(activePath, item.href);
                 return (
                   <TransitionLink
                     key={item.href}

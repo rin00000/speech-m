@@ -13,62 +13,24 @@ import {
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
-import { createAdminClient } from "@/lib/supabase/server";
 import { GuestUpgradeRequestCard } from "./guest-upgrade-request-card";
-import { activeDeadlineOrExpression } from "@/lib/jobs/deadline";
 import { relativeTime } from "@/lib/jobs/utils";
-import type { Database } from "@/types/database.types";
-
-type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
+import type { GuestDashboardData } from "@/lib/dashboard/guest-dashboard";
 
 type GuestDashboardViewProps = {
   userName: string | null;
-  email: string;
   isLoggedIn: boolean;
+  data: GuestDashboardData;
 };
 
-export async function GuestDashboardView({
+export function GuestDashboardView({
   userName,
-  email,
   isLoggedIn,
+  data,
 }: GuestDashboardViewProps) {
-  const supabase = createAdminClient();
-  const activeDeadline = activeDeadlineOrExpression();
-
-  // 채용 공고 통계 + 최신 5건 병렬 조회
-  const [{ count: totalCount }, { data: recentJobs }, upgradeResult] =
-    await Promise.all([
-      supabase
-        .from("job_postings")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "approved")
-        .or(activeDeadline),
-      supabase
-        .from("job_postings")
-        .select("id,title,company,deadline,source_url,published_at")
-        .eq("status", "approved")
-        .or(activeDeadline)
-        .order("published_at", { ascending: false })
-        .limit(5)
-        .returns<
-          Pick<
-            JobPosting,
-            "id" | "title" | "company" | "deadline" | "source_url" | "published_at"
-          >[]
-        >(),
-      isLoggedIn && email
-        ? supabase
-            .from("student_upgrade_requests")
-            .select("message,requested_at")
-            .eq("email", email)
-            .eq("status", "pending")
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
-    ]);
-
-  const pendingUpgradeRequest = upgradeResult.data ?? null;
-  const jobs = recentJobs ?? [];
-  const jobCount = totalCount ?? 0;
+  const jobs = data.recentJobs;
+  const jobCount = data.totalCount;
+  const weeklyJobCount = data.recentWeekCount;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -119,7 +81,7 @@ export async function GuestDashboardView({
               이번 주 신규
             </p>
             <p className="mt-1 text-2xl font-extrabold tabular-nums text-periwinkle-600">
-              {countRecentJobs(jobs)}<span className="ml-0.5 text-sm font-bold text-gray-400">건</span>
+              {weeklyJobCount}<span className="ml-0.5 text-sm font-bold text-gray-400">건</span>
             </p>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -178,6 +140,7 @@ export async function GuestDashboardView({
                       href={job.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label={`${job.title} 원문 공고 확인`}
                       className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-periwinkle-200 bg-white text-periwinkle-700 transition-colors hover:bg-periwinkle-600 hover:text-white"
                       title="원문 공고 확인"
                     >
@@ -203,7 +166,7 @@ export async function GuestDashboardView({
                   전용 학습 기능을 이용할 수 있습니다. 아래에서 등업을 요청해 보세요.
                 </p>
               </div>
-              <GuestUpgradeRequestCard pendingRequest={pendingUpgradeRequest} />
+              <GuestUpgradeRequestCard pendingRequest={data.pendingUpgradeRequest} />
             </div>
           </section>
         ) : (
@@ -229,14 +192,4 @@ export async function GuestDashboardView({
       </div>
     </div>
   );
-}
-
-/** 최근 7일 이내 등록된 공고 수 */
-function countRecentJobs(
-  jobs: Pick<JobPosting, "published_at">[],
-): number {
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  return jobs.filter(
-    (j) => j.published_at && new Date(j.published_at).getTime() > sevenDaysAgo,
-  ).length;
 }
