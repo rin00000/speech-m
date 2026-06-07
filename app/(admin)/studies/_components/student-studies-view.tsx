@@ -7,14 +7,25 @@ import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import type { StudyListItem } from "@/lib/studies/data";
-import { EmptyState, Metric, formatDate } from "./studies-index-common";
+import { Metric, formatDate } from "./studies-index-common";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TransitionLink } from "@/components/ui/transition-link";
 
 export function StudentStudiesView({ studies }: { studies: StudyListItem[] }) {
   if (studies.length === 0) {
     return (
       <EmptyState
+        icon="📚"
         title="참여 중인 스터디가 없습니다"
-        description="관리자가 스터디 멤버로 추가하면 이곳에 표시됩니다."
+        description="아직 배정된 스터디가 없습니다. 담당자가 스터디를 매칭 중입니다."
+        action={
+          <TransitionLink
+            href="/practice"
+            className="mt-2 inline-flex items-center justify-center gap-2 rounded-full border border-periwinkle-200 bg-periwinkle-100 px-5 py-2.5 text-sm font-semibold leading-none text-periwinkle-700 transition-colors hover:bg-periwinkle-200"
+          >
+            연습 원고 보러가기
+          </TransitionLink>
+        }
       />
     );
   }

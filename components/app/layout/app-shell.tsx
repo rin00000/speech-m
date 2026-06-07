@@ -55,7 +55,12 @@ function AppShellContent({
       </main>
 
       {!hideNav && (
-        <BottomTab userRole={userRole} previewPathname={previewPathname} />
+        <BottomTab 
+          userRole={userRole} 
+          userName={userName}
+          userEmail={userEmail}
+          previewPathname={previewPathname} 
+        />
       )}
 
       {process.env.NODE_ENV !== "production" && <DevRoleSimulator />}

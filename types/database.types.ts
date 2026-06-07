@@ -9,6 +9,9 @@ export type DbJson =
 export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "saramin" | "jobkorea" | "custom";
 export type JobStatus = "pending" | "approved" | "rejected";
 export type StudentUpgradeRequestStatus = "pending" | "approved" | "rejected";
+export type ManagementClassStatus = "open" | "closed" | "canceled";
+export type ManagementClassCouponStatus = "available" | "used";
+export type ManagementClassApplicationStatus = "active" | "canceled";
 export type PracticeScriptCategory = "practice" | "portfolio" | "designated";
 export type PracticeScriptDifficulty = "쉬움" | "보통" | "어려움";
 export type StudyGroupType = "relay";
@@ -203,6 +206,138 @@ export interface Database {
         };
         Relationships: [];
       },
+      management_classes: {
+        Row: {
+          id: string;
+          starts_at: string;
+          capacity: number;
+          status: ManagementClassStatus;
+          created_by: string | null;
+          canceled_at: string | null;
+          canceled_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          starts_at: string;
+          capacity: number;
+          status?: ManagementClassStatus;
+          created_by?: string | null;
+          canceled_at?: string | null;
+          canceled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          starts_at?: string;
+          capacity?: number;
+          status?: ManagementClassStatus;
+          created_by?: string | null;
+          canceled_at?: string | null;
+          canceled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
+      management_class_coupon_grants: {
+        Row: {
+          id: string;
+          student_email: string;
+          total_count: number;
+          granted_by: string | null;
+          note: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_email: string;
+          total_count: number;
+          granted_by?: string | null;
+          note?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          student_email?: string;
+          total_count?: number;
+          granted_by?: string | null;
+          note?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
+      management_class_coupons: {
+        Row: {
+          id: string;
+          grant_id: string;
+          student_email: string;
+          sequence_number: number;
+          status: ManagementClassCouponStatus;
+          used_application_id: string | null;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          grant_id: string;
+          student_email: string;
+          sequence_number: number;
+          status?: ManagementClassCouponStatus;
+          used_application_id?: string | null;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          grant_id?: string;
+          student_email?: string;
+          sequence_number?: number;
+          status?: ManagementClassCouponStatus;
+          used_application_id?: string | null;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
+      management_class_applications: {
+        Row: {
+          id: string;
+          class_id: string;
+          student_email: string;
+          coupon_id: string;
+          status: ManagementClassApplicationStatus;
+          applied_at: string;
+          canceled_at: string | null;
+          canceled_by: string | null;
+          cancel_reason: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          student_email: string;
+          coupon_id: string;
+          status?: ManagementClassApplicationStatus;
+          applied_at?: string;
+          canceled_at?: string | null;
+          canceled_by?: string | null;
+          cancel_reason?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          student_email?: string;
+          coupon_id?: string;
+          status?: ManagementClassApplicationStatus;
+          applied_at?: string;
+          canceled_at?: string | null;
+          canceled_by?: string | null;
+          cancel_reason?: string;
+        };
+        Relationships: [];
+      },
       study_groups: {
         Row: {
           id: string;
@@ -366,9 +501,30 @@ export interface Database {
         Args: { p_request_id: string; p_resolved_by: string };
         Returns: undefined;
       },
+      apply_management_class: {
+        Args: { p_class_id: string; p_student_email: string };
+        Returns: string;
+      },
       batch_update_job_posting_crawl_meta: {
         Args: { p_rows: DbJson };
         Returns: undefined;
+      },
+      cancel_management_class: {
+        Args: { p_class_id: string; p_actor_email: string; p_reason?: string };
+        Returns: undefined;
+      },
+      cancel_management_class_application: {
+        Args: { p_application_id: string; p_actor_email: string; p_reason?: string };
+        Returns: undefined;
+      },
+      grant_management_class_coupons: {
+        Args: {
+          p_student_email: string;
+          p_total_count: number;
+          p_granted_by: string;
+          p_note?: string;
+        };
+        Returns: string;
       },
       purge_stale_job_listings: {
         Args: { p_cutoff_iso: string; p_include_published?: boolean };

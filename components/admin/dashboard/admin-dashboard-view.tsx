@@ -45,7 +45,7 @@ export async function AdminDashboardView() {
     .returns<StudentUpgradeRequestItem[]>();
   const aiPendingJobsResult = await supabase
     .from("job_postings")
-    .select("id,title,company,source,created_at,ai_fit_snapshot", { count: "exact" })
+    .select("id,title,company,source,created_at,ai_fit_snapshot,source_url", { count: "exact" })
     .eq("status", "pending")
     .not("ai_fit_snapshot", "is", null)
     .or(activeDeadline)

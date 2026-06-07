@@ -26,7 +26,8 @@ import {
 } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState, TextInput } from "./studies-index-common";
+import { TextInput } from "./studies-index-common";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type AdminStudiesViewProps = {
   studies: StudyListItem[];
@@ -122,7 +123,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
   };
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+    <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
       <div className="space-y-4">
         {notice && (
           <div
@@ -164,8 +165,9 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
         <div className="space-y-2">
           {studies.length === 0 ? (
             <EmptyState
+              icon="🏢"
               title="운영 중인 스터디가 없습니다"
-              description="새 스터디를 만들면 이곳에서 관리할 수 있습니다."
+              description="상단의 '새 스터디' 영역에서 스터디 그룹을 만들어 보세요."
             />
           ) : (
             studies.map((study) => (

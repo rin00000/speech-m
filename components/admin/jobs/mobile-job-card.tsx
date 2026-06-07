@@ -48,7 +48,20 @@ export const MobileJobCard = ({
               {statusStyle.label}
             </span>
           </div>
-          <h3 className="mt-2 text-sm font-extrabold leading-snug text-gray-900">{job.title}</h3>
+          <h3 className="mt-2 text-sm font-extrabold leading-snug text-gray-900">
+            {job.source_url ? (
+              <a
+                href={job.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-periwinkle-600 hover:underline transition-colors cursor-pointer"
+              >
+                {job.title}
+              </a>
+            ) : (
+              job.title
+            )}
+          </h3>
           <p className="mt-1 text-xs font-semibold leading-snug text-gray-600">
             {job.company ?? "회사 미상"}
             {job.location ? <span className="font-medium text-gray-400"> · {job.location}</span> : null}

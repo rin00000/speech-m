@@ -90,8 +90,19 @@ export const DesktopJobsTable = ({
                     />
                   </td>
                   <td className={`${cellPaddingClass} font-medium text-gray-800`}>
-                    {job.title}
-                    {job.location && <span className="ml-2 text-xs text-gray-400">{job.location}</span>}
+                    {job.source_url ? (
+                      <a
+                        href={job.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-periwinkle-600 hover:underline transition-colors cursor-pointer"
+                      >
+                        {job.title}
+                      </a>
+                    ) : (
+                      job.title
+                    )}
+                    {job.location && <span className="ml-2 text-xs font-normal text-gray-400">{job.location}</span>}
                   </td>
                   <td className={`${cellPaddingClass} text-gray-600`}>{job.company ?? "—"}</td>
                   <td className={`${cellPaddingClass} text-gray-500`}>{SOURCE_LABEL[job.source]}</td>

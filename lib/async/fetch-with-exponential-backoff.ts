@@ -13,6 +13,42 @@ export type FetchWithExponentialBackoffOptions = {
 
 const isRetriableHttpStatus = (status: number): boolean => status === 429 || status >= 500;
 
+export const resolveRetryAfterDelayMs = (
+  retryAfter: string | null,
+  nowMs = Date.now()
+): number | null => {
+  const trimmed = retryAfter?.trim();
+  if (!trimmed) return null;
+
+  const seconds = Number(trimmed);
+  if (Number.isFinite(seconds)) {
+    return seconds >= 0 ? seconds * 1000 : null;
+  }
+
+  const retryAtMs = Date.parse(trimmed);
+  if (Number.isFinite(retryAtMs)) {
+    return Math.max(0, retryAtMs - nowMs);
+  }
+
+  return null;
+};
+
+const resolveRetryDelayMs = (
+  response: Response,
+  attempt: number,
+  baseDelayMs: number,
+  maxDelayMs: number
+): number => {
+  const retryAfterDelayMs = resolveRetryAfterDelayMs(response.headers.get("retry-after"));
+  if (retryAfterDelayMs !== null) {
+    return retryAfterDelayMs;
+  }
+
+  const base = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt);
+  const jitterFactor = 1 + Math.random() * 0.25;
+  return base * jitterFactor;
+};
+
 /**
  * Retries on 429, 5xx, and transient fetch failures with exponential backoff and light jitter.
  * Non-retriable HTTP responses are returned as-is for the caller to handle.
@@ -59,9 +95,7 @@ export async function fetchWithExponentialBackoff(
       }
 
       if (isRetriableHttpStatus(response.status) && attempt < maxAttempts - 1) {
-        const base = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt);
-        const jitterFactor = 1 + Math.random() * 0.25;
-        await sleep(base * jitterFactor);
+        await sleep(resolveRetryDelayMs(response, attempt, baseDelayMs, maxDelayMs));
         continue;
       }
 

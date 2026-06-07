@@ -60,9 +60,20 @@ export function RecentPublishedJobsPanel({
             >
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-sm font-medium leading-tight text-gray-800">
-                    {job.title}
-                  </p>
+                  {job.source_url ? (
+                    <a
+                      href={job.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-sm font-medium leading-tight text-gray-800 hover:text-periwinkle-600 hover:underline transition-colors cursor-pointer"
+                    >
+                      {job.title}
+                    </a>
+                  ) : (
+                    <p className="truncate text-sm font-medium leading-tight text-gray-800">
+                      {job.title}
+                    </p>
+                  )}
                   <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium leading-none text-gray-500">
                     {SOURCE_LABEL[job.source]}
                   </span>

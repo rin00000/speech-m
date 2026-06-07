@@ -1,12 +1,19 @@
 ---
 description: Speech-M domain constraints and business boundaries
 globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*.{ts,mts,tsx},data/**/*,docs/**/*.{md,mdx}
+alwaysApply: true
 ---
 
 # Speech-M Domain Rules
 - Primary persona: academy director (admin curator).
 - Primary interface: admin dashboard with dense but readable information.
 - Keep icon consistency with `@hugeicons/react` unless unavailable.
+
+# User Roles & Routing
+- The system strictly uses 3 roles: `admin` (원장/관리자), `student` (정회원 수강생), and `guest` (준비생/게스트).
+- Role-based UI polymorphism is preferred over separate route groups for dashboards (e.g., `DashboardPage` dynamically rendering `AdminDashboardView`, `StudentDashboardView`, or `GuestDashboardView` based on role).
+- Navigation visibility is controlled centrally via `getNavItemsForRole()` in `nav-items.ts`.
+- Route protection is handled at the Server Component or Server Action level using `requireUser()`, `requireAdmin()`, and `getCurrentUser()` from `lib/auth/session.ts` instead of middleware.
 
 # Pipeline Intent
 - Optimize the workflow `Scrape -> AI Filter -> Human-in-the-loop -> AI Post`.
@@ -26,7 +33,9 @@ globs: app/**/*.{ts,tsx},components/**/*.{ts,tsx},lib/**/*.{ts,tsx},scripts/**/*
 - Script automation: collect recent reusable news/radio scripts and deliver merged HWP/PDF in async batches.
 - Study operations: support recording bundle automation, attendance/deposit calculations, and relay-style feedback workflows.
 - Relay study order is determined by first-come audio submission order. Admin member configuration defines the eligible participant pool, not a manual feedback sequence.
-- Private CRM: archive exam reviews privately and support counseling reservation flows with stale lead cleanup.
+- Private CRM: archive exam reviews privately and support counseling reservation flows with stale lead cleanup. **(Note: "시험 후기" / Exam Reviews feature is EXCLUDED from the first user test MVP. Hide its navigation menus and leave as future work.)**
+- 관리반 예약은 오프라인 결제 후 관리자가 발급한 쿠폰 묶음을 기준으로 운영한다.
+- 관리반 신청은 선착순 정원과 쿠폰 차감을 DB 트랜잭션으로 처리하고, 학생 취소는 시작 1시간 전까지만 허용한다.
 
 # Data Security Constraints
 - Treat exam reviews and student data as strictly private.

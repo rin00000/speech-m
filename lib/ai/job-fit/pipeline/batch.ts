@@ -5,13 +5,16 @@
  * 이 모듈은 호출하지 않는다. 골든 런·메트릭 산출 후 `POST /api/admin/benchmark-job-fit` 또는
  * `npm run check:job-fit-benchmark`로 검증한다. 상세는 docs/job-fit-benchmark.md.
  *
- * 동시 처리 상한: `JOB_FIT_BATCH_CONCURRENCY`(미설정 시 기본 4, 최대 30). RPM/429 완화용.
+ * LLM 동시 처리 상한: `JOB_FIT_BATCH_CONCURRENCY`(미설정 시 기본 1, 최대 30).
+ * 규칙 판별 결과의 DB 반영은 `JOB_FIT_DB_UPDATE_CONCURRENCY`(미설정 시 기본 8)로 별도 제어한다.
  */
 import { poolAllSettled } from "@/lib/async/pool-all-settled";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { buildAiFitSnapshotPayload } from "../domain/ai-fit-snapshot";
-import { evaluateJobFit } from "./evaluate";
+import type { JobFitDecision, JobFitInput } from "../domain/schema";
+import { evaluateDeterministicJobFit, evaluateLlmJobFit } from "./evaluate";
+import { JobFitProviderHttpError } from "./providers";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
 type JobPostingUpdate = Database["public"]["Tables"]["job_postings"]["Update"];
@@ -27,18 +30,71 @@ export type RunJobFitBatchResult = {
   error?: string;
 };
 
-const DEFAULT_JOB_FIT_BATCH_CONCURRENCY = 4;
+const DEFAULT_JOB_FIT_BATCH_CONCURRENCY = 1;
 const MAX_JOB_FIT_BATCH_CONCURRENCY = 30;
+const DEFAULT_JOB_FIT_DB_UPDATE_CONCURRENCY = 8;
+const MAX_JOB_FIT_DB_UPDATE_CONCURRENCY = 30;
 
-const resolveJobFitBatchConcurrency = (): number => {
-  const raw = process.env.JOB_FIT_BATCH_CONCURRENCY;
-  if (raw === undefined || raw.trim() === "") return DEFAULT_JOB_FIT_BATCH_CONCURRENCY;
+const resolveEnvInt = (name: string, fallback: number, max: number): number => {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
   const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1) return DEFAULT_JOB_FIT_BATCH_CONCURRENCY;
-  return Math.min(n, MAX_JOB_FIT_BATCH_CONCURRENCY);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(n, max);
 };
 
+const resolveJobFitBatchConcurrency = (): number =>
+  resolveEnvInt(
+    "JOB_FIT_BATCH_CONCURRENCY",
+    DEFAULT_JOB_FIT_BATCH_CONCURRENCY,
+    MAX_JOB_FIT_BATCH_CONCURRENCY
+  );
+
+const resolveJobFitDbUpdateConcurrency = (): number =>
+  resolveEnvInt(
+    "JOB_FIT_DB_UPDATE_CONCURRENCY",
+    DEFAULT_JOB_FIT_DB_UPDATE_CONCURRENCY,
+    MAX_JOB_FIT_DB_UPDATE_CONCURRENCY
+  );
+
 type JobOutcome = "approved" | "rejected" | "pending" | "failed" | "skipped";
+type JobWithInput = {
+  job: JobPosting;
+  input: JobFitInput;
+};
+type DeterministicWork = JobWithInput & {
+  decision: JobFitDecision;
+};
+type BatchCounters = Record<JobOutcome, number>;
+
+const toJobFitInput = (job: JobPosting): JobFitInput => ({
+  id: job.id,
+  title: job.title,
+  company: job.company,
+  location: job.location,
+  source: job.source,
+  sourceUrl: job.source_url,
+});
+
+const countOutcomes = (settled: PromiseSettledResult<JobOutcome>[]): BatchCounters => {
+  const counters: BatchCounters = {
+    approved: 0,
+    rejected: 0,
+    pending: 0,
+    failed: 0,
+    skipped: 0,
+  };
+
+  for (const r of settled) {
+    if (r.status === "rejected") {
+      counters.failed += 1;
+      continue;
+    }
+    counters[r.value] += 1;
+  }
+
+  return counters;
+};
 
 export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> => {
   const supabase = createAdminClient();
@@ -64,75 +120,121 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
   }
 
   const jobs = data ?? [];
-  const concurrency = resolveJobFitBatchConcurrency();
+  const llmConcurrency = resolveJobFitBatchConcurrency();
+  const dbUpdateConcurrency = resolveJobFitDbUpdateConcurrency();
+  let providerRateLimitReached = false;
+  let providerRateLimitError: string | undefined;
 
-  const processOne = async (job: JobPosting): Promise<JobOutcome> => {
-    try {
-      const decision = await evaluateJobFit({
+  const updatePendingJob = async (
+    job: JobPosting,
+    row: JobPostingUpdate
+  ): Promise<JobOutcome | null> => {
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("job_postings")
+      .update(row)
+      .eq("id", job.id)
+      .eq("status", "pending")
+      .select("id")
+      .returns<{ id: string }[]>();
+
+    if (updateError) {
+      console.error("[job-fit] evaluation failed", {
         id: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        source: job.source,
-        sourceUrl: job.source_url,
+        error: updateError.message,
       });
+      return "failed";
+    }
 
-      const snapshot = buildAiFitSnapshotPayload(decision);
-      const updatePendingJob = async (row: JobPostingUpdate): Promise<JobOutcome | null> => {
-        const { data: updatedRows, error: updateError } = await supabase
-          .from("job_postings")
-          .update(row)
-          .eq("id", job.id)
-          .eq("status", "pending")
-          .select("id")
-          .returns<{ id: string }[]>();
+    if ((updatedRows ?? []).length === 0) return "skipped";
+    return null;
+  };
 
-        if (updateError) {
-          console.error("[job-fit] evaluation failed", {
-            id: job.id,
-            error: updateError.message,
-          });
-          return "failed";
-        }
+  const applyDecision = async (
+    job: JobPosting,
+    decision: JobFitDecision
+  ): Promise<JobOutcome> => {
+    const snapshot = buildAiFitSnapshotPayload(decision);
 
-        if ((updatedRows ?? []).length === 0) return "skipped";
-        return null;
-      };
+    if (decision.finalStatus === "pending") {
+      const updateOutcome = await updatePendingJob(job, { ai_fit_snapshot: snapshot });
+      if (updateOutcome) return updateOutcome;
+    } else {
+      const nowIso = new Date().toISOString();
+      const row =
+        decision.finalStatus === "approved"
+          ? {
+              status: "approved" as const,
+              rejected_at: null,
+              ai_fit_snapshot: snapshot,
+            }
+          : {
+              status: "rejected" as const,
+              published_at: null,
+              rejected_at: nowIso,
+              ai_fit_snapshot: snapshot,
+            };
+      const updateOutcome = await updatePendingJob(job, row);
+      if (updateOutcome) return updateOutcome;
+    }
 
-      if (decision.finalStatus === "pending") {
-        const updateOutcome = await updatePendingJob({ ai_fit_snapshot: snapshot });
-        if (updateOutcome) return updateOutcome;
+    console.info("[job-fit] decision", {
+      id: job.id,
+      title: job.title,
+      finalStatus: decision.finalStatus,
+      score: decision.score,
+      model: decision.model,
+      promptVersion: decision.promptVersion,
+      reasons: decision.reasons,
+    });
+
+    return decision.finalStatus;
+  };
+
+  const deterministicWork: DeterministicWork[] = [];
+  const llmWork: JobWithInput[] = [];
+  const preflightSettled: PromiseSettledResult<JobOutcome>[] = [];
+
+  for (const job of jobs) {
+    const input = toJobFitInput(job);
+    try {
+      const decision = evaluateDeterministicJobFit(input);
+      if (decision) {
+        deterministicWork.push({ job, input, decision });
       } else {
-        const nowIso = new Date().toISOString();
-        const row =
-          decision.finalStatus === "approved"
-            ? {
-                status: "approved" as const,
-                rejected_at: null,
-                ai_fit_snapshot: snapshot,
-              }
-            : {
-                status: "rejected" as const,
-                published_at: null,
-                rejected_at: nowIso,
-                ai_fit_snapshot: snapshot,
-              };
-        const updateOutcome = await updatePendingJob(row);
-        if (updateOutcome) return updateOutcome;
+        llmWork.push({ job, input });
+      }
+    } catch (evaluationError) {
+      console.error("[job-fit] evaluation failed", {
+        id: job.id,
+        error:
+          evaluationError instanceof Error
+            ? evaluationError.message
+            : String(evaluationError),
+      });
+      preflightSettled.push({ status: "fulfilled", value: "failed" });
+    }
+  }
+
+  const deterministicSettled = await poolAllSettled(
+    deterministicWork,
+    dbUpdateConcurrency,
+    ({ job, decision }) => applyDecision(job, decision)
+  );
+
+  const processLlmOne = async ({ job, input }: JobWithInput): Promise<JobOutcome> => {
+    if (providerRateLimitReached) {
+      return "skipped";
+    }
+
+    try {
+      const decision = await evaluateLlmJobFit(input);
+      return await applyDecision(job, decision);
+    } catch (evaluationError) {
+      if (evaluationError instanceof JobFitProviderHttpError && evaluationError.status === 429) {
+        providerRateLimitReached = true;
+        providerRateLimitError = evaluationError.message;
       }
 
-      console.info("[job-fit] decision", {
-        id: job.id,
-        title: job.title,
-        finalStatus: decision.finalStatus,
-        score: decision.score,
-        model: decision.model,
-        promptVersion: decision.promptVersion,
-        reasons: decision.reasons,
-      });
-
-      return decision.finalStatus;
-    } catch (evaluationError) {
       console.error("[job-fit] evaluation failed", {
         id: job.id,
         error:
@@ -144,34 +246,21 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
     }
   };
 
-  const settled = await poolAllSettled(jobs, concurrency, processOne);
-
-  let approved = 0;
-  let rejected = 0;
-  let pending = 0;
-  let failed = 0;
-  let skipped = 0;
-
-  for (const r of settled) {
-    if (r.status === "rejected") {
-      failed += 1;
-      continue;
-    }
-    const outcome = r.value;
-    if (outcome === "approved") approved += 1;
-    else if (outcome === "rejected") rejected += 1;
-    else if (outcome === "pending") pending += 1;
-    else if (outcome === "skipped") skipped += 1;
-    else failed += 1;
-  }
+  const llmSettled = await poolAllSettled(llmWork, llmConcurrency, processLlmOne);
+  const counters = countOutcomes([
+    ...preflightSettled,
+    ...deterministicSettled,
+    ...llmSettled,
+  ]);
 
   return {
-    success: failed === 0,
+    success: counters.failed === 0,
     scanned: jobs.length,
-    approved,
-    rejected,
-    pending,
-    failed,
-    skipped,
+    approved: counters.approved,
+    rejected: counters.rejected,
+    pending: counters.pending,
+    failed: counters.failed,
+    skipped: counters.skipped,
+    error: providerRateLimitError,
   };
 };

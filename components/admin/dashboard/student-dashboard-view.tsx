@@ -13,6 +13,7 @@ import {
   UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
+import { ManagementClassNoticesPanel } from "@/components/admin/dashboard/management-class-notices-panel";
 import type {
   StudentDashboardData,
   StudentDashboardDueState,
@@ -59,12 +60,15 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
 });
 
 export function StudentDashboardView({ userName, data }: StudentDashboardViewProps) {
+  const hasNoStudies = data.studyCount === 0;
   const firstTask = data.tasks[0] ?? null;
-  const primaryStudyHref = firstTask
-    ? `/studies/${firstTask.studyId}`
-    : data.nextStudyId
-      ? `/studies/${data.nextStudyId}`
-      : "/studies";
+  const primaryStudyHref = hasNoStudies
+    ? "/studies"
+    : firstTask
+      ? `/studies/${firstTask.studyId}`
+      : data.nextStudyId
+        ? `/studies/${data.nextStudyId}`
+        : "/studies";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -74,6 +78,8 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+        <ManagementClassNoticesPanel notices={data.managementClassNotices} />
+
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="min-w-0">
@@ -84,8 +90,9 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
                 안녕하세요, {userName ?? "준비생"} 수강생님
               </h2>
               <p className="mt-2 max-w-2xl text-sm font-medium leading-snug text-gray-500">
-                오늘은 스터디 제출 흐름과 연습 원고를 먼저 확인하면 됩니다. 참여 중인
-                릴레이가 있으면 내 차례만 이곳에 표시됩니다.
+                {hasNoStudies
+                  ? "현재 참여 중인 릴레이 스터디가 없습니다. 아래 안내를 확인하여 스터디 참여 신청을 진행하시거나 추천 학습 훈련으로 연습을 시작해 보세요."
+                  : "오늘은 스터디 제출 흐름과 연습 원고를 먼저 확인하면 됩니다. 참여 중인 릴레이가 있으면 내 차례만 이곳에 표시됩니다."}
               </p>
             </div>
 
@@ -93,21 +100,30 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
               href={primaryStudyHref}
               className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-periwinkle-600 px-4 py-3 text-sm font-extrabold text-white hover:bg-periwinkle-700"
             >
-              {firstTask ? "오늘 할 일 시작" : "내 스터디 보기"}
+              {hasNoStudies ? "스터디 둘러보기" : firstTask ? "오늘 할 일 시작" : "내 스터디 보기"}
               <HugeiconsIcon icon={ArrowRight01Icon} size={15} color="currentColor" />
             </Link>
           </div>
         </section>
 
-        <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr] xl:gap-6">
-          <StudyStatusPanel data={data} />
-          <TodayStudentTasksPanel tasks={data.tasks} taskCount={data.taskCount} />
-        </div>
+        {hasNoStudies ? (
+          <div className="space-y-4 md:space-y-6">
+            <StudyPromotionCard />
+            <PracticeHighlightsPanel highlights={data.practiceHighlights} />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
+              <StudyStatusPanel data={data} />
+              <TodayStudentTasksPanel tasks={data.tasks} taskCount={data.taskCount} />
+            </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr] xl:gap-6">
-          <RecentRelayFeedbackPanel feedback={data.recentFeedback} />
-          <PracticeHighlightsPanel highlights={data.practiceHighlights} />
-        </div>
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:gap-6">
+              <RecentRelayFeedbackPanel feedback={data.recentFeedback} />
+              <PracticeHighlightsPanel highlights={data.practiceHighlights} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -339,7 +355,68 @@ function PracticeHighlightsPanel({ highlights }: { highlights: StudentPracticeHi
       )}
     </section>
   );
+}function StudyPromotionCard() {
+  return (
+    <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
+      <div className="max-w-3xl">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700">
+            <HugeiconsIcon icon={UserGroupIcon} size={20} color="currentColor" strokeWidth={1.8} />
+          </span>
+          <h3 className="text-base font-extrabold tracking-tight text-gray-900 md:text-lg">
+            🎙️ 릴레이 스터디로 실전 감각을 키워보세요!
+          </h3>
+        </div>
+        
+        <p className="mt-4 text-sm font-medium leading-snug text-gray-500">
+          Speech-M의 릴레이 스터디는 동료 수강생들과 매일 뉴스를 낭독하고 피드백을 주고받으며, 
+          리포터·아나운서 시험을 더 완벽하게 준비할 수 있는 정회원 전용 학습 훈련 공간입니다.
+        </p>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-periwinkle-100 bg-white text-periwinkle-600">
+              <HugeiconsIcon icon={Comment01Icon} size={14} color="currentColor" />
+            </div>
+            <h4 className="mt-3 text-sm font-extrabold text-gray-900">상호 릴레이 피드백</h4>
+            <p className="mt-1 text-xs font-medium leading-normal text-gray-500">
+              앞 사람의 음성을 듣고 피드백을 남긴 뒤 내 녹음을 제출하는 상호 학습 방식입니다.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-periwinkle-100 bg-white text-periwinkle-600">
+              <HugeiconsIcon icon={Task01Icon} size={14} color="currentColor" />
+            </div>
+            <h4 className="mt-3 text-sm font-extrabold text-gray-900">실전 미션 원고</h4>
+            <p className="mt-1 text-xs font-medium leading-normal text-gray-500">
+              매주 새롭게 부여되는 엄선된 뉴스/방송 원고를 통해 실전형 훈련이 가능합니다.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-periwinkle-100 bg-white text-periwinkle-600">
+              <HugeiconsIcon icon={FileEditIcon} size={14} color="currentColor" />
+            </div>
+            <h4 className="mt-3 text-sm font-extrabold text-gray-900">학습 성장 아카이빙</h4>
+            <p className="mt-1 text-xs font-medium leading-normal text-gray-500">
+              제출 기록과 동료들의 피드백이 누적되어 나의 낭독 변화와 성장을 확인할 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
+          <p className="text-xs font-extrabold text-gray-700">📌 스터디 참여 안내</p>
+          <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
+            정규 교육 과정 수강생분들은 담당 코치가 직접 학습 그룹을 개설하고 멤버로 배정해 드립니다. 
+            만약 스터디 그룹 매칭을 원하시거나 배정 요청이 필요한 경우, Speech-M 고객센터로 연락해 주세요.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
 }
+
 
 function SectionHeader({
   icon,

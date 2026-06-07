@@ -4,6 +4,10 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/server";
+import {
+  getStudentManagementClassDashboard,
+  type StudentManagementClassNotice,
+} from "@/lib/management-classes/data";
 import type { Database, PracticeScriptCategory, PracticeScriptDifficulty } from "@/types/database.types";
 import {
   buildRelayQuestState,
@@ -76,6 +80,7 @@ export type StudentPracticeHighlight = {
 };
 
 export type StudentDashboardData = {
+  managementClassNotices: StudentManagementClassNotice[];
   studies: StudentDashboardStudySummary[];
   studyCount: number;
   openQuestCount: number;
@@ -88,6 +93,7 @@ export type StudentDashboardData = {
 };
 
 const EMPTY_DATA: StudentDashboardData = {
+  managementClassNotices: [],
   studies: [],
   studyCount: 0,
   openQuestCount: 0,
@@ -111,6 +117,7 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
     .order("created_at", { ascending: false })
     .limit(3)
     .returns<PracticeScriptSummaryRow[]>();
+  const managementClassNoticesPromise = getStudentManagementClassDashboard(email);
 
   const { data: membershipRows } = await supabase
     .from("study_group_members")
@@ -119,11 +126,14 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
     .returns<StudyMemberSummaryRow[]>();
 
   const practiceHighlightsResult = await practiceHighlightsPromise;
-  const practiceHighlights = practiceHighlightsResult.data ?? [];
+  const [managementClassNotices, practiceHighlights] = [
+    await managementClassNoticesPromise,
+    practiceHighlightsResult.data ?? [],
+  ];
   const groupIds = [...new Set((membershipRows ?? []).map((member) => member.group_id))];
 
   if (groupIds.length === 0) {
-    return { ...EMPTY_DATA, practiceHighlights };
+    return { ...EMPTY_DATA, managementClassNotices, practiceHighlights };
   }
 
   const [{ data: groupRows }, { data: memberRows }, { data: questRows }] = await Promise.all([
@@ -296,6 +306,7 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
     .slice(0, 3);
 
   return {
+    managementClassNotices,
     studies,
     studyCount: studies.length,
     openQuestCount: openQuests.length,

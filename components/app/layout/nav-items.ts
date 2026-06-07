@@ -1,6 +1,7 @@
 import {
   BookOpen01Icon,
   Briefcase01Icon,
+  CalendarUserIcon,
   DashboardSquare01Icon,
   FileEditIcon,
   Settings01Icon,
@@ -9,12 +10,14 @@ import {
 import type { UserRole } from "@/lib/auth/session";
 
 export type NavRole = UserRole | "all";
+export type NavGroup = "main" | "learning" | "management" | "system";
 
 export type NavItem = {
   label: string;
   href: string;
   icon: typeof DashboardSquare01Icon;
   role: NavRole;
+  group: NavGroup;
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -23,48 +26,56 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/dashboard",
     icon: DashboardSquare01Icon,
     role: "all",
+    group: "main",
   },
   {
     label: "채용 공고",
     href: "/jobs",
     icon: Briefcase01Icon,
     role: "all",
+    group: "main",
   },
   {
     label: "연습 원고",
     href: "/practice",
     icon: BookOpen01Icon,
     role: "student",
-  },
-  {
-    label: "시험 후기",
-    href: "/reviews",
-    icon: FileEditIcon,
-    role: "student",
+    group: "learning",
   },
   {
     label: "내 스터디",
     href: "/studies",
     icon: BookOpen01Icon,
     role: "student",
+    group: "learning",
   },
   {
     label: "스터디 관리",
     href: "/studies",
     icon: BookOpen01Icon,
     role: "admin",
+    group: "management",
+  },
+  {
+    label: "관리반",
+    href: "/management-classes",
+    icon: CalendarUserIcon,
+    role: "admin",
+    group: "management",
   },
   {
     label: "회원 관리",
     href: "/users",
     icon: UserIcon,
     role: "admin",
+    group: "system",
   },
   {
     label: "설정",
     href: "/settings",
     icon: Settings01Icon,
     role: "all",
+    group: "system",
   },
 ];
 

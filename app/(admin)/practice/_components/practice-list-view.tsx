@@ -12,6 +12,8 @@ import { PracticeScriptCreateModal } from "./practice-script-create-modal";
 import { PracticeScriptList } from "./practice-script-list";
 import { PracticeScriptReader } from "./practice-script-reader";
 import type { PracticeCategory, ScriptItem } from "./practice-list-types";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkCircle01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 
 export function PracticeListView({
   scripts,
@@ -25,6 +27,7 @@ export function PracticeListView({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   const filtered = scripts.filter((script) => script.category === activeCategory);
   const effectiveSelectedScriptId = selectedScriptId ?? filtered[0]?.id ?? null;
@@ -46,13 +49,16 @@ export function PracticeListView({
     if (!confirm("정말로 이 원고를 삭제하시겠습니까?")) return;
 
     setIsDeleting(true);
+    setNotice(null);
     try {
       const res = await deletePracticeScript(selectedScript.id);
       if (res.success) {
+        setNotice({ tone: "success", text: "원고가 성공적으로 삭제되었습니다." });
+        setTimeout(() => setNotice(null), 3000);
         selectScript(null);
         return;
       }
-      alert(res.error || "삭제에 실패했습니다.");
+      setNotice({ tone: "error", text: res.error || "원고 삭제에 실패했습니다." });
     } finally {
       setIsDeleting(false);
     }
@@ -60,6 +66,22 @@ export function PracticeListView({
 
   return (
     <>
+      {notice && (
+        <div
+          className={`mb-4 flex items-center gap-2.5 rounded-2xl border p-4 text-sm font-semibold animate-fadeIn ${
+            notice.tone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <HugeiconsIcon
+            icon={notice.tone === "success" ? CheckmarkCircle01Icon : Cancel01Icon}
+            size={18}
+            color="currentColor"
+          />
+          <span>{notice.text}</span>
+        </div>
+      )}
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_1.3fr] lg:gap-8">
         <div className="space-y-4 md:space-y-6">
           <PracticeCategoryTabs
