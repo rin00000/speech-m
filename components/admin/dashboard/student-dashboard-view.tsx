@@ -113,12 +113,12 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
           </div>
         ) : (
           <>
-            <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr] xl:gap-6">
+            <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
               <StudyStatusPanel data={data} />
               <TodayStudentTasksPanel tasks={data.tasks} taskCount={data.taskCount} />
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr] xl:gap-6">
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:gap-6">
               <RecentRelayFeedbackPanel feedback={data.recentFeedback} />
               <PracticeHighlightsPanel highlights={data.practiceHighlights} />
             </div>

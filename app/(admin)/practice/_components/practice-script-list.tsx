@@ -6,6 +6,8 @@
  */
 
 import type { ScriptItem } from "./practice-list-types";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TransitionLink } from "@/components/ui/transition-link";
 
 export const PracticeScriptList = ({
   scripts,
@@ -18,9 +20,19 @@ export const PracticeScriptList = ({
 }) => {
   if (scripts.length === 0) {
     return (
-      <div className="py-8 text-center text-sm font-semibold text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl">
-        등록된 원고가 없습니다.
-      </div>
+      <EmptyState
+        icon="🎤"
+        title="등록된 연습 원고가 없습니다"
+        description="관리자가 원고를 등록하면 이곳에서 확인할 수 있습니다."
+        action={
+          <TransitionLink
+            href="/jobs"
+            className="mt-2 inline-flex items-center justify-center gap-2 rounded-full border border-periwinkle-200 bg-periwinkle-100 px-5 py-2.5 text-sm font-semibold leading-none text-periwinkle-700 transition-colors hover:bg-periwinkle-200"
+          >
+            채용 공고 보러가기
+          </TransitionLink>
+        }
+      />
     );
   }
 

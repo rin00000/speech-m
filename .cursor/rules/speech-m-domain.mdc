@@ -33,7 +33,7 @@ alwaysApply: true
 - Script automation: collect recent reusable news/radio scripts and deliver merged HWP/PDF in async batches.
 - Study operations: support recording bundle automation, attendance/deposit calculations, and relay-style feedback workflows.
 - Relay study order is determined by first-come audio submission order. Admin member configuration defines the eligible participant pool, not a manual feedback sequence.
-- Private CRM: archive exam reviews privately and support counseling reservation flows with stale lead cleanup.
+- Private CRM: archive exam reviews privately and support counseling reservation flows with stale lead cleanup. **(Note: "시험 후기" / Exam Reviews feature is EXCLUDED from the first user test MVP. Hide its navigation menus and leave as future work.)**
 - 관리반 예약은 오프라인 결제 후 관리자가 발급한 쿠폰 묶음을 기준으로 운영한다.
 - 관리반 신청은 선착순 정원과 쿠폰 차감을 DB 트랜잭션으로 처리하고, 학생 취소는 시작 1시간 전까지만 허용한다.
 

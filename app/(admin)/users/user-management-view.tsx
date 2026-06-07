@@ -14,6 +14,7 @@ import {
   CheckmarkCircle01Icon,
   Cancel01Icon,
 } from "@hugeicons/core-free-icons";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface ProfileItem {
   email: string;
@@ -230,8 +231,13 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
         {/* Mobile View */}
         <div className="divide-y divide-gray-100 md:hidden">
           {users.length === 0 ? (
-            <div className="px-4 py-12 text-center text-sm font-medium text-gray-400">
-              가입한 회원 프로필이 아직 없습니다.
+            <div className="p-4">
+              <EmptyState
+                icon="👥"
+                title="가입한 회원 프로필이 아직 없습니다"
+                description="새로운 회원이 가입하면 이곳에 표시됩니다."
+                className="border-none bg-transparent shadow-none"
+              />
             </div>
           ) : (
             users.map((user) => (
@@ -339,8 +345,13 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
             <tbody className="divide-y divide-gray-100 text-sm font-semibold text-gray-700">
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
-                    가입한 회원 프로필이 아직 없습니다.
+                  <td colSpan={6} className="px-6 py-12">
+                    <EmptyState
+                      icon="👥"
+                      title="가입한 회원 프로필이 아직 없습니다"
+                      description="새로운 회원이 가입하면 이곳에 표시됩니다."
+                      className="border-none bg-transparent shadow-none"
+                    />
                   </td>
                 </tr>
               ) : (

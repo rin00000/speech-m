@@ -1,5 +1,5 @@
 ---
-description: Tiimo 스타일 디자인 시스템 — Speech-M UI 가이드
+description: Speech-M UI 디테일 가이드
 globs: app/**/*.{tsx,ts,css}, components/**/*.{tsx,ts}
 ---
 # Tiimo Design System (Speech-M)
@@ -43,9 +43,32 @@ globs: app/**/*.{tsx,ts,css}, components/**/*.{tsx,ts}
 - 라벨/뱃지 내부: `leading-none`.
 
 ## 반응형 레이아웃
-- 모바일: BottomTab (`fixed bottom-4 inset-x-4 rounded-full`), 콘텐츠 풀폭, `pb-24`.
-- PC (`md:`): SideRail 좌측, main은 rounded island.
-- 중단점: Tailwind `md:` 기준.
+
+### 대상 뷰포트 (사용자 테스트 기준)
+| 디바이스 | 해상도 (CSS px) | 활성 브레이크포인트 |
+|---|---|---|
+| 모바일 (iPhone 15 Pro) | 393 × 852 | 기본값만 |
+| iPad Air 가로 | 1180 × 820 | `sm` `md` `lg` |
+| 노트북 14" | 1512 × 982 | `sm` `md` `lg` `xl` |
+
+### Tailwind v4 기본 브레이크포인트 (커스텀 없음)
+- `sm`: 640px / `md`: 768px / `lg`: 1024px / `xl`: 1280px / `2xl`: 1536px
+- 커스텀 `--breakpoint-*`는 추가하지 않는다.
+
+### 레이아웃 전환 규칙
+- **모바일 (< md)**: BottomTab 표시, SideRail 숨김, 콘텐츠 풀폭 스크롤, `pb-[calc(6rem+env(safe-area-inset-bottom))]`.
+- **md (≥ 768px)**: SideRail 아이콘 모드(88px), BottomTab 숨김, main은 `md:rounded-3xl` island 카드.
+- **lg (≥ 1024px)**: SideRail 풀사이즈(240px, 라벨+그룹명 표시). **2열 그리드 분할의 기본 브레이크포인트.**
+- **xl (≥ 1280px)**: 넉넉한 여백 확보. 필요 시 그리드 비율 미세 조정만 사용.
+
+### 그리드 분할 컨벤션
+- 페이지 내 2열 레이아웃은 **`lg:`** 이상에서 활성화한다. iPad Air 가로(1180px)가 `lg` 범위에 포함되므로, 2열 분할 기준으로 `xl:`을 사용하지 않는다.
+- 예외: 데이터 밀도가 높아 넓은 폭이 필수인 경우에만 `xl:` 사용을 허용하되, 주석으로 사유를 명시한다.
+- `2xl:`은 현재 사용하지 않는다.
+
+### 높이 제한 주의
+- iPad Air 가로는 높이가 820px뿐이다. `md:h-dvh` 고정 높이 모드에서 Header(64px)를 제외하면 실 콘텐츠 영역은 ~724px.
+- 긴 폼이나 모달은 반드시 `overflow-y-auto`를 적용한다.
 
 ## Role 분기
 - `nav-items.ts`에서 `role: "all" | "admin" | "student"` 필드로 메뉴 필터.

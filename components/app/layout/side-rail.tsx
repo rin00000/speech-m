@@ -26,6 +26,22 @@ export function SideRail({
   const pathname = usePathname();
   const activePath = previewPathname ?? pathname;
   const items = getNavItemsForRole(userRole).filter((item) => item.href !== "/settings");
+  
+  const groupedItems = items.reduce((acc, item) => {
+    if (!acc[item.group]) acc[item.group] = [];
+    acc[item.group].push(item);
+    return acc;
+  }, {} as Record<string, typeof items>);
+
+  const groupLabels: Record<string, string> = {
+    main: "메인",
+    learning: "나의 학습",
+    management: "운영 관리",
+    system: "시스템",
+  };
+  
+  const groupOrder = ["main", "learning", "management", "system"];
+
   const displayName = userName ?? userEmail ?? "User";
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -59,45 +75,56 @@ export function SideRail({
         <div className="hidden min-w-0 flex-col leading-none lg:flex">
           <span className="truncate text-sm font-extrabold text-gray-900">Speech-M</span>
           <span className="truncate text-[11px] font-medium text-gray-500">
-            {userRole === "admin"
-              ? "원장 / 관리자"
-              : userRole === "student"
-              ? "정회원 수강생"
-              : "준비생 / 게스트"}
+            {roleLabel}
           </span>
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-        {items.map((item) => {
-          const active = isNavActive(activePath, item.href);
+      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto p-3">
+        {groupOrder.map((groupId) => {
+          const groupItems = groupedItems[groupId];
+          if (!groupItems || groupItems.length === 0) return null;
+
           return (
-            <TransitionLink
-              key={`${item.href}-${item.label}`}
-              href={item.href}
-              className={cn(
-                "group flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold leading-tight transition-colors",
-                active
-                  ? "border-periwinkle-200 bg-periwinkle-100 text-periwinkle-700"
-                  : "border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800",
+            <div key={groupId} className="flex flex-col gap-1">
+              <div className="hidden lg:block mb-1 px-3">
+                <span className="text-xs font-bold text-gray-400">{groupLabels[groupId]}</span>
+              </div>
+              {groupId !== "main" && (
+                <div className="mx-2 mb-2 border-t border-gray-100 lg:hidden" />
               )}
-              title={item.label}
-            >
-              <span
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  active ? "bg-white text-periwinkle-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200",
-                )}
-              >
-                <HugeiconsIcon
-                  icon={item.icon}
-                  size={18}
-                  color="currentColor"
-                  strokeWidth={active ? 2 : 1.5}
-                />
-              </span>
-              <span className="hidden truncate lg:inline">{item.label}</span>
-            </TransitionLink>
+              {groupItems.map((item) => {
+                const active = isNavActive(activePath, item.href);
+                return (
+                  <TransitionLink
+                    key={`${item.href}-${item.label}`}
+                    href={item.href}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold leading-tight transition-colors",
+                      active
+                        ? "border-periwinkle-200 bg-periwinkle-100 text-periwinkle-700"
+                        : "border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800",
+                    )}
+                    title={item.label}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors",
+                        active ? "bg-white text-periwinkle-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200",
+                      )}
+                    >
+                      <HugeiconsIcon
+                        icon={item.icon}
+                        size={18}
+                        color="currentColor"
+                        strokeWidth={active ? 2 : 1.5}
+                      />
+                    </span>
+                    <span className="hidden truncate lg:inline">{item.label}</span>
+                  </TransitionLink>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -111,29 +138,29 @@ export function SideRail({
         >
           {isProfileMenuOpen && (
             <div className="absolute bottom-[calc(100%-0.25rem)] left-3 z-50 w-56 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm lg:left-4 lg:right-4 lg:w-auto">
-              <TransitionLink
-                href="/settings"
-                className={cn(
-                  "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold leading-none transition-colors",
-                  isSettingsActive
-                    ? "bg-periwinkle-100 text-periwinkle-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                )}
-                title="설정"
-              >
-                <HugeiconsIcon
-                  icon={Settings01Icon}
-                  size={16}
-                  color="currentColor"
-                  strokeWidth={isSettingsActive ? 2 : 1.6}
-                />
-                <span>설정</span>
-              </TransitionLink>
+              {userRole !== "guest" && (
+                <TransitionLink
+                  href="/settings"
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold leading-none transition-colors",
+                    isSettingsActive
+                      ? "bg-periwinkle-100 text-periwinkle-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                  )}
+                  title="설정"
+                >
+                  <HugeiconsIcon
+                    icon={Settings01Icon}
+                    size={16}
+                    color="currentColor"
+                    strokeWidth={isSettingsActive ? 2 : 1.6}
+                  />
+                  <span>설정</span>
+                </TransitionLink>
+              )}
 
               <div className="mt-1 border-t border-gray-100 pt-1">
-                <LogoutButton
-                  className="justify-start rounded-xl border-transparent px-3 py-2.5 text-sm shadow-none hover:border-transparent"
-                />
+                <LogoutButton variant="ghost" className="shadow-none" />
               </div>
             </div>
           )}
