@@ -19,7 +19,10 @@ type State = "idle" | "loading" | "queued" | "error";
 type QueueResponse = {
   success?: boolean;
   error?: string;
+  alreadyRunning?: boolean;
 };
+
+const AI_BATCH_REENABLE_MS = 180_000;
 
 export const AiFitButton = () => {
   const [state, setState] = useState<State>("idle");
@@ -44,8 +47,8 @@ export const AiFitButton = () => {
       }
 
       setState("queued");
-      setMessage("백그라운드 실행 중");
-      setTimeout(() => setState("idle"), 5000);
+      setMessage(result.alreadyRunning ? "이미 백그라운드 실행 중" : "백그라운드 실행 중");
+      setTimeout(() => setState("idle"), AI_BATCH_REENABLE_MS);
     } catch (err) {
       setState("error");
       setMessage(err instanceof Error ? err.message : "AI 판별 시작 실패");

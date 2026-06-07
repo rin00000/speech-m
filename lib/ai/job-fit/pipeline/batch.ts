@@ -234,6 +234,15 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
         providerRateLimitReached = true;
         providerRateLimitError = evaluationError.message;
       }
+      const providerError =
+        evaluationError instanceof JobFitProviderHttpError
+          ? {
+              provider: evaluationError.provider,
+              providerStatus: evaluationError.status,
+              providerDetail: evaluationError.detail,
+              retryAfterMs: evaluationError.retryAfterMs,
+            }
+          : {};
 
       console.error("[job-fit] evaluation failed", {
         id: job.id,
@@ -241,6 +250,7 @@ export const runJobFitBatch = async (limit = 30): Promise<RunJobFitBatchResult> 
           evaluationError instanceof Error
             ? evaluationError.message
             : String(evaluationError),
+        ...providerError,
       });
       return "failed";
     }

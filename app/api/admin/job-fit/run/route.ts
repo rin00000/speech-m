@@ -10,21 +10,44 @@ import { runJobFitBatch } from "@/lib/ai/job-fit";
 
 export const maxDuration = 300;
 
+const ADMIN_JOB_FIT_BATCH_LIMIT = 30;
+let adminJobFitRunInProgress = false;
+
 export async function POST() {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  if (adminJobFitRunInProgress) {
+    return NextResponse.json(
+      { success: true, queued: true, alreadyRunning: true },
+      { status: 202 }
+    );
+  }
+
+  adminJobFitRunInProgress = true;
+
   after(async () => {
     const startedAt = Date.now();
-    const result = await runJobFitBatch(30);
-    revalidatePath("/jobs");
-    revalidatePath("/dashboard");
-    console.info("[admin/job-fit/run]", {
-      durationMs: Date.now() - startedAt,
-      result,
-    });
+    try {
+      const result = await runJobFitBatch(ADMIN_JOB_FIT_BATCH_LIMIT);
+      revalidatePath("/jobs");
+      revalidatePath("/dashboard");
+      console.info("[admin/job-fit/run]", {
+        durationMs: Date.now() - startedAt,
+        limit: ADMIN_JOB_FIT_BATCH_LIMIT,
+        result,
+      });
+    } catch (error) {
+      console.error("[admin/job-fit/run] failed", {
+        durationMs: Date.now() - startedAt,
+        limit: ADMIN_JOB_FIT_BATCH_LIMIT,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      adminJobFitRunInProgress = false;
+    }
   });
 
   return NextResponse.json({ success: true, queued: true }, { status: 202 });

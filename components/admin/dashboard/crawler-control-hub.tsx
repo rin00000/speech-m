@@ -21,6 +21,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardBody, CardSurface } f
 import { Button } from "@/components/ui/button";
 import { useAsyncAction } from "@/lib/ui/use-async-action";
 
+const AI_BATCH_REENABLE_MS = 180_000;
+
 type SyncState = {
   status: "idle" | "loading" | "success" | "error";
   message: string;
@@ -98,6 +100,7 @@ export function CrawlerControlHub() {
       const result = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         error?: string;
+        alreadyRunning?: boolean;
       };
 
       if (!response.ok || !result.success) {
@@ -105,10 +108,13 @@ export function CrawlerControlHub() {
         return;
       }
 
-      setAiState({ status: "success", message: "백그라운드 실행 중" });
+      setAiState({
+        status: "success",
+        message: result.alreadyRunning ? "이미 백그라운드 실행 중" : "백그라운드 실행 중",
+      });
       setTimeout(() => {
         setAiState({ status: "idle", message: "" });
-      }, 5000);
+      }, AI_BATCH_REENABLE_MS);
     } catch (error) {
       setAiState({
         status: "error",
