@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 관리자가 관리반 공지와 쿠폰, 신청 현황을 운영하는 클라이언트 뷰입니다.
+ * Server Action 호출 결과를 화면 상태로 보여주고 관리 작업 후 라우터를 갱신합니다.
+ */
+
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +18,10 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  MANAGEMENT_CLASS_CAPACITY_MAX,
+  MANAGEMENT_CLASS_CAPACITY_MIN,
+} from "@/lib/management-classes/constants";
 import type { AdminManagementClassOpsData } from "@/lib/management-classes/data";
 import {
   cancelManagementClass,
@@ -90,10 +99,20 @@ export function ManagementClassesAdminView({
               className="space-y-3"
             >
               <FieldLabel label="날짜/시간">
+                <span className="mb-1 block text-[11px] font-semibold text-gray-400">
+                  서울 시간 기준으로 입력합니다.
+                </span>
                 <TextInput name="startsAt" type="datetime-local" required />
               </FieldLabel>
               <FieldLabel label="정원">
-                <TextInput name="capacity" type="number" min={1} max={100} defaultValue={4} required />
+                <TextInput
+                  name="capacity"
+                  type="number"
+                  min={MANAGEMENT_CLASS_CAPACITY_MIN}
+                  max={MANAGEMENT_CLASS_CAPACITY_MAX}
+                  defaultValue={4}
+                  required
+                />
               </FieldLabel>
               <Button type="submit" disabled={isPending} className="w-full">
                 공지 등록

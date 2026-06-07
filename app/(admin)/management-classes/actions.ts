@@ -1,8 +1,17 @@
 "use server";
 
+/**
+ * 관리반 예약과 쿠폰 운영에 사용하는 Server Action 모듈입니다.
+ * 관리자 공지 생성·취소, 쿠폰 발급, 수강생 신청·취소 요청을 검증한 뒤 Supabase RPC로 위임합니다.
+ */
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/session";
+import {
+  MANAGEMENT_CLASS_CAPACITY_MAX,
+  MANAGEMENT_CLASS_CAPACITY_MIN,
+} from "@/lib/management-classes/constants";
 import { parseSeoulDateTimeLocal } from "@/lib/management-classes/format";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -14,7 +23,11 @@ const uuidSchema = z.string().uuid();
 
 const classFormSchema = z.object({
   startsAt: z.string().trim().min(1, "관리반 날짜와 시간을 입력하세요."),
-  capacity: z.coerce.number().int().min(1, "정원은 1명 이상이어야 합니다.").max(100),
+  capacity: z.coerce
+    .number()
+    .int()
+    .min(MANAGEMENT_CLASS_CAPACITY_MIN, "정원은 1명 이상이어야 합니다.")
+    .max(MANAGEMENT_CLASS_CAPACITY_MAX),
 });
 
 const grantFormSchema = z.object({
@@ -56,7 +69,8 @@ export async function createManagementClass(
   if (!startsAtIso) {
     return { success: false, error: "날짜와 시간 형식을 확인하세요." };
   }
-  if (new Date(startsAtIso).getTime() <= Date.now()) {
+  const startsAtMs = Date.parse(startsAtIso);
+  if (!Number.isFinite(startsAtMs) || startsAtMs <= Date.now()) {
     return { success: false, error: "현재 이후의 관리반 시간만 등록할 수 있습니다." };
   }
 
@@ -224,7 +238,7 @@ async function cancelManagementClassApplicationByActor({
 
 async function requireAdminActor(): Promise<ActionResult<{ email: string }>> {
   const user = await getCurrentUser();
-  if (!user?.email || user.role !== "admin") {
+  if (user?.role !== "admin") {
     return { success: false, error: "관리자 권한이 필요합니다." };
   }
   return { success: true, data: { email: user.email } };

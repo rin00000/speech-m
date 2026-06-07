@@ -55,6 +55,10 @@ export async function updateMultipleUsersRoles(emails: string[], newRole: "admin
       return { success: false, error: "변경할 대상자가 선택되지 않았습니다." };
     }
 
+    if (newRole !== "admin" && emails.includes(actor.email)) {
+      return { success: false, error: "자기 자신의 관리자 권한은 일괄 해제할 수 없습니다." };
+    }
+
     const supabase = createAdminClient();
     const { error } = await supabase
       .from("user_profiles")

@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 학생 대시보드에 관리반 오픈 공지와 신청·취소 액션을 표시하는 패널입니다.
+ * 관리반 Server Action 결과를 토스트 상태로 보여주고 신청 상태 변경 후 화면을 갱신합니다.
+ */
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -44,16 +49,20 @@ export function ManagementClassNoticesPanel({
     setErrorText(null);
 
     startTransition(async () => {
-      const result = await fn();
-      if (!result.success) {
-        setErrorText(result.error ?? "처리 중 오류가 발생했습니다.");
-        setPendingAction(null);
-        return;
-      }
+      try {
+        const result = await fn();
+        if (!result.success) {
+          setErrorText(result.error ?? "처리 중 오류가 발생했습니다.");
+          return;
+        }
 
-      setNoticeText(successText);
-      setPendingAction(null);
-      router.refresh();
+        setNoticeText(successText);
+        router.refresh();
+      } catch {
+        setErrorText("처리 중 오류가 발생했습니다.");
+      } finally {
+        setPendingAction(null);
+      }
     });
   };
 

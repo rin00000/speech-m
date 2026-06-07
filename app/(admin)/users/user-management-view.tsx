@@ -202,21 +202,21 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
             <div className="inline-flex rounded-xl bg-white p-0.5 border border-gray-200 shadow-xs">
               <button
                 onClick={() => requestBulkRoleChange("guest")}
-                disabled={loadingEmail === "bulk"}
+                disabled={loadingEmail !== null}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-50"
               >
                 게스트
               </button>
               <button
                 onClick={() => requestBulkRoleChange("student")}
-                disabled={loadingEmail === "bulk"}
+                disabled={loadingEmail !== null}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold text-periwinkle-600 hover:text-periwinkle-700 hover:bg-periwinkle-50 transition-all cursor-pointer disabled:opacity-50"
               >
                 수강생
               </button>
               <button
                 onClick={() => requestBulkRoleChange("admin")}
-                disabled={loadingEmail === "bulk"}
+                disabled={loadingEmail !== null}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all cursor-pointer disabled:opacity-50"
               >
                 원장
@@ -254,6 +254,7 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
                       checked={selectedEmails.includes(user.email)}
                       onChange={() => handleSelectToggle(user.email)}
                       disabled={loadingEmail !== null}
+                      aria-label={`${user.display_name ?? "이름 미상"} (${user.email}) 선택`}
                       className="h-4.5 w-4.5 rounded border border-gray-300 bg-white text-periwinkle-600 focus:ring-periwinkle-500 focus:ring-offset-0 transition-colors cursor-pointer checked:bg-periwinkle-600 checked:border-transparent accent-periwinkle-600 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </div>
@@ -332,6 +333,11 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
                     checked={users.length > 0 && selectedEmails.length === users.length}
                     onChange={handleSelectAllToggle}
                     disabled={loadingEmail !== null}
+                    aria-label={
+                      users.length > 0 && selectedEmails.length === users.length
+                        ? "전체 회원 선택 해제"
+                        : "전체 회원 선택"
+                    }
                     className="h-4.5 w-4.5 rounded border border-gray-300 bg-white text-periwinkle-600 focus:ring-periwinkle-500 focus:ring-offset-0 transition-colors cursor-pointer checked:bg-periwinkle-600 checked:border-transparent accent-periwinkle-600 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </th>
@@ -368,6 +374,7 @@ export function UserManagementView({ initialUsers }: { initialUsers: ProfileItem
                         checked={selectedEmails.includes(user.email)}
                         onChange={() => handleSelectToggle(user.email)}
                         disabled={loadingEmail !== null}
+                        aria-label={`${user.display_name ?? "이름 미상"} (${user.email}) 선택`}
                         className="h-4.5 w-4.5 rounded border border-gray-300 bg-white text-periwinkle-600 focus:ring-periwinkle-500 focus:ring-offset-0 transition-colors cursor-pointer checked:bg-periwinkle-600 checked:border-transparent accent-periwinkle-600 disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </td>
