@@ -17,6 +17,19 @@ type ProviderResult = {
   rawText: string;
 };
 
+type GeminiGenerateContentResponse = {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+    finishReason?: string;
+    safetyRatings?: Array<{ category?: string; probability?: string }>;
+  }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
+};
+
 export class JobFitProviderHttpError extends Error {
   constructor(
     readonly provider: string,
@@ -152,6 +165,42 @@ const readProviderErrorDetail = async (response: Response): Promise<string | und
   return truncateProviderErrorDetail(trimmed.replace(/\s+/g, " "));
 };
 
+const formatGeminiTokenCount = (name: string, value: unknown): string | null =>
+  typeof value === "number" ? `${name}=${value}` : null;
+
+const readGeminiText = (json: GeminiGenerateContentResponse): string =>
+  json.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text)
+    .filter((text): text is string => typeof text === "string")
+    .join("") ?? "";
+
+const buildGeminiEmptyContentDetail = (json: GeminiGenerateContentResponse): string => {
+  const candidate = json.candidates?.[0];
+  const usage = json.usageMetadata;
+  const safety = candidate?.safetyRatings
+    ?.map((rating) =>
+      [rating.category, rating.probability].filter(Boolean).join(":")
+    )
+    .filter(Boolean)
+    .join(",");
+
+  return truncateProviderErrorDetail(
+    [
+      "empty candidate content",
+      typeof candidate?.finishReason === "string"
+        ? `finishReason=${candidate.finishReason}`
+        : null,
+      `candidates=${json.candidates?.length ?? 0}`,
+      formatGeminiTokenCount("promptTokens", usage?.promptTokenCount),
+      formatGeminiTokenCount("candidateTokens", usage?.candidatesTokenCount),
+      formatGeminiTokenCount("totalTokens", usage?.totalTokenCount),
+      safety ? `safety=${safety}` : null,
+    ]
+      .filter(Boolean)
+      .join("; ")
+  );
+};
+
 const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -192,10 +241,17 @@ const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> =
     throw new JobFitProviderHttpError("Gemini", response.status, detail, retryAfterMs);
   }
 
-  const json = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
-  const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  const json = (await response.json()) as GeminiGenerateContentResponse;
+  const rawText = readGeminiText(json);
+  if (!rawText.trim()) {
+    throw new JobFitProviderHttpError(
+      "Gemini",
+      response.status,
+      buildGeminiEmptyContentDetail(json),
+      null
+    );
+  }
+
   return {
     model: GEMINI_MODEL_PRIMARY,
     parsed: parseResult(rawText),
