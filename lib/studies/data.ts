@@ -35,7 +35,7 @@ export type StudyListItem = {
   description: string;
   status: StudyGroupStatus;
   memberCount: number;
-  memberEmails: string[];
+  memberUserIds: string[];
   questCount: number;
   openQuestCount: number;
   nextDueAt: string | null;
@@ -66,7 +66,7 @@ export type StudyDetail = {
 };
 
 export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyListItem[]> {
-  if (!viewer.email) return [];
+  if (!viewer.userId) return [];
 
   const supabase = createAdminClient();
   const [{ data: groups }, { data: members }, { data: quests }] = await Promise.all([
@@ -77,21 +77,21 @@ export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyLis
       .order("created_at", { ascending: false }),
     supabase
       .from("study_group_members")
-      .select("group_id, student_email"),
+      .select("group_id, student_user_id"),
     supabase
       .from("study_quests")
       .select("id, group_id, status, due_at")
       .order("due_at", { ascending: true }),
   ]);
 
-  const memberRows = (members ?? []) as Pick<StudyGroupMemberRow, "group_id" | "student_email">[];
+  const memberRows = (members ?? []) as Pick<StudyGroupMemberRow, "group_id" | "student_user_id">[];
   const questRows = (quests ?? []) as Pick<StudyQuestRow, "id" | "group_id" | "status" | "due_at">[];
   const visibleGroupIds =
     viewer.role === "admin"
       ? null
       : new Set(
           memberRows
-            .filter((member) => member.student_email === viewer.email)
+            .filter((member) => member.student_user_id === viewer.userId)
             .map((member) => member.group_id),
         );
 
@@ -107,7 +107,7 @@ export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyLis
         description: group.description,
         status: group.status,
         memberCount: groupMembers.length,
-        memberEmails: groupMembers.map((member) => member.student_email),
+        memberUserIds: groupMembers.map((member) => member.student_user_id),
         questCount: groupQuests.length,
         openQuestCount: openQuests.length,
         nextDueAt: openQuests[0]?.due_at ?? null,
@@ -123,7 +123,7 @@ export async function getStudyDetail({
   studyId: string;
   viewer: StudyViewer;
 }): Promise<StudyDetail | null> {
-  if (!viewer.email) return null;
+  if (!viewer.userId) return null;
 
   const supabase = createAdminClient();
   const { data: group } = await supabase
@@ -138,7 +138,7 @@ export async function getStudyDetail({
   const [{ data: memberRows }, { data: questRows }] = await Promise.all([
     supabase
       .from("study_group_members")
-      .select("id, group_id, student_email, display_order, created_at")
+      .select("id, group_id, student_user_id, display_order, created_at")
       .eq("group_id", studyId)
       .order("display_order", { ascending: true }),
     supabase
@@ -149,17 +149,18 @@ export async function getStudyDetail({
   ]);
 
   const members = (memberRows ?? []) as StudyGroupMemberRow[];
-  const memberEmails = members.map((member) => member.student_email);
-  if (!canViewStudy({ viewer, memberEmails })) return null;
+  const memberUserIds = members.map((member) => member.student_user_id);
+  if (!canViewStudy({ viewer, memberUserIds })) return null;
 
-  const profilesByEmail = await getProfilesByEmail(memberEmails);
+  const profilesByUserId = await getProfilesByUserId(memberUserIds);
   const studyMembers = members.map((member) => ({
-    email: member.student_email,
+    userId: member.student_user_id,
+    email: profilesByUserId.get(member.student_user_id)?.email ?? null,
     displayName: getDisplayName({
-      email: member.student_email,
+      fallback: profilesByUserId.get(member.student_user_id)?.email ?? member.student_user_id,
       displayName:
-        profilesByEmail.get(member.student_email)?.real_name ??
-        profilesByEmail.get(member.student_email)?.display_name,
+        profilesByUserId.get(member.student_user_id)?.real_name ??
+        profilesByUserId.get(member.student_user_id)?.display_name,
     }),
     displayOrder: member.display_order,
   }));
@@ -186,11 +187,11 @@ export async function getStudyDetail({
       : { data: [] };
 
   const feedback = (feedbackRows ?? []) as RelayFeedbackRow[];
-  const participantProfilesByEmail = await getProfilesByEmail([
+  const participantProfilesByUserId = await getProfilesByUserId([
     ...new Set([
-      ...submissions.map((submission) => submission.student_email),
-      ...feedback.map((item) => item.feedback_author_email),
-      ...memberEmails,
+      ...submissions.map((submission) => submission.student_user_id),
+      ...feedback.map((item) => item.feedback_author_user_id),
+      ...memberUserIds,
     ]),
   ]);
   const feedbackBySubmissionId = new Map<string, RelayFeedback>();
@@ -198,12 +199,15 @@ export async function getStudyDetail({
     feedbackBySubmissionId.set(item.submission_id, {
       id: item.id,
       submissionId: item.submission_id,
-      authorEmail: item.feedback_author_email,
+      authorUserId: item.feedback_author_user_id,
+      authorEmail: participantProfilesByUserId.get(item.feedback_author_user_id)?.email ?? null,
       authorName: getDisplayName({
-        email: item.feedback_author_email,
+        fallback:
+          participantProfilesByUserId.get(item.feedback_author_user_id)?.email ??
+          item.feedback_author_user_id,
         displayName:
-          participantProfilesByEmail.get(item.feedback_author_email)?.real_name ??
-          participantProfilesByEmail.get(item.feedback_author_email)?.display_name,
+          participantProfilesByUserId.get(item.feedback_author_user_id)?.real_name ??
+          participantProfilesByUserId.get(item.feedback_author_user_id)?.display_name,
       }),
       comment: item.comment,
       createdAt: item.created_at,
@@ -218,12 +222,15 @@ export async function getStudyDetail({
       .map<RelaySubmission>((submission) => ({
         id: submission.id,
         questId: submission.quest_id,
-        studentEmail: submission.student_email,
+        studentUserId: submission.student_user_id,
+        studentEmail: participantProfilesByUserId.get(submission.student_user_id)?.email ?? null,
         studentName: getDisplayName({
-          email: submission.student_email,
+          fallback:
+            participantProfilesByUserId.get(submission.student_user_id)?.email ??
+            submission.student_user_id,
           displayName:
-            participantProfilesByEmail.get(submission.student_email)?.real_name ??
-            participantProfilesByEmail.get(submission.student_email)?.display_name,
+            participantProfilesByUserId.get(submission.student_user_id)?.real_name ??
+            participantProfilesByUserId.get(submission.student_user_id)?.display_name,
         }),
         audioPath: submission.audio_path,
         audioUrl: signedAudioUrls.get(submission.id) ?? null,
@@ -247,7 +254,7 @@ export async function getStudyDetail({
       relay: buildRelayQuestState({
         members: studyMembers,
         submissions: questSubmissions,
-        currentUserEmail: viewer.role === "student" ? viewer.email : null,
+        currentUserId: viewer.role === "student" ? viewer.userId : null,
         questStatus: quest.status,
       }),
     };
@@ -266,19 +273,26 @@ export async function getStudyDetail({
   };
 }
 
-async function getProfilesByEmail(emails: string[]) {
-  const uniqueEmails = [...new Set(emails)].filter(Boolean);
-  if (uniqueEmails.length === 0) return new Map<string, Pick<UserProfileRow, "email" | "display_name" | "real_name">>();
+async function getProfilesByUserId(userIds: string[]) {
+  const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
+  if (uniqueUserIds.length === 0) {
+    return new Map<
+      string,
+      Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">
+    >();
+  }
 
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("user_profiles")
-    .select("email, display_name, real_name")
-    .in("email", uniqueEmails);
+    .select("user_id, email, display_name, real_name")
+    .in("user_id", uniqueUserIds);
 
   return new Map(
-    ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "real_name">[]).map((profile) => [
-      profile.email,
+    ((
+      data ?? []
+    ) as Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">[]).map((profile) => [
+      profile.user_id,
       profile,
     ]),
   );

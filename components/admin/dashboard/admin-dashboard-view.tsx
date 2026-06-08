@@ -39,10 +39,18 @@ export async function AdminDashboardView() {
 
   const pendingUpgradeRequestsResult = await supabase
     .from("student_upgrade_requests")
-    .select("id,email,display_name,message,requested_at")
+    .select("id,user_id,display_name,message,requested_at")
     .eq("status", "pending")
     .order("requested_at", { ascending: true })
-    .returns<StudentUpgradeRequestItem[]>();
+    .returns<
+      {
+        id: string;
+        user_id: string;
+        display_name: string | null;
+        message: string;
+        requested_at: string;
+      }[]
+    >();
   const aiPendingJobsResult = await supabase
     .from("job_postings")
     .select("id,title,company,source,created_at,ai_fit_snapshot,source_url", { count: "exact" })
@@ -60,7 +68,31 @@ export async function AdminDashboardView() {
   const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
     (job) => !isExpiredDeadline(job.deadline),
   );
-  const pendingUpgradeRequests = pendingUpgradeRequestsResult.data ?? [];
+  const upgradeRequestRows = pendingUpgradeRequestsResult.data ?? [];
+  const { data: upgradeProfiles } =
+    upgradeRequestRows.length > 0
+      ? await supabase
+          .from("user_profiles")
+          .select("user_id,email,display_name,real_name")
+          .in(
+            "user_id",
+            upgradeRequestRows.map((request) => request.user_id)
+          )
+      : { data: [] };
+  const upgradeProfilesByUserId = new Map(
+    (upgradeProfiles ?? []).map((profile) => [profile.user_id, profile])
+  );
+  const pendingUpgradeRequests: StudentUpgradeRequestItem[] = upgradeRequestRows.map((request) => {
+    const profile = upgradeProfilesByUserId.get(request.user_id);
+    return {
+      id: request.id,
+      userId: request.user_id,
+      email: profile?.email ?? null,
+      displayName: request.display_name ?? profile?.real_name ?? profile?.display_name ?? null,
+      message: request.message,
+      requestedAt: request.requested_at,
+    };
+  });
   const aiPendingJobs = aiPendingJobsResult.data ?? [];
   const aiPendingJobCount = aiPendingJobsResult.count ?? aiPendingJobs.length;
   const siteOrigin = getPublicSiteOrigin();

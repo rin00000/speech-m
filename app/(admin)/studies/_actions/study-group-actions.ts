@@ -1,10 +1,5 @@
 "use server";
 
-/**
- * 관리자용 릴레이 스터디 그룹/멤버/퀘스트 Server Actions.
- * 수강생 제출 액션과 분리해 운영 화면 변경 범위를 작게 유지한다.
- */
-
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
@@ -25,7 +20,7 @@ export async function createStudyGroup(formData: FormData): Promise<ActionResult
     description: formData.get("description"),
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+    return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인해주세요." };
   }
 
   const supabase = createAdminClient();
@@ -35,7 +30,7 @@ export async function createStudyGroup(formData: FormData): Promise<ActionResult
       type: "relay",
       title: parsed.data.title,
       description: parsed.data.description ?? "",
-      created_by: actor.data.email,
+      created_by_user_id: actor.data.userId,
     })
     .select("id")
     .single();
@@ -48,7 +43,7 @@ export async function createStudyGroup(formData: FormData): Promise<ActionResult
 
 export async function updateStudyGroup(
   groupId: string,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionResult> {
   const actor = await requireAdminActor();
   if (!actor.success) return actor;
@@ -62,7 +57,7 @@ export async function updateStudyGroup(
     status: formData.get("status"),
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+    return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인해주세요." };
   }
 
   const supabase = createAdminClient();
@@ -84,7 +79,7 @@ export async function updateStudyGroup(
 
 export async function saveStudyGroupMembers(
   groupId: string,
-  studentEmails: string[],
+  studentUserIds: string[]
 ): Promise<ActionResult> {
   const actor = await requireAdminActor();
   if (!actor.success) return actor;
@@ -92,19 +87,20 @@ export async function saveStudyGroupMembers(
   const groupIdParsed = uuidSchema.safeParse(groupId);
   if (!groupIdParsed.success) return { success: false, error: "스터디 ID가 올바르지 않습니다." };
 
-  const uniqueEmails = [...new Set(studentEmails.map((email) => email.trim()).filter(Boolean))];
+  const uniqueUserIds = [...new Set(studentUserIds.map((userId) => userId.trim()).filter(Boolean))];
   const supabase = createAdminClient();
 
-  if (uniqueEmails.length > 0) {
+  if (uniqueUserIds.length > 0) {
     const { data: validStudents } = await supabase
-      .from("user_profiles")
-      .select("email")
-      .in("email", uniqueEmails)
-      .eq("role", "student");
+      .from("users")
+      .select("id")
+      .in("id", uniqueUserIds)
+      .eq("role", "student")
+      .eq("status", "active");
 
-    const validStudentEmails = new Set((validStudents ?? []).map((student) => student.email));
-    if (uniqueEmails.some((email) => !validStudentEmails.has(email))) {
-      return { success: false, error: "정회원 수강생만 스터디 멤버로 추가할 수 있습니다." };
+    const validStudentUserIds = new Set((validStudents ?? []).map((student) => student.id));
+    if (uniqueUserIds.some((userId) => !validStudentUserIds.has(userId))) {
+      return { success: false, error: "활성 수강생만 스터디 멤버로 추가할 수 있습니다." };
     }
   }
 
@@ -115,13 +111,13 @@ export async function saveStudyGroupMembers(
 
   if (deleteError) return { success: false, error: "기존 멤버 목록을 갱신하지 못했습니다." };
 
-  if (uniqueEmails.length > 0) {
+  if (uniqueUserIds.length > 0) {
     const { error: insertError } = await supabase.from("study_group_members").insert(
-      uniqueEmails.map((email, index) => ({
+      uniqueUserIds.map((userId, index) => ({
         group_id: groupIdParsed.data,
-        student_email: email,
+        student_user_id: userId,
         display_order: index + 1,
-      })),
+      }))
     );
 
     if (insertError) return { success: false, error: "스터디 멤버를 저장하지 못했습니다." };
@@ -134,7 +130,7 @@ export async function saveStudyGroupMembers(
 
 export async function createStudyQuest(
   groupId: string,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
   const actor = await requireAdminActor();
   if (!actor.success) return actor;
@@ -148,7 +144,7 @@ export async function createStudyQuest(
     dueAt: formData.get("dueAt"),
   });
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인하세요." };
+    return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인해주세요." };
   }
 
   const dueAt = new Date(parsed.data.dueAt);
@@ -173,7 +169,7 @@ export async function createStudyQuest(
       script_title: parsed.data.scriptTitle,
       script_content: parsed.data.scriptContent,
       due_at: dueAt.toISOString(),
-      created_by: actor.data.email,
+      created_by_user_id: actor.data.userId,
     })
     .select("id")
     .single();

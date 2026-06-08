@@ -25,7 +25,7 @@ export function BottomTab({
   const activePath = previewPathname ?? pathname;
   
   const allItems = getNavItemsForRole(userRole);
-  const showMoreMenu = allItems.length > 4 || !!userEmail;
+  const showMoreMenu = allItems.length > 4 || Boolean(userName || userEmail);
   const items = showMoreMenu ? allItems.slice(0, 3) : allItems;
   const moreItems = showMoreMenu ? allItems.slice(3) : [];
   

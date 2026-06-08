@@ -222,7 +222,7 @@ function buildUpgradeDescription(requests: StudentUpgradeRequestItem[]) {
   const first = requests[0];
   if (!first) return "대기 중인 등업 요청이 없습니다.";
 
-  const name = first.display_name ?? first.email;
+  const name = first.displayName ?? first.email ?? first.userId;
   const restCount = requests.length - 1;
   return restCount > 0 ? `${name} 외 ${restCount}명 승인 대기` : `${name} 승인 대기`;
 }

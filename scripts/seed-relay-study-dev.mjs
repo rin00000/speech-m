@@ -3,18 +3,48 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ENV_PATH = resolve(process.cwd(), ".env.local");
-const STUDENTS = [
-  { email: "mock-student@speech-m.com", display_name: "모의 수강생", role: "student" },
-  { email: "relay.student2@speech-m.local", display_name: "이지민 준비생", role: "student" },
-  { email: "relay.student3@speech-m.local", display_name: "박찬우 준비생", role: "student" },
+
+const PERSONAS = [
+  {
+    id: "admin",
+    userId: "00000000-0000-4000-8000-000000000001",
+    email: "mock-admin@speech-m.com",
+    displayName: "Mock Admin",
+    role: "admin",
+  },
+  {
+    id: "student",
+    userId: "00000000-0000-4000-8000-000000000002",
+    email: "mock-student@speech-m.com",
+    displayName: "Mock Student A",
+    role: "student",
+  },
+  {
+    id: "student2",
+    userId: "00000000-0000-4000-8000-000000000003",
+    email: "relay.student2@speech-m.local",
+    displayName: "Mock Student B",
+    role: "student",
+  },
+  {
+    id: "student3",
+    userId: "00000000-0000-4000-8000-000000000004",
+    email: "relay.student3@speech-m.local",
+    displayName: "Mock Student C",
+    role: "student",
+  },
+  {
+    id: "guest",
+    userId: "00000000-0000-4000-8000-000000000005",
+    email: "relay.guest1@speech-m.local",
+    displayName: "Mock Guest",
+    role: "guest",
+  },
 ];
-const GUESTS = [
-  { email: "relay.guest1@speech-m.local", display_name: "정다은 게스트", role: "guest" },
-  { email: "relay.guest2@speech-m.local", display_name: "최윤서 게스트", role: "guest" },
-];
-const ADMINS = [
-  { email: "mock-admin@speech-m.com", display_name: "모의 원장님", role: "admin" },
-];
+
+const ADMINS = PERSONAS.filter((persona) => persona.role === "admin");
+const STUDENTS = PERSONAS.filter((persona) => persona.role === "student");
+const GUESTS = PERSONAS.filter((persona) => persona.role === "guest");
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));
@@ -27,7 +57,7 @@ async function main() {
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error(".env.local에 NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY가 필요합니다.");
+    throw new Error(".env.local must include NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
   }
 
   assertLocalSupabaseUrl(url);
@@ -36,18 +66,7 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const profiles = [...ADMINS, ...STUDENTS, ...GUESTS];
-  const { error: profileError } = await supabase
-    .from("user_profiles")
-    .upsert(
-      profiles.map((profile) => ({
-        ...profile,
-        updated_at: new Date().toISOString(),
-      })),
-      { onConflict: "email" },
-    );
-
-  if (profileError) throw new Error(`user_profiles seed failed: ${profileError.message}`);
+  await seedUsers(supabase);
 
   const groupId = await ensureRelayStudyGroup(supabase);
   await replaceRelayStudyMembers(supabase, groupId);
@@ -57,6 +76,51 @@ async function main() {
   console.info(`Admin: ${ADMINS.map((admin) => admin.email).join(", ")}`);
   console.info(`Students: ${STUDENTS.map((student) => student.email).join(", ")}`);
   console.info(`Guests: ${GUESTS.map((guest) => guest.email).join(", ")}`);
+}
+
+async function seedUsers(supabase) {
+  const now = new Date().toISOString();
+
+  const { error: usersError } = await supabase.from("users").upsert(
+    PERSONAS.map((persona) => ({
+      id: persona.userId,
+      role: persona.role,
+      status: "active",
+      updated_at: now,
+    })),
+    { onConflict: "id" },
+  );
+
+  if (usersError) throw new Error(`users seed failed: ${usersError.message}`);
+
+  const { error: profilesError } = await supabase.from("user_profiles").upsert(
+    PERSONAS.map((persona) => ({
+      user_id: persona.userId,
+      email: persona.email,
+      display_name: persona.displayName,
+      real_name: null,
+      updated_at: now,
+    })),
+    { onConflict: "user_id" },
+  );
+
+  if (profilesError) throw new Error(`user_profiles seed failed: ${profilesError.message}`);
+
+  const { error: identitiesError } = await supabase.from("user_auth_identities").upsert(
+    PERSONAS.map((persona) => ({
+      user_id: persona.userId,
+      provider: "credentials",
+      provider_account_id: `dev:${persona.id}`,
+      provider_email: persona.email,
+      email_verified: true,
+      updated_at: now,
+    })),
+    { onConflict: "provider,provider_account_id" },
+  );
+
+  if (identitiesError) {
+    throw new Error(`user_auth_identities seed failed: ${identitiesError.message}`);
+  }
 }
 
 function loadEnvLocal() {
@@ -84,17 +148,18 @@ function assertLocalSupabaseUrl(rawUrl) {
 
   if (!isLocalHost && !allowRemote) {
     throw new Error(
-      `Refusing to seed non-local Supabase project (${url.hostname}). 원격 테스트가 필요하면 ALLOW_REMOTE_SUPABASE_SEED=true를 명시하세요.`,
+      `Refusing to seed non-local Supabase project (${url.hostname}). Set ALLOW_REMOTE_SUPABASE_SEED=true to override.`,
     );
   }
 }
 
 async function ensureRelayStudyGroup(supabase) {
+  const title = "Relay Study Dev";
   const { data: existing, error: selectError } = await supabase
     .from("study_groups")
     .select("id")
     .eq("type", "relay")
-    .eq("title", "릴레이 스터디")
+    .eq("title", title)
     .maybeSingle();
 
   if (selectError) throw new Error(`study_groups lookup failed: ${selectError.message}`);
@@ -104,9 +169,10 @@ async function ensureRelayStudyGroup(supabase) {
     .from("study_groups")
     .insert({
       type: "relay",
-      title: "릴레이 스터디",
-      description: "로컬 확인용 릴레이 스터디입니다.",
+      title,
+      description: "Local relay study seed data.",
       status: "active",
+      created_by_user_id: ADMINS[0]?.userId ?? null,
     })
     .select("id")
     .single();
@@ -126,7 +192,7 @@ async function replaceRelayStudyMembers(supabase, groupId) {
   const { error } = await supabase.from("study_group_members").insert(
     STUDENTS.map((student, index) => ({
       group_id: groupId,
-      student_email: student.email,
+      student_user_id: student.userId,
       display_order: index + 1,
     })),
   );
@@ -135,11 +201,12 @@ async function replaceRelayStudyMembers(supabase, groupId) {
 }
 
 async function ensureRelayQuest(supabase, groupId) {
+  const scriptTitle = "Relay Study Dev Script";
   const { data: existing, error: selectError } = await supabase
     .from("study_quests")
     .select("id")
     .eq("group_id", groupId)
-    .eq("script_title", "로컬 확인용 릴레이 원고")
+    .eq("script_title", scriptTitle)
     .maybeSingle();
 
   if (selectError) throw new Error(`study_quests lookup failed: ${selectError.message}`);
@@ -150,11 +217,12 @@ async function ensureRelayQuest(supabase, groupId) {
 
   const { error } = await supabase.from("study_quests").insert({
     group_id: groupId,
-    script_title: "로컬 확인용 릴레이 원고",
+    script_title: scriptTitle,
     script_content:
-      "오늘의 주요 뉴스입니다.\n\nSpeech-M 릴레이 스터디는 한 명의 음성 제출에서 시작해, 다음 학생의 피드백과 음성 제출로 이어지는 방식입니다.\n\n정확한 발음과 안정적인 호흡, 문장 끝 처리에 집중해 녹음해 주세요.",
+      "This is a local relay study script. Submit a voice recording, review the next speaker, and continue the chain.",
     due_at: dueAt.toISOString(),
     status: "open",
+    created_by_user_id: ADMINS[0]?.userId ?? null,
   });
 
   if (error) throw new Error(`study_quests seed failed: ${error.message}`);

@@ -9,16 +9,13 @@ import {
   rejectStudentUpgradeRequest,
 } from "@/app/(admin)/dashboard/actions";
 
-/**
- * Renders pending student upgrade requests and admin approval controls.
- */
-
 export type StudentUpgradeRequestItem = {
   id: string;
-  email: string;
-  display_name: string | null;
+  userId: string;
+  email: string | null;
+  displayName: string | null;
   message: string;
-  requested_at: string;
+  requestedAt: string;
 };
 
 type PendingAction = {
@@ -55,7 +52,7 @@ export function StudentUpgradeRequestsPanel({
         return;
       }
 
-      setRequests((prev) => prev.filter((request) => request.id !== requestId));
+      setRequests((current) => current.filter((request) => request.id !== requestId));
       setNotice(type === "approve" ? "수강생 등업을 승인했습니다." : "등업 문의를 반려했습니다.");
       setPendingAction(null);
       router.refresh();
@@ -67,7 +64,7 @@ export function StudentUpgradeRequestsPanel({
   return (
     <section
       id="student-upgrade-requests"
-      className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm md:rounded-3xl md:p-5"
+      className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm md:p-5"
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-3">
@@ -77,7 +74,7 @@ export function StudentUpgradeRequestsPanel({
           <div>
             <h2 className="text-sm font-extrabold text-gray-900">수강생 등업 문의</h2>
             <p className="mt-1 text-xs font-medium leading-snug text-gray-600">
-              승인하면 즉시 수강생 권한이 부여되고, 반려하면 요청만 닫힙니다.
+              승인하면 즉시 수강생 권한이 부여되고, 반려하면 요청만 종료됩니다.
             </p>
           </div>
         </div>
@@ -105,7 +102,7 @@ export function StudentUpgradeRequestsPanel({
         <div className="mt-4 divide-y divide-amber-100 overflow-hidden rounded-2xl border border-amber-100 bg-white">
           {requests.map((request) => {
             const isResolving = isPending && pendingAction?.id === request.id;
-            const requestedAt = new Date(request.requested_at).toLocaleString("ko-KR");
+            const requestedAt = new Date(request.requestedAt).toLocaleString("ko-KR");
 
             return (
               <article key={request.id} className="p-4">
@@ -113,9 +110,11 @@ export function StudentUpgradeRequestsPanel({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-extrabold text-gray-900">
-                        {request.display_name ?? "이름 미상"}
+                        {request.displayName ?? "이름 미상"}
                       </h3>
-                      <span className="break-all text-xs font-semibold text-gray-400">{request.email}</span>
+                      <span className="break-all text-xs font-semibold text-gray-400">
+                        {request.email ?? request.userId}
+                      </span>
                     </div>
                     <p className="mt-1 text-[11px] font-medium text-gray-400">{requestedAt}</p>
                     {request.message ? (

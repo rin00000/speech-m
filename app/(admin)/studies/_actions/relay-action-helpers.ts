@@ -1,8 +1,3 @@
-/**
- * 릴레이 스터디 제출 액션에서 공유하는 서버 전용 helper.
- * 권한 확인, 릴레이 상태 조립, 업로드 경로 검증, revalidate 처리를 액션 본문 밖에 둔다.
- */
-
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { z } from "zod";
@@ -26,28 +21,34 @@ import {
 type StudyGroupMemberRow = Database["public"]["Tables"]["study_group_members"]["Row"];
 type RelaySubmissionRow = Database["public"]["Tables"]["study_relay_submissions"]["Row"];
 type RelayFeedbackRow = Database["public"]["Tables"]["study_relay_feedback"]["Row"];
+type UserProfileRow = Pick<
+  Database["public"]["Tables"]["user_profiles"]["Row"],
+  "user_id" | "email" | "display_name" | "real_name"
+>;
 
-export async function requireAdminActor(): Promise<ActionResult<{ email: string }>> {
+export async function requireAdminActor(): Promise<ActionResult<{ userId: string }>> {
   const user = await getCurrentUser();
-  if (!user?.email || user.role !== "admin") {
+  if (!user || user.role !== "admin") {
     return { success: false, error: "관리자 권한이 필요합니다." };
   }
-  return { success: true, data: { email: user.email } };
+  return { success: true, data: { userId: user.userId } };
 }
 
-export async function requireStudentActor(): Promise<ActionResult<{ email: string; realName: string }>> {
+export async function requireStudentActor(): Promise<
+  ActionResult<{ userId: string; realName: string }>
+> {
   const user = await getCurrentUser();
-  if (!user?.email || user.role !== "student") {
+  if (!user || user.role !== "student") {
     return { success: false, error: "정회원 수강생만 이용할 수 있습니다." };
   }
   const realName = user.realName?.trim();
   if (!realName) {
-    return { success: false, error: "스터디 참여 전에 실명을 먼저 저장하세요." };
+    return { success: false, error: "스터디 참여 전에 실명을 먼저 저장해주세요." };
   }
-  return { success: true, data: { email: user.email, realName } };
+  return { success: true, data: { userId: user.userId, realName } };
 }
 
-export async function getQuestRelayState(questId: string, currentUserEmail: string) {
+export async function getQuestRelayState(questId: string, currentUserId: string) {
   const supabase = createAdminClient();
   const { data: quest } = await supabase
     .from("study_quests")
@@ -60,7 +61,7 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
   const [{ data: memberRows }, { data: submissionRows }] = await Promise.all([
     supabase
       .from("study_group_members")
-      .select("student_email, display_order")
+      .select("student_user_id, display_order")
       .eq("group_id", quest.group_id)
       .order("display_order", { ascending: true }),
     supabase
@@ -71,7 +72,7 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
   ]);
 
   const submissionIds = ((submissionRows ?? []) as RelaySubmissionRow[]).map(
-    (submission) => submission.id,
+    (submission) => submission.id
   );
   const { data: feedbackRows } =
     submissionIds.length > 0
@@ -81,18 +82,34 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
           .in("submission_id", submissionIds)
       : { data: [] };
 
+  const participantUserIds = [
+    ...new Set([
+      ...((memberRows ?? []) as Pick<StudyGroupMemberRow, "student_user_id">[]).map(
+        (member) => member.student_user_id
+      ),
+      ...((submissionRows ?? []) as RelaySubmissionRow[]).map(
+        (submission) => submission.student_user_id
+      ),
+      ...((feedbackRows ?? []) as RelayFeedbackRow[]).map(
+        (feedback) => feedback.feedback_author_user_id
+      ),
+    ]),
+  ];
+  const profiles = await getProfilesByUserId(participantUserIds);
+
   const members = (
-    (memberRows ?? []) as Pick<StudyGroupMemberRow, "student_email" | "display_order">[]
+    (memberRows ?? []) as Pick<StudyGroupMemberRow, "student_user_id" | "display_order">[]
   ).map<StudyMember>((member) => ({
-    email: member.student_email,
-    displayName: getDisplayName({ email: member.student_email }),
+    userId: member.student_user_id,
+    email: profiles.get(member.student_user_id)?.email ?? null,
+    displayName: displayName(member.student_user_id, profiles),
     displayOrder: member.display_order,
   }));
   const feedbackBySubmissionId = new Map(
     ((feedbackRows ?? []) as RelayFeedbackRow[]).map((feedback) => [
       feedback.submission_id,
       feedback,
-    ]),
+    ])
   );
   const submissions = ((submissionRows ?? []) as RelaySubmissionRow[]).map<RelaySubmission>(
     (submission) => {
@@ -100,8 +117,9 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
       return {
         id: submission.id,
         questId: submission.quest_id,
-        studentEmail: submission.student_email,
-        studentName: getDisplayName({ email: submission.student_email }),
+        studentUserId: submission.student_user_id,
+        studentEmail: profiles.get(submission.student_user_id)?.email ?? null,
+        studentName: displayName(submission.student_user_id, profiles),
         audioPath: submission.audio_path,
         audioUrl: null,
         audioFileName: submission.audio_file_name,
@@ -114,14 +132,15 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
           ? {
               id: feedback.id,
               submissionId: feedback.submission_id,
-              authorEmail: feedback.feedback_author_email,
-              authorName: getDisplayName({ email: feedback.feedback_author_email }),
+              authorUserId: feedback.feedback_author_user_id,
+              authorEmail: profiles.get(feedback.feedback_author_user_id)?.email ?? null,
+              authorName: displayName(feedback.feedback_author_user_id, profiles),
               comment: feedback.comment,
               createdAt: feedback.created_at,
             }
           : null,
       };
-    },
+    }
   );
 
   return {
@@ -129,7 +148,7 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
     data: buildRelayQuestState({
       members,
       submissions,
-      currentUserEmail,
+      currentUserId,
       questStatus: quest.status,
     }),
   };
@@ -137,12 +156,12 @@ export async function getQuestRelayState(questId: string, currentUserEmail: stri
 
 export function validateUploadedAudioInput(
   input: z.infer<typeof uploadedAudioSchema>,
-  studentEmail: string,
+  studentUserId: string
 ): ActionResult<{ contentType: string }> {
   const fileValidation = validateStudyAudioFileMeta(input);
   if (!fileValidation.ok) return { success: false, error: fileValidation.error };
 
-  const expectedPrefix = `relay/${input.questId}/${safeStorageSegment(studentEmail)}/`;
+  const expectedPrefix = `relay/${input.questId}/${safeStorageSegment(studentUserId)}/`;
   if (!input.audioPath.startsWith(expectedPrefix)) {
     return { success: false, error: "업로드 경로가 현재 제출자와 일치하지 않습니다." };
   }
@@ -163,14 +182,14 @@ export async function getQuestGroupId(questId: string) {
 
 export function createAudioPath({
   questId,
-  studentEmail,
+  studentUserId,
   extension,
 }: {
   questId: string;
-  studentEmail: string;
+  studentUserId: string;
   extension: "mp3" | "m4a" | "wav";
 }) {
-  return `relay/${questId}/${safeStorageSegment(studentEmail)}/${randomUUID()}.${extension}`;
+  return `relay/${questId}/${safeStorageSegment(studentUserId)}/${randomUUID()}.${extension}`;
 }
 
 export async function removeUploadedAudio(audioPath: string) {
@@ -186,6 +205,27 @@ export function revalidateStudyPaths(groupId: string) {
 export function getRelayRpcErrorMessage(message: string | undefined, fallback: string) {
   if (!message) return fallback;
   return relayRpcErrorMessages[message.trim()] ?? fallback;
+}
+
+async function getProfilesByUserId(userIds: string[]) {
+  const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
+  if (uniqueUserIds.length === 0) return new Map<string, UserProfileRow>();
+
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("user_id, email, display_name, real_name")
+    .in("user_id", uniqueUserIds);
+
+  return new Map(((data ?? []) as UserProfileRow[]).map((profile) => [profile.user_id, profile]));
+}
+
+function displayName(userId: string, profiles: Map<string, UserProfileRow>) {
+  const profile = profiles.get(userId);
+  return getDisplayName({
+    fallback: profile?.email ?? userId,
+    displayName: profile?.real_name ?? profile?.display_name,
+  });
 }
 
 function safeStorageSegment(value: string) {

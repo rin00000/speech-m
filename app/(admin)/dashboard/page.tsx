@@ -13,7 +13,7 @@ import { getStudentDashboardData } from "@/lib/studies/student-dashboard";
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) {
-    const dashboardData = await getGuestDashboardData({ email: "", isLoggedIn: false });
+    const dashboardData = await getGuestDashboardData({ userId: null, isLoggedIn: false });
     return <GuestDashboardView userName={null} isLoggedIn={false} data={dashboardData} />;
   }
 
@@ -22,10 +22,10 @@ export default async function DashboardPage() {
   }
 
   if (user.role === "student") {
-    const dashboardData = await getStudentDashboardData(user.email);
+    const dashboardData = await getStudentDashboardData(user.userId);
     return <StudentDashboardView userName={user.name} data={dashboardData} />;
   }
 
-  const dashboardData = await getGuestDashboardData({ email: user.email, isLoggedIn: true });
+  const dashboardData = await getGuestDashboardData({ userId: user.userId, isLoggedIn: true });
   return <GuestDashboardView userName={user.name} isLoggedIn data={dashboardData} />;
 }

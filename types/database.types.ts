@@ -8,6 +8,9 @@ export type DbJson =
 
 export type JobSource = "mediajob_announcer" | "mediajob_reporter" | "mediajob_intern" | "arang" | "saramin" | "jobkorea" | "custom";
 export type JobStatus = "pending" | "approved" | "rejected";
+export type UserRole = "admin" | "student" | "guest";
+export type UserStatus = "active" | "suspended";
+export type AuthProvider = "google" | "naver" | "credentials";
 export type StudentUpgradeRequestStatus = "pending" | "approved" | "rejected";
 export type ManagementClassStatus = "open" | "closed" | "canceled";
 export type ManagementClassCouponStatus = "available" | "used";
@@ -146,28 +149,88 @@ export interface Database {
         };
         Relationships: [];
       },
-      user_profiles: {
+      users: {
         Row: {
-          email: string;
-          role: "admin" | "student" | "guest";
-          display_name: string | null;
-          real_name: string | null;
+          id: string;
+          role: UserRole;
+          status: UserStatus;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          email: string;
-          role?: "admin" | "student" | "guest";
-          display_name?: string | null;
-          real_name?: string | null;
+          id?: string;
+          role?: UserRole;
+          status?: UserStatus;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          email?: string;
-          role?: "admin" | "student" | "guest";
+          id?: string;
+          role?: UserRole;
+          status?: UserStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
+      user_profiles: {
+        Row: {
+          user_id: string;
+          email: string | null;
+          display_name: string | null;
+          real_name: string | null;
+          avatar_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          email?: string | null;
           display_name?: string | null;
           real_name?: string | null;
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          email?: string | null;
+          display_name?: string | null;
+          real_name?: string | null;
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
+      user_auth_identities: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: AuthProvider;
+          provider_account_id: string;
+          provider_email: string | null;
+          email_verified: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          provider: AuthProvider;
+          provider_account_id: string;
+          provider_email?: string | null;
+          email_verified?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          provider?: AuthProvider;
+          provider_account_id?: string;
+          provider_email?: string | null;
+          email_verified?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -176,33 +239,33 @@ export interface Database {
       student_upgrade_requests: {
         Row: {
           id: string;
-          email: string;
+          user_id: string;
           display_name: string | null;
           message: string;
           status: StudentUpgradeRequestStatus;
           requested_at: string;
           resolved_at: string | null;
-          resolved_by: string | null;
+          resolved_by_user_id: string | null;
         };
         Insert: {
           id?: string;
-          email: string;
+          user_id: string;
           display_name?: string | null;
           message?: string;
           status?: StudentUpgradeRequestStatus;
           requested_at?: string;
           resolved_at?: string | null;
-          resolved_by?: string | null;
+          resolved_by_user_id?: string | null;
         };
         Update: {
           id?: string;
-          email?: string;
+          user_id?: string;
           display_name?: string | null;
           message?: string;
           status?: StudentUpgradeRequestStatus;
           requested_at?: string;
           resolved_at?: string | null;
-          resolved_by?: string | null;
+          resolved_by_user_id?: string | null;
         };
         Relationships: [];
       },
@@ -212,9 +275,9 @@ export interface Database {
           starts_at: string;
           capacity: number;
           status: ManagementClassStatus;
-          created_by: string | null;
+          created_by_user_id: string | null;
           canceled_at: string | null;
-          canceled_by: string | null;
+          canceled_by_user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -223,9 +286,9 @@ export interface Database {
           starts_at: string;
           capacity: number;
           status?: ManagementClassStatus;
-          created_by?: string | null;
+          created_by_user_id?: string | null;
           canceled_at?: string | null;
-          canceled_by?: string | null;
+          canceled_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -234,9 +297,9 @@ export interface Database {
           starts_at?: string;
           capacity?: number;
           status?: ManagementClassStatus;
-          created_by?: string | null;
+          created_by_user_id?: string | null;
           canceled_at?: string | null;
-          canceled_by?: string | null;
+          canceled_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -245,25 +308,25 @@ export interface Database {
       management_class_coupon_grants: {
         Row: {
           id: string;
-          student_email: string;
+          student_user_id: string;
           total_count: number;
-          granted_by: string | null;
+          granted_by_user_id: string | null;
           note: string;
           created_at: string;
         };
         Insert: {
           id?: string;
-          student_email: string;
+          student_user_id: string;
           total_count: number;
-          granted_by?: string | null;
+          granted_by_user_id?: string | null;
           note?: string;
           created_at?: string;
         };
         Update: {
           id?: string;
-          student_email?: string;
+          student_user_id?: string;
           total_count?: number;
-          granted_by?: string | null;
+          granted_by_user_id?: string | null;
           note?: string;
           created_at?: string;
         };
@@ -273,7 +336,7 @@ export interface Database {
         Row: {
           id: string;
           grant_id: string;
-          student_email: string;
+          student_user_id: string;
           sequence_number: number;
           status: ManagementClassCouponStatus;
           used_application_id: string | null;
@@ -283,7 +346,7 @@ export interface Database {
         Insert: {
           id?: string;
           grant_id: string;
-          student_email: string;
+          student_user_id: string;
           sequence_number: number;
           status?: ManagementClassCouponStatus;
           used_application_id?: string | null;
@@ -293,7 +356,7 @@ export interface Database {
         Update: {
           id?: string;
           grant_id?: string;
-          student_email?: string;
+          student_user_id?: string;
           sequence_number?: number;
           status?: ManagementClassCouponStatus;
           used_application_id?: string | null;
@@ -306,34 +369,34 @@ export interface Database {
         Row: {
           id: string;
           class_id: string;
-          student_email: string;
+          student_user_id: string;
           coupon_id: string;
           status: ManagementClassApplicationStatus;
           applied_at: string;
           canceled_at: string | null;
-          canceled_by: string | null;
+          canceled_by_user_id: string | null;
           cancel_reason: string;
         };
         Insert: {
           id?: string;
           class_id: string;
-          student_email: string;
+          student_user_id: string;
           coupon_id: string;
           status?: ManagementClassApplicationStatus;
           applied_at?: string;
           canceled_at?: string | null;
-          canceled_by?: string | null;
+          canceled_by_user_id?: string | null;
           cancel_reason?: string;
         };
         Update: {
           id?: string;
           class_id?: string;
-          student_email?: string;
+          student_user_id?: string;
           coupon_id?: string;
           status?: ManagementClassApplicationStatus;
           applied_at?: string;
           canceled_at?: string | null;
-          canceled_by?: string | null;
+          canceled_by_user_id?: string | null;
           cancel_reason?: string;
         };
         Relationships: [];
@@ -345,7 +408,7 @@ export interface Database {
           title: string;
           description: string;
           status: StudyGroupStatus;
-          created_by: string | null;
+          created_by_user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -355,7 +418,7 @@ export interface Database {
           title: string;
           description?: string;
           status?: StudyGroupStatus;
-          created_by?: string | null;
+          created_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -365,7 +428,7 @@ export interface Database {
           title?: string;
           description?: string;
           status?: StudyGroupStatus;
-          created_by?: string | null;
+          created_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -375,21 +438,21 @@ export interface Database {
         Row: {
           id: string;
           group_id: string;
-          student_email: string;
+          student_user_id: string;
           display_order: number;
           created_at: string;
         };
         Insert: {
           id?: string;
           group_id: string;
-          student_email: string;
+          student_user_id: string;
           display_order?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
           group_id?: string;
-          student_email?: string;
+          student_user_id?: string;
           display_order?: number;
           created_at?: string;
         };
@@ -403,7 +466,7 @@ export interface Database {
           script_content: string;
           due_at: string;
           status: StudyQuestStatus;
-          created_by: string | null;
+          created_by_user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -414,7 +477,7 @@ export interface Database {
           script_content: string;
           due_at: string;
           status?: StudyQuestStatus;
-          created_by?: string | null;
+          created_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -425,7 +488,7 @@ export interface Database {
           script_content?: string;
           due_at?: string;
           status?: StudyQuestStatus;
-          created_by?: string | null;
+          created_by_user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -435,7 +498,7 @@ export interface Database {
         Row: {
           id: string;
           quest_id: string;
-          student_email: string;
+          student_user_id: string;
           audio_path: string;
           audio_file_name: string;
           audio_content_type: string;
@@ -447,7 +510,7 @@ export interface Database {
         Insert: {
           id?: string;
           quest_id: string;
-          student_email: string;
+          student_user_id: string;
           audio_path: string;
           audio_file_name: string;
           audio_content_type: string;
@@ -459,7 +522,7 @@ export interface Database {
         Update: {
           id?: string;
           quest_id?: string;
-          student_email?: string;
+          student_user_id?: string;
           audio_path?: string;
           audio_file_name?: string;
           audio_content_type?: string;
@@ -474,21 +537,21 @@ export interface Database {
         Row: {
           id: string;
           submission_id: string;
-          feedback_author_email: string;
+          feedback_author_user_id: string;
           comment: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           submission_id: string;
-          feedback_author_email: string;
+          feedback_author_user_id: string;
           comment: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           submission_id?: string;
-          feedback_author_email?: string;
+          feedback_author_user_id?: string;
           comment?: string;
           created_at?: string;
         };
@@ -498,11 +561,11 @@ export interface Database {
     Views: Record<string, never>,
     Functions: {
       approve_student_upgrade_request: {
-        Args: { p_request_id: string; p_resolved_by: string };
+        Args: { p_request_id: string; p_resolved_by_user_id: string };
         Returns: undefined;
       },
       apply_management_class: {
-        Args: { p_class_id: string; p_student_email: string };
+        Args: { p_class_id: string; p_student_user_id: string };
         Returns: string;
       },
       batch_update_job_posting_crawl_meta: {
@@ -510,18 +573,34 @@ export interface Database {
         Returns: undefined;
       },
       cancel_management_class: {
-        Args: { p_class_id: string; p_actor_email: string; p_reason?: string };
+        Args: { p_class_id: string; p_actor_user_id: string; p_reason?: string };
         Returns: undefined;
       },
       cancel_management_class_application: {
-        Args: { p_application_id: string; p_actor_email: string; p_reason?: string };
+        Args: { p_application_id: string; p_actor_user_id: string; p_reason?: string };
         Returns: undefined;
+      },
+      find_or_create_user_by_identity: {
+        Args: {
+          p_provider: AuthProvider;
+          p_provider_account_id: string;
+          p_email?: string | null;
+          p_name?: string | null;
+          p_avatar_url?: string | null;
+          p_email_verified?: boolean;
+        };
+        Returns: {
+          user_id: string;
+          user_role: UserRole;
+          user_status: UserStatus;
+          is_new: boolean;
+        }[];
       },
       grant_management_class_coupons: {
         Args: {
-          p_student_email: string;
+          p_student_user_id: string;
           p_total_count: number;
-          p_granted_by: string;
+          p_granted_by_user_id: string;
           p_note?: string;
         };
         Returns: string;
@@ -533,7 +612,7 @@ export interface Database {
       submit_relay_first_submission: {
         Args: {
           p_quest_id: string;
-          p_student_email: string;
+          p_student_user_id: string;
           p_audio_path: string;
           p_audio_file_name: string;
           p_audio_content_type: string;
@@ -544,7 +623,7 @@ export interface Database {
       submit_relay_feedback_and_submission: {
         Args: {
           p_quest_id: string;
-          p_student_email: string;
+          p_student_user_id: string;
           p_target_submission_id: string;
           p_comment: string;
           p_audio_path: string;
@@ -557,7 +636,7 @@ export interface Database {
       submit_relay_final_feedback: {
         Args: {
           p_quest_id: string;
-          p_student_email: string;
+          p_student_user_id: string;
           p_target_submission_id: string;
           p_comment: string;
         };

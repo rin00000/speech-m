@@ -8,23 +8,24 @@ import {
 } from "./relay";
 
 const members: StudyMember[] = [
-  { email: "a@speech-m.com", displayName: "A", displayOrder: 1 },
-  { email: "b@speech-m.com", displayName: "B", displayOrder: 2 },
-  { email: "c@speech-m.com", displayName: "C", displayOrder: 3 },
+  { userId: "user-a", email: "a@speech-m.com", displayName: "A", displayOrder: 1 },
+  { userId: "user-b", email: "b@speech-m.com", displayName: "B", displayOrder: 2 },
+  { userId: "user-c", email: "c@speech-m.com", displayName: "C", displayOrder: 3 },
 ];
 
 function submission(
   sequenceNumber: number,
-  studentEmail: string,
-  feedback?: { authorEmail: string; comment: string },
+  studentUserId: string,
+  feedback?: { authorUserId: string; comment: string }
 ): RelaySubmission {
   const id = `sub-${sequenceNumber}`;
   return {
     id,
     questId: "quest-1",
-    studentEmail,
-    studentName: studentEmail,
-    audioPath: `relay/quest-1/${studentEmail}/${id}.mp3`,
+    studentUserId,
+    studentEmail: `${studentUserId}@speech-m.test`,
+    studentName: studentUserId,
+    audioPath: `relay/quest-1/${studentUserId}/${id}.mp3`,
     audioUrl: null,
     audioFileName: `${id}.mp3`,
     audioContentType: "audio/mpeg",
@@ -36,8 +37,9 @@ function submission(
       ? {
           id: `fb-${sequenceNumber}`,
           submissionId: id,
-          authorEmail: feedback.authorEmail,
-          authorName: feedback.authorEmail,
+          authorUserId: feedback.authorUserId,
+          authorEmail: `${feedback.authorUserId}@speech-m.test`,
+          authorName: feedback.authorUserId,
           comment: feedback.comment,
           createdAt: "2026-05-28T00:00:00.000Z",
         }
@@ -50,7 +52,7 @@ describe("buildRelayQuestState", () => {
     const state = buildRelayQuestState({
       members,
       submissions: [],
-      currentUserEmail: "a@speech-m.com",
+      currentUserId: "user-a",
       questStatus: "open",
     });
 
@@ -62,13 +64,13 @@ describe("buildRelayQuestState", () => {
   it("allows an unsubmitted student to feedback and upload during the chain", () => {
     const state = buildRelayQuestState({
       members,
-      submissions: [submission(1, "a@speech-m.com")],
-      currentUserEmail: "b@speech-m.com",
+      submissions: [submission(1, "user-a")],
+      currentUserId: "user-b",
       questStatus: "open",
     });
 
     expect(state.status).toBe("waiting_feedback");
-    expect(state.pendingSubmission?.studentEmail).toBe("a@speech-m.com");
+    expect(state.pendingSubmission?.studentUserId).toBe("user-a");
     expect(state.canFeedbackAndUpload).toBe(true);
   });
 
@@ -76,11 +78,11 @@ describe("buildRelayQuestState", () => {
     const state = buildRelayQuestState({
       members,
       submissions: [
-        submission(1, "a@speech-m.com", { authorEmail: "b@speech-m.com", comment: "좋아요" }),
-        submission(2, "b@speech-m.com", { authorEmail: "c@speech-m.com", comment: "좋아요" }),
-        submission(3, "c@speech-m.com"),
+        submission(1, "user-a", { authorUserId: "user-b", comment: "좋아요" }),
+        submission(2, "user-b", { authorUserId: "user-c", comment: "좋아요" }),
+        submission(3, "user-c"),
       ],
-      currentUserEmail: "a@speech-m.com",
+      currentUserId: "user-a",
       questStatus: "open",
     });
 
@@ -93,11 +95,11 @@ describe("buildRelayQuestState", () => {
     const state = buildRelayQuestState({
       members,
       submissions: [
-        submission(1, "a@speech-m.com", { authorEmail: "b@speech-m.com", comment: "좋아요" }),
-        submission(2, "b@speech-m.com", { authorEmail: "c@speech-m.com", comment: "좋아요" }),
-        submission(3, "c@speech-m.com", { authorEmail: "a@speech-m.com", comment: "좋아요" }),
+        submission(1, "user-a", { authorUserId: "user-b", comment: "좋아요" }),
+        submission(2, "user-b", { authorUserId: "user-c", comment: "좋아요" }),
+        submission(3, "user-c", { authorUserId: "user-a", comment: "좋아요" }),
       ],
-      currentUserEmail: "a@speech-m.com",
+      currentUserId: "user-a",
       questStatus: "closed",
     });
 
@@ -111,21 +113,21 @@ describe("study permissions and audio policy", () => {
   it("allows only admins or group members to view a study", () => {
     expect(
       canViewStudy({
-        viewer: { role: "admin", email: "owner@speech-m.com" },
-        memberEmails: [],
-      }),
+        viewer: { role: "admin", userId: "owner" },
+        memberUserIds: [],
+      })
     ).toBe(true);
     expect(
       canViewStudy({
-        viewer: { role: "student", email: "a@speech-m.com" },
-        memberEmails: ["a@speech-m.com"],
-      }),
+        viewer: { role: "student", userId: "user-a" },
+        memberUserIds: ["user-a"],
+      })
     ).toBe(true);
     expect(
       canViewStudy({
-        viewer: { role: "student", email: "x@speech-m.com" },
-        memberEmails: ["a@speech-m.com"],
-      }),
+        viewer: { role: "student", userId: "user-x" },
+        memberUserIds: ["user-a"],
+      })
     ).toBe(false);
   });
 
@@ -135,21 +137,21 @@ describe("study permissions and audio policy", () => {
         fileName: "news.m4a",
         sizeBytes: 1024,
         contentType: "audio/x-m4a",
-      }).ok,
+      }).ok
     ).toBe(true);
     expect(
       validateStudyAudioFileMeta({
         fileName: "news.mov",
         sizeBytes: 1024,
         contentType: "video/quicktime",
-      }).ok,
+      }).ok
     ).toBe(false);
     expect(
       validateStudyAudioFileMeta({
         fileName: "news.mp3",
         sizeBytes: 21 * 1024 * 1024,
         contentType: "audio/mpeg",
-      }).ok,
+      }).ok
     ).toBe(false);
   });
 });

@@ -11,7 +11,7 @@ import type { DbJson } from "@/types/database.types";
 export async function updateProfileName(name: string): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.email) {
+    if (!user) {
       return { success: false, error: "인증되지 않은 사용자입니다. 로그인이 필요합니다." };
     }
 
@@ -27,7 +27,7 @@ export async function updateProfileName(name: string): Promise<{ success: boolea
         display_name: trimmedName,
         updated_at: new Date().toISOString(),
       })
-      .eq("email", user.email);
+      .eq("user_id", user.userId);
 
     if (error) {
       console.error("updateProfileName error:", error);
