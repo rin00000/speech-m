@@ -6,7 +6,7 @@ import {
 } from "../domain/schema";
 import { tryDeterministicDecision } from "../policy/deterministic";
 import { JOB_FIT_PROMPT_VERSION } from "../policy/rules";
-import { evaluateByPriority } from "./providers";
+import { evaluateByPriority, type EvaluateByPriorityOptions } from "./providers";
 
 const buildJobFitDecision = (result: JobFitResult, model: string): JobFitDecision => ({
   ...result,
@@ -20,8 +20,14 @@ export const evaluateDeterministicJobFit = (input: JobFitInput): JobFitDecision 
   return deterministic ? buildJobFitDecision(deterministic, "deterministic") : null;
 };
 
-export const evaluateLlmJobFit = async (input: JobFitInput): Promise<JobFitDecision> => {
-  const result = await evaluateByPriority(input);
+export const evaluateLlmJobFit = async (
+  input: JobFitInput,
+  options?: EvaluateByPriorityOptions
+): Promise<JobFitDecision> => {
+  const result =
+    options === undefined
+      ? await evaluateByPriority(input)
+      : await evaluateByPriority(input, options);
   return buildJobFitDecision(result.parsed, result.model);
 };
 
