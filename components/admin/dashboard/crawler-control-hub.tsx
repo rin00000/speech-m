@@ -99,6 +99,7 @@ export function CrawlerControlHub() {
       const result = (await response.json().catch(() => ({}))) as {
         success?: boolean;
         error?: string;
+        started?: boolean;
         alreadyRunning?: boolean;
       };
 
@@ -109,7 +110,10 @@ export function CrawlerControlHub() {
 
       setAiState({
         status: "success",
-        message: result.alreadyRunning ? "이미 백그라운드 실행 중" : "규칙 우선 처리 중",
+        message:
+          result.alreadyRunning || result.started === false
+            ? "이미 백그라운드 실행 중"
+            : "규칙 우선 처리 중",
       });
       setTimeout(() => {
         setAiState({ status: "idle", message: "" });

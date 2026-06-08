@@ -21,7 +21,7 @@ export async function POST() {
   const lock = await acquireAdminJobFitRunLock();
   if (!lock.acquired) {
     return NextResponse.json(
-      { success: true, queued: true, alreadyRunning: true },
+      { success: true, started: false, alreadyRunning: true },
       { status: 202 }
     );
   }
@@ -48,5 +48,8 @@ export async function POST() {
     }
   });
 
-  return NextResponse.json({ success: true, queued: true }, { status: 202 });
+  return NextResponse.json(
+    { success: true, started: true, alreadyRunning: false },
+    { status: 202 }
+  );
 }

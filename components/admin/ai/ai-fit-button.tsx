@@ -15,11 +15,12 @@ import {
 } from "@hugeicons/core-free-icons";
 import { AI_BATCH_REENABLE_MS } from "@/lib/ai/job-fit/constants";
 
-type State = "idle" | "loading" | "queued" | "error";
+type State = "idle" | "loading" | "running" | "error";
 
-type QueueResponse = {
+type JobFitRunResponse = {
   success?: boolean;
   error?: string;
+  started?: boolean;
   alreadyRunning?: boolean;
 };
 
@@ -28,7 +29,7 @@ export const AiFitButton = () => {
   const [message, setMessage] = useState("");
 
   const run = async () => {
-    if (state === "loading" || state === "queued") return;
+    if (state === "loading" || state === "running") return;
     setState("loading");
     setMessage("");
 
@@ -37,7 +38,7 @@ export const AiFitButton = () => {
         method: "POST",
         credentials: "same-origin",
       });
-      const result = (await response.json().catch(() => ({}))) as QueueResponse;
+      const result = (await response.json().catch(() => ({}))) as JobFitRunResponse;
 
       if (!response.ok || !result.success) {
         setState("error");
@@ -45,8 +46,12 @@ export const AiFitButton = () => {
         return;
       }
 
-      setState("queued");
-      setMessage(result.alreadyRunning ? "이미 백그라운드 실행 중" : "큐 등록 완료 · 규칙 우선");
+      setState("running");
+      setMessage(
+        result.alreadyRunning || result.started === false
+          ? "이미 백그라운드 실행 중"
+          : "백그라운드 실행 시작 · 규칙 우선"
+      );
       setTimeout(() => setState("idle"), AI_BATCH_REENABLE_MS);
     } catch (err) {
       setState("error");
@@ -57,12 +62,12 @@ export const AiFitButton = () => {
   const styles: Record<State, string> = {
     idle: "bg-periwinkle-600 text-white hover:bg-periwinkle-700",
     loading: "bg-periwinkle-100 text-periwinkle-500 cursor-not-allowed",
-    queued: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 cursor-not-allowed",
+    running: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 cursor-not-allowed",
     error: "bg-red-50 text-red-500 ring-1 ring-red-200",
   };
 
   const icon =
-    state === "queued"
+    state === "running"
       ? CheckmarkCircle01Icon
       : state === "error"
         ? AlertCircleIcon
@@ -71,7 +76,7 @@ export const AiFitButton = () => {
   return (
     <button
       onClick={() => void run()}
-      disabled={state === "loading" || state === "queued"}
+      disabled={state === "loading" || state === "running"}
       className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold leading-none shadow-sm transition-colors ${styles[state]}`}
       title="pending 공고를 규칙 우선 큐로 판별"
     >
@@ -84,7 +89,7 @@ export const AiFitButton = () => {
       />
       {state === "idle" && "AI 1차 판별 큐"}
       {state === "loading" && "판별 큐 등록 중…"}
-      {state === "queued" && message}
+      {state === "running" && message}
       {state === "error" && `오류 · ${message}`}
     </button>
   );
