@@ -44,6 +44,9 @@ export class JobFitProviderHttpError extends Error {
 
 const GEMINI_MODEL_PRIMARY =
   process.env.JOB_FIT_MODEL_GEMINI ?? JOB_FIT_CONFIG.productionModel;
+
+// `JOB_FIT_GEMINI_RPM_LIMIT`: 1분 동안 시작할 Gemini 요청 수의 상한.
+// 응답 완료 수가 아니라 요청 시작 간격을 계산하는 값이며, 기본 10이면 약 6초마다 시작한다.
 const DEFAULT_GEMINI_RPM_LIMIT = 10;
 const MAX_PROVIDER_ERROR_DETAIL_LENGTH = 300;
 let geminiQueue = Promise.resolve();

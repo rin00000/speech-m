@@ -30,8 +30,12 @@ export type RunJobFitBatchResult = {
   error?: string;
 };
 
+// `JOB_FIT_BATCH_CONCURRENCY`: LLM 판별 대상 공고를 동시에 처리할 비동기 worker 수.
+// CPU worker/thread 수가 아니라 poolAllSettled가 동시에 진행하는 evaluateLlmJobFit 작업 수다.
 const DEFAULT_JOB_FIT_BATCH_CONCURRENCY = 1;
 const MAX_JOB_FIT_BATCH_CONCURRENCY = 30;
+
+// `JOB_FIT_DB_UPDATE_CONCURRENCY`: 판별 결과를 Supabase에 반영하는 update 요청 동시 처리 수.
 const DEFAULT_JOB_FIT_DB_UPDATE_CONCURRENCY = 8;
 const MAX_JOB_FIT_DB_UPDATE_CONCURRENCY = 30;
 
