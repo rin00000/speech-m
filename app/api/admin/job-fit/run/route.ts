@@ -19,6 +19,7 @@ export async function POST() {
   }
 
   const lock = await acquireAdminJobFitRunLock();
+  const lockAcquiredAtMs = Date.now();
   if (!lock.acquired) {
     return NextResponse.json(
       { success: true, started: false, alreadyRunning: true },
@@ -29,7 +30,10 @@ export async function POST() {
   after(async () => {
     const startedAt = Date.now();
     try {
-      const result = await runJobFitBatch(ADMIN_JOB_FIT_BATCH_LIMIT);
+      const result = await runJobFitBatch(ADMIN_JOB_FIT_BATCH_LIMIT, {
+        experimentAllowed: true,
+        lockAcquiredAtMs,
+      });
       revalidatePath("/jobs");
       revalidatePath("/dashboard");
       console.info("[admin/job-fit/run]", {

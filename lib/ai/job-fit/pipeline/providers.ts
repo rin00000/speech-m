@@ -17,6 +17,24 @@ type ProviderResult = {
   rawText: string;
 };
 
+export type JobFitProviderRequestMetrics = {
+  provider: string;
+  queueWaitMs: number;
+  providerDurationMs: number;
+  status: number | null;
+  retryAfterMs: number | null;
+};
+
+export type EvaluateByPriorityOptions = {
+  onProviderRequest?: (metrics: JobFitProviderRequestMetrics) => void;
+  strictRateLimit?: boolean;
+};
+
+export type JobFitGeminiRateLimitSettings = {
+  rpmLimit: number;
+  minIntervalMs: number;
+};
+
 type GeminiGenerateContentResponse = {
   candidates?: Array<{
     content?: { parts?: Array<{ text?: string }> };
@@ -47,7 +65,8 @@ const GEMINI_MODEL_PRIMARY =
 
 // `JOB_FIT_GEMINI_RPM_LIMIT`: 1분 동안 시작할 Gemini 요청 수의 상한.
 // 응답 완료 수가 아니라 요청 시작 간격을 계산하는 값이며, 기본 10이면 약 6초마다 시작한다.
-const DEFAULT_GEMINI_RPM_LIMIT = 10;
+export const DEFAULT_GEMINI_RPM_LIMIT = 10;
+const MAX_EXPERIMENT_GEMINI_RPM_LIMIT = DEFAULT_GEMINI_RPM_LIMIT;
 const MAX_PROVIDER_ERROR_DETAIL_LENGTH = 300;
 let geminiQueue = Promise.resolve();
 let nextGeminiRequestAt = 0;
@@ -56,6 +75,25 @@ const parseEnvInt = (raw: string | undefined, fallback: number, min: number): nu
   if (raw === undefined || raw.trim() === "") return fallback;
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n >= min ? n : fallback;
+};
+
+const pushConfigWarning = (warnings: string[] | undefined, message: string): void => {
+  warnings?.push(message);
+};
+
+const parseStrictPositiveInt = (
+  name: string,
+  fallback: number,
+  warnings: string[] | undefined
+): number => {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || `${n}` !== raw.trim() || n <= 0) {
+    pushConfigWarning(warnings, `${name} must be a positive integer. Using ${fallback}.`);
+    return fallback;
+  }
+  return n;
 };
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -79,22 +117,51 @@ const resolveGeminiFetchRetryOptions = () => ({
   ),
 });
 
-const resolveGeminiMinIntervalMs = (): number => {
-  if (process.env.JOB_FIT_GEMINI_MIN_INTERVAL_MS !== undefined) {
-    return parseEnvInt(process.env.JOB_FIT_GEMINI_MIN_INTERVAL_MS, 0, 0);
+export const resolveJobFitGeminiRateLimitSettings = (
+  warnings?: string[],
+  strictExperiment = false
+): JobFitGeminiRateLimitSettings => {
+  let rpmLimit = strictExperiment
+    ? parseStrictPositiveInt("JOB_FIT_GEMINI_RPM_LIMIT", DEFAULT_GEMINI_RPM_LIMIT, warnings)
+    : parseEnvInt(process.env.JOB_FIT_GEMINI_RPM_LIMIT, DEFAULT_GEMINI_RPM_LIMIT, 1);
+
+  if (strictExperiment && rpmLimit > MAX_EXPERIMENT_GEMINI_RPM_LIMIT) {
+    pushConfigWarning(
+      warnings,
+      `JOB_FIT_GEMINI_RPM_LIMIT exceeds the experiment safety cap (${MAX_EXPERIMENT_GEMINI_RPM_LIMIT}). Using ${MAX_EXPERIMENT_GEMINI_RPM_LIMIT}.`
+    );
+    rpmLimit = MAX_EXPERIMENT_GEMINI_RPM_LIMIT;
   }
 
-  const rpmLimit = parseEnvInt(
-    process.env.JOB_FIT_GEMINI_RPM_LIMIT,
-    DEFAULT_GEMINI_RPM_LIMIT,
-    1
-  );
-  return Math.ceil(60_000 / rpmLimit);
+  const rpmDerivedMinIntervalMs = Math.ceil(60_000 / rpmLimit);
+  if (process.env.JOB_FIT_GEMINI_MIN_INTERVAL_MS !== undefined) {
+    const minIntervalMs = strictExperiment
+      ? parseStrictPositiveInt(
+          "JOB_FIT_GEMINI_MIN_INTERVAL_MS",
+          rpmDerivedMinIntervalMs,
+          warnings
+        )
+      : parseEnvInt(process.env.JOB_FIT_GEMINI_MIN_INTERVAL_MS, 0, 0);
+    return { rpmLimit, minIntervalMs };
+  }
+
+  return { rpmLimit, minIntervalMs: rpmDerivedMinIntervalMs };
 };
 
-const runWithGeminiRateLimit = async <T>(operation: () => Promise<T>): Promise<T> => {
-  const minIntervalMs = resolveGeminiMinIntervalMs();
-  if (minIntervalMs <= 0) return operation();
+const resolveGeminiMinIntervalMs = (strictRateLimit = false): number =>
+  resolveJobFitGeminiRateLimitSettings(undefined, strictRateLimit).minIntervalMs;
+
+const runWithGeminiRateLimit = async <T>(
+  operation: () => Promise<T>,
+  onStarted?: (queueWaitMs: number) => void,
+  strictRateLimit = false
+): Promise<T> => {
+  const queuedAt = performance.now();
+  const minIntervalMs = resolveGeminiMinIntervalMs(strictRateLimit);
+  if (minIntervalMs <= 0) {
+    onStarted?.(0);
+    return operation();
+  }
 
   const previous = geminiQueue;
   let release = () => {};
@@ -109,13 +176,14 @@ const runWithGeminiRateLimit = async <T>(operation: () => Promise<T>): Promise<T
   }
   nextGeminiRequestAt = Date.now() + minIntervalMs;
   release();
+  onStarted?.(performance.now() - queuedAt);
 
   return operation();
 };
 
-const extendGeminiCooldown = (response: Response): void => {
+const extendGeminiCooldown = (response: Response, strictRateLimit = false): void => {
   const retryAfterDelayMs = resolveRetryAfterDelayMs(response.headers.get("retry-after"));
-  const fallbackDelayMs = Math.max(resolveGeminiMinIntervalMs() * 2, 10_000);
+  const fallbackDelayMs = Math.max(resolveGeminiMinIntervalMs(strictRateLimit) * 2, 10_000);
   const cooldownMs = retryAfterDelayMs ?? fallbackDelayMs;
 
   nextGeminiRequestAt = Math.max(nextGeminiRequestAt, Date.now() + cooldownMs);
@@ -204,63 +272,104 @@ const buildGeminiEmptyContentDetail = (json: GeminiGenerateContentResponse): str
   );
 };
 
-const evaluateWithGemini = async (input: JobFitInput): Promise<ProviderResult> => {
+const evaluateWithGemini = async (
+  input: JobFitInput,
+  options: EvaluateByPriorityOptions = {}
+): Promise<ProviderResult> => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not set");
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL_PRIMARY)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const response = await runWithGeminiRateLimit(() =>
-    fetchWithExponentialBackoff(
-      endpoint,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          generationConfig: {
-            temperature: 0,
-            responseMimeType: "application/json",
+  let queueWaitMs = 0;
+  let providerStartedAt = 0;
+  let providerDurationMs = 0;
+  let providerStatus: number | null = null;
+  let retryAfterMs: number | null = null;
+
+  try {
+    const response = await runWithGeminiRateLimit(
+      () => {
+        providerStartedAt = performance.now();
+        return fetchWithExponentialBackoff(
+          endpoint,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              generationConfig: {
+                temperature: 0,
+                responseMimeType: "application/json",
+              },
+              contents: [
+                {
+                  role: "user",
+                  parts: [
+                    { text: `${buildSystemPrompt(input.source)}\n\n${buildUserPrompt(input)}` },
+                  ],
+                },
+              ],
+            }),
+            cache: "no-store",
           },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: `${buildSystemPrompt(input.source)}\n\n${buildUserPrompt(input)}` }],
-            },
-          ],
-        }),
-        cache: "no-store",
+          resolveGeminiFetchRetryOptions()
+        );
       },
-      resolveGeminiFetchRetryOptions()
-    )
-  );
-
-  if (!response.ok) {
-    const retryAfterMs = resolveRetryAfterDelayMs(response.headers.get("retry-after"));
-    const detail = await readProviderErrorDetail(response);
-    if (response.status === 429) {
-      extendGeminiCooldown(response);
-    }
-    throw new JobFitProviderHttpError("Gemini", response.status, detail, retryAfterMs);
-  }
-
-  const json = (await response.json()) as GeminiGenerateContentResponse;
-  const rawText = readGeminiText(json);
-  if (!rawText.trim()) {
-    throw new JobFitProviderHttpError(
-      "Gemini",
-      response.status,
-      buildGeminiEmptyContentDetail(json),
-      null
+      (waitMs) => {
+        queueWaitMs = waitMs;
+      },
+      options.strictRateLimit === true
     );
-  }
+    providerDurationMs = providerStartedAt > 0 ? performance.now() - providerStartedAt : 0;
+    providerStatus = response.status;
+    retryAfterMs = resolveRetryAfterDelayMs(response.headers.get("retry-after"));
 
-  return {
-    model: GEMINI_MODEL_PRIMARY,
-    parsed: parseResult(rawText),
-    rawText,
-  };
+    if (!response.ok) {
+      const detail = await readProviderErrorDetail(response);
+      if (response.status === 429) {
+        extendGeminiCooldown(response, options.strictRateLimit === true);
+      }
+      throw new JobFitProviderHttpError("Gemini", response.status, detail, retryAfterMs);
+    }
+
+    const json = (await response.json()) as GeminiGenerateContentResponse;
+    const rawText = readGeminiText(json);
+    if (!rawText.trim()) {
+      throw new JobFitProviderHttpError(
+        "Gemini",
+        response.status,
+        buildGeminiEmptyContentDetail(json),
+        null
+      );
+    }
+
+    return {
+      model: GEMINI_MODEL_PRIMARY,
+      parsed: parseResult(rawText),
+      rawText,
+    };
+  } catch (error) {
+    if (providerStartedAt > 0 && providerDurationMs === 0) {
+      providerDurationMs = performance.now() - providerStartedAt;
+    }
+    if (error instanceof JobFitProviderHttpError) {
+      providerStatus = error.status;
+      retryAfterMs = error.retryAfterMs ?? retryAfterMs;
+    }
+    throw error;
+  } finally {
+    options.onProviderRequest?.({
+      provider: "Gemini",
+      queueWaitMs: Math.round(queueWaitMs),
+      providerDurationMs: Math.round(providerDurationMs),
+      status: providerStatus,
+      retryAfterMs,
+    });
+  }
 };
 
-export const evaluateByPriority = async (input: JobFitInput): Promise<ProviderResult> =>
-  evaluateWithGemini(input);
+export const evaluateByPriority = async (
+  input: JobFitInput,
+  options?: EvaluateByPriorityOptions
+): Promise<ProviderResult> => evaluateWithGemini(input, options);
