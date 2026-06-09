@@ -605,11 +605,15 @@ export interface Database {
         };
         Returns: string;
       },
-      purge_stale_job_listings: {
-        Args: { p_cutoff_iso: string; p_include_published?: boolean };
-        Returns: number;
-      },
-      submit_relay_first_submission: {
+        purge_stale_job_listings: {
+          Args: { p_cutoff_iso: string; p_include_published?: boolean };
+          Returns: number;
+        },
+        replace_study_group_members: {
+          Args: { p_group_id: string; p_student_user_ids: string[] };
+          Returns: undefined;
+        },
+        submit_relay_first_submission: {
         Args: {
           p_quest_id: string;
           p_student_user_id: string;

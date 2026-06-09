@@ -15,7 +15,7 @@ export default async function StudiesPage() {
   const user = await getCurrentUser();
   const role = user?.role ?? "guest";
   const userId = user?.userId ?? null;
-  const isAuthorized = role === "admin" || role === "student";
+  const isAuthorized = userId !== null && (role === "admin" || role === "student");
 
   const [studies, studentProfiles] = isAuthorized
     ? await Promise.all([

@@ -23,6 +23,7 @@ type StudyQuestRow = Database["public"]["Tables"]["study_quests"]["Row"];
 type RelaySubmissionRow = Database["public"]["Tables"]["study_relay_submissions"]["Row"];
 type RelayFeedbackRow = Database["public"]["Tables"]["study_relay_feedback"]["Row"];
 type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"];
+const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
 
 type StudyGroupSummaryRow = Pick<StudyGroupRow, "id" | "title" | "description" | "status">;
 type StudyMemberSummaryRow = Pick<StudyGroupMemberRow, "group_id" | "student_user_id" | "display_order">;
@@ -411,7 +412,7 @@ function displayName(
 ) {
   const profile = profiles.get(userId);
   return getDisplayName({
-    fallback: profile?.email ?? userId,
+    fallback: profile?.email ?? UNKNOWN_USER_DISPLAY_NAME,
     displayName: profile?.real_name ?? profile?.display_name,
   });
 }

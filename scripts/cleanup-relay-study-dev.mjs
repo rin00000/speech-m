@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const ENV_PATH = resolve(process.cwd(), ".env.local");
 const RELAY_GROUP_TITLE = "Relay Study Dev";
+const RELAY_GROUP_TITLES = [RELAY_GROUP_TITLE, "릴레이 스터디"];
 const SEEDED_USER_IDS = [
   "00000000-0000-4000-8000-000000000001",
   "00000000-0000-4000-8000-000000000002",
@@ -43,7 +44,7 @@ async function cleanupRelayStudy(supabase) {
     .from("study_groups")
     .select("id")
     .eq("type", "relay")
-    .eq("title", RELAY_GROUP_TITLE);
+    .in("title", RELAY_GROUP_TITLES);
 
   if (groupError) throw new Error(`study_groups lookup failed: ${groupError.message}`);
 

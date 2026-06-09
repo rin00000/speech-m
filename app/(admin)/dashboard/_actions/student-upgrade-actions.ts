@@ -174,5 +174,6 @@ export async function rejectStudentUpgradeRequest(requestId: string): Promise<Ac
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/users");
   return { success: true };
 }

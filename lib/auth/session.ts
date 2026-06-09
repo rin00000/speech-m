@@ -62,19 +62,14 @@ async function getCurrentUserById(
 
 async function ensureDevPersona(persona: DevPersona) {
   const supabase = createAdminClient();
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("id")
-    .eq("id", persona.userId)
-    .maybeSingle();
-
-  if (!existingUser) {
-    await supabase.from("users").insert({
+  await supabase.from("users").upsert(
+    {
       id: persona.userId,
       role: persona.role,
       status: persona.status,
-    });
-  }
+    },
+    { onConflict: "id" }
+  );
 
   await supabase.from("user_profiles").upsert(
     {

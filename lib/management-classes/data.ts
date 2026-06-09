@@ -8,6 +8,8 @@ import {
   getManagementClassCancelClosesAt,
 } from "./format";
 
+const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
+
 type ManagementClassRow = Database["public"]["Tables"]["management_classes"]["Row"];
 type CouponGrantRow = Database["public"]["Tables"]["management_class_coupon_grants"]["Row"];
 type CouponRow = Database["public"]["Tables"]["management_class_coupons"]["Row"];
@@ -209,6 +211,13 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
   ]);
 
   const classes = classesResult.data ?? [];
+  if (studentsResult.error || studentProfilesResult.error) {
+    throw new Error(
+      studentsResult.error?.message ??
+        studentProfilesResult.error?.message ??
+        "수강생 정보를 불러오지 못했습니다."
+    );
+  }
   const profilesByUserId = new Map(
     ((studentProfilesResult.data ?? []) as StudentProfileRow[]).map((profile) => [
       profile.user_id,
@@ -354,7 +363,7 @@ function getCouponLabel(
 
 function displayName(userId: string, profilesByUserId: Map<string, StudentProfileRow>) {
   const profile = profilesByUserId.get(userId);
-  return profile?.real_name?.trim() || profile?.display_name?.trim() || profile?.email || userId;
+  return profile?.real_name?.trim() || profile?.display_name?.trim() || profile?.email || UNKNOWN_USER_DISPLAY_NAME;
 }
 
 function groupBy<T>(items: T[], getKey: (item: T) => string) {

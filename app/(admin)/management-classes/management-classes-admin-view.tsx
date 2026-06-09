@@ -126,6 +126,7 @@ export function ManagementClassesAdminView({ data }: { data: AdminManagementClas
               <FieldLabel label="수강생">
                 <select
                   name="studentUserId"
+                  defaultValue=""
                   required
                   disabled={data.students.length === 0}
                   className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800 focus:border-periwinkle-300 disabled:bg-gray-50 disabled:text-gray-400"
@@ -133,11 +134,16 @@ export function ManagementClassesAdminView({ data }: { data: AdminManagementClas
                   {data.students.length === 0 ? (
                     <option value="">수강생 없음</option>
                   ) : (
-                    data.students.map((student) => (
+                    <>
+                      <option value="" disabled>
+                        수강생 선택
+                      </option>
+                      {data.students.map((student) => (
                       <option key={student.userId} value={student.userId}>
                         {student.displayName} · {student.email ?? student.userId}
                       </option>
-                    ))
+                      ))}
+                    </>
                   )}
                 </select>
               </FieldLabel>

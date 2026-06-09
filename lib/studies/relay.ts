@@ -120,7 +120,7 @@ export function buildRelayQuestState({
       : null;
   const unsubmittedMembers = sortedMembers.filter((member) => !submittedUserIds.has(member.userId));
   const hasAllSubmissions =
-    sortedMembers.length > 0 && sortedSubmissions.length >= sortedMembers.length;
+    sortedMembers.length > 0 && submittedUserIds.size >= sortedMembers.length;
   const isComplete =
     questStatus === "closed" ||
     (hasAllSubmissions && sortedSubmissions.every((submission) => submission.feedback));

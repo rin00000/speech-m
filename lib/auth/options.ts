@@ -149,7 +149,11 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.userId = token.userId ?? "";
+        if (token.userId) {
+          session.user.userId = token.userId;
+        } else {
+          delete session.user.userId;
+        }
         session.user.role = token.role ?? "guest";
         session.user.status = token.status ?? "active";
         session.user.email = token.email ?? null;

@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 사용자 역할과 상태를 관리하는 클라이언트 뷰입니다.
+ * UserRole/UserStatus 표시와 EmptyState, updateUserRole/updateMultipleUsersRoles 호출 흐름을 담당합니다.
+ */
+
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
@@ -84,7 +89,8 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
     setMessage(null);
     setLoadingTarget(userIds.length === 1 ? userIds[0] : "bulk");
 
-    const result =
+    try {
+      const result =
       userIds.length === 1
         ? await updateUserRole(userIds[0], targetRole)
         : await updateMultipleUsersRoles(userIds, targetRole);
@@ -99,7 +105,12 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
       setMessage({ type: "error", text: result.error ?? "권한 변경에 실패했습니다." });
     }
 
-    setLoadingTarget(null);
+    } catch (error) {
+      console.error("confirmRoleChange unexpected error:", error);
+      setMessage({ type: "error", text: "서버 오류가 발생했습니다." });
+    } finally {
+      setLoadingTarget(null);
+    }
   };
 
   return (

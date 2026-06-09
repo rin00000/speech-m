@@ -246,6 +246,16 @@ AS $$
 DECLARE
   v_target_user_id UUID;
 BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.users
+    WHERE id = p_resolved_by_user_id
+      AND role = 'admin'
+      AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'student_upgrade_request_admin_required';
+  END IF;
+
   SELECT requests.user_id
   INTO v_target_user_id
   FROM public.student_upgrade_requests AS requests
@@ -395,6 +405,65 @@ CREATE TRIGGER study_quests_touch_updated_at
 BEFORE UPDATE ON public.study_quests
 FOR EACH ROW
 EXECUTE FUNCTION public.touch_updated_at();
+
+CREATE OR REPLACE FUNCTION public.replace_study_group_members(
+  p_group_id UUID,
+  p_student_user_ids UUID[]
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_student_user_id UUID;
+  v_display_order INTEGER := 0;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.study_groups
+    WHERE id = p_group_id
+    FOR UPDATE
+  ) THEN
+    RAISE EXCEPTION 'study_group_not_found';
+  END IF;
+
+  DELETE FROM public.study_group_members
+  WHERE group_id = p_group_id;
+
+  IF p_student_user_ids IS NULL THEN
+    RETURN;
+  END IF;
+
+  FOREACH v_student_user_id IN ARRAY p_student_user_ids LOOP
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.users
+      WHERE id = v_student_user_id
+        AND role = 'student'
+        AND status = 'active'
+    ) THEN
+      RAISE EXCEPTION 'study_group_member_student_required';
+    END IF;
+
+    v_display_order := v_display_order + 1;
+
+    INSERT INTO public.study_group_members (
+      group_id,
+      student_user_id,
+      display_order
+    )
+    VALUES (
+      p_group_id,
+      v_student_user_id,
+      v_display_order
+    );
+  END LOOP;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.replace_study_group_members(UUID, UUID[]) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.replace_study_group_members(UUID, UUID[]) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.submit_relay_first_submission(
   p_quest_id UUID,

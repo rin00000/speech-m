@@ -1,5 +1,10 @@
 "use server";
 
+/**
+ * 릴레이 스터디 그룹과 퀘스트를 관리하는 Server Action 모듈입니다.
+ * 관리자 권한 확인 후 group/quest 입력 스키마와 멤버 UUID 목록을 검증하고 Supabase에 저장합니다.
+ */
+
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
@@ -10,6 +15,8 @@ import {
   type ActionResult,
 } from "./action-schemas";
 import { requireAdminActor } from "./relay-action-helpers";
+
+const studentUserIdsSchema = uuidSchema.array();
 
 export async function createStudyGroup(formData: FormData): Promise<ActionResult<{ id: string }>> {
   const actor = await requireAdminActor();
@@ -87,7 +94,12 @@ export async function saveStudyGroupMembers(
   const groupIdParsed = uuidSchema.safeParse(groupId);
   if (!groupIdParsed.success) return { success: false, error: "스터디 ID가 올바르지 않습니다." };
 
-  const uniqueUserIds = [...new Set(studentUserIds.map((userId) => userId.trim()).filter(Boolean))];
+  const studentUserIdsParsed = studentUserIdsSchema.safeParse(studentUserIds);
+  if (!studentUserIdsParsed.success) {
+    return { success: false, error: "스터디 멤버 ID가 올바르지 않습니다." };
+  }
+
+  const uniqueUserIds = [...new Set(studentUserIdsParsed.data.map((userId) => userId.trim()))];
   const supabase = createAdminClient();
 
   if (uniqueUserIds.length > 0) {
@@ -104,24 +116,12 @@ export async function saveStudyGroupMembers(
     }
   }
 
-  const { error: deleteError } = await supabase
-    .from("study_group_members")
-    .delete()
-    .eq("group_id", groupIdParsed.data);
+  const { error: replaceError } = await supabase.rpc("replace_study_group_members", {
+    p_group_id: groupIdParsed.data,
+    p_student_user_ids: uniqueUserIds,
+  });
 
-  if (deleteError) return { success: false, error: "기존 멤버 목록을 갱신하지 못했습니다." };
-
-  if (uniqueUserIds.length > 0) {
-    const { error: insertError } = await supabase.from("study_group_members").insert(
-      uniqueUserIds.map((userId, index) => ({
-        group_id: groupIdParsed.data,
-        student_user_id: userId,
-        display_order: index + 1,
-      }))
-    );
-
-    if (insertError) return { success: false, error: "스터디 멤버를 저장하지 못했습니다." };
-  }
+  if (replaceError) return { success: false, error: "스터디 멤버를 저장하지 못했습니다." };
 
   revalidatePath("/studies");
   revalidatePath(`/studies/${groupIdParsed.data}`);
@@ -159,7 +159,7 @@ export async function createStudyQuest(
     .eq("group_id", groupIdParsed.data);
 
   if ((count ?? 0) < 2) {
-    return { success: false, error: "릴레이 퀘스트는 멤버가 2명 이상일 때 만들 수 있습니다." };
+    return { success: false, error: "릴레이 테스트는 멤버가 2명 이상이어야 만들 수 있습니다." };
   }
 
   const { data, error } = await supabase

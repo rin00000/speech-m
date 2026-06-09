@@ -29,6 +29,8 @@ type RelaySubmissionRow = Database["public"]["Tables"]["study_relay_submissions"
 type RelayFeedbackRow = Database["public"]["Tables"]["study_relay_feedback"]["Row"];
 type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"];
 
+const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
+
 export type StudyListItem = {
   id: string;
   title: string;
@@ -157,7 +159,7 @@ export async function getStudyDetail({
     userId: member.student_user_id,
     email: profilesByUserId.get(member.student_user_id)?.email ?? null,
     displayName: getDisplayName({
-      fallback: profilesByUserId.get(member.student_user_id)?.email ?? member.student_user_id,
+      fallback: profilesByUserId.get(member.student_user_id)?.email ?? UNKNOWN_USER_DISPLAY_NAME,
       displayName:
         profilesByUserId.get(member.student_user_id)?.real_name ??
         profilesByUserId.get(member.student_user_id)?.display_name,
@@ -204,7 +206,7 @@ export async function getStudyDetail({
       authorName: getDisplayName({
         fallback:
           participantProfilesByUserId.get(item.feedback_author_user_id)?.email ??
-          item.feedback_author_user_id,
+          UNKNOWN_USER_DISPLAY_NAME,
         displayName:
           participantProfilesByUserId.get(item.feedback_author_user_id)?.real_name ??
           participantProfilesByUserId.get(item.feedback_author_user_id)?.display_name,
@@ -227,7 +229,7 @@ export async function getStudyDetail({
         studentName: getDisplayName({
           fallback:
             participantProfilesByUserId.get(submission.student_user_id)?.email ??
-            submission.student_user_id,
+            UNKNOWN_USER_DISPLAY_NAME,
           displayName:
             participantProfilesByUserId.get(submission.student_user_id)?.real_name ??
             participantProfilesByUserId.get(submission.student_user_id)?.display_name,
