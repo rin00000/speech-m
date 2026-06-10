@@ -160,7 +160,8 @@ export default async function SettingsPage() {
       <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <SettingsView
           user={{
-            email: user.email ?? "",
+            userId: user.userId,
+            email: user.email,
             name: user.name,
             role: user.role,
           }}

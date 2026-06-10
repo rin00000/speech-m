@@ -27,10 +27,10 @@ export type GuestDashboardData = {
 };
 
 export async function getGuestDashboardData({
-  email,
+  userId,
   isLoggedIn,
 }: {
-  email: string;
+  userId: string | null;
   isLoggedIn: boolean;
 }): Promise<GuestDashboardData> {
   const supabase = createAdminClient();
@@ -62,11 +62,11 @@ export async function getGuestDashboardData({
       .order("published_at", { ascending: false })
       .limit(5)
       .returns<GuestDashboardJob[]>(),
-    isLoggedIn && email
+    isLoggedIn && userId
       ? supabase
           .from("student_upgrade_requests")
           .select("message,requested_at")
-          .eq("email", email)
+          .eq("user_id", userId)
           .eq("status", "pending")
           .maybeSingle()
       : Promise.resolve({ data: null }),

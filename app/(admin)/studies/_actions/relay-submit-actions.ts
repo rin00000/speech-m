@@ -39,7 +39,7 @@ export async function createStudyAudioUploadTarget(
   const fileValidation = validateStudyAudioFileMeta(parsed.data);
   if (!fileValidation.ok) return { success: false, error: fileValidation.error };
 
-  const state = await getQuestRelayState(parsed.data.questId, actor.data.email);
+  const state = await getQuestRelayState(parsed.data.questId, actor.data.userId);
   if (!state.success) return state;
   if (!state.data.canStart && !state.data.canFeedbackAndUpload) {
     return { success: false, error: "현재 업로드할 수 있는 릴레이 순서가 아닙니다." };
@@ -47,7 +47,7 @@ export async function createStudyAudioUploadTarget(
 
   const audioPath = createAudioPath({
     questId: parsed.data.questId,
-    studentEmail: actor.data.email,
+    studentUserId: actor.data.userId,
     extension: fileValidation.extension,
   });
 
@@ -79,7 +79,7 @@ export async function submitRelayFirstSubmission(
   const parsed = uploadedAudioSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: "제출 정보를 확인하세요." };
 
-  const audio = validateUploadedAudioInput(parsed.data, actor.data.email);
+  const audio = validateUploadedAudioInput(parsed.data, actor.data.userId);
   if (!audio.success) return audio;
 
   const groupId = await getQuestGroupId(parsed.data.questId);
@@ -88,7 +88,7 @@ export async function submitRelayFirstSubmission(
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("submit_relay_first_submission", {
     p_quest_id: parsed.data.questId,
-    p_student_email: actor.data.email,
+    p_student_user_id: actor.data.userId,
     p_audio_path: parsed.data.audioPath,
     p_audio_file_name: parsed.data.fileName,
     p_audio_content_type: audio.data.contentType,
@@ -118,7 +118,7 @@ export async function submitRelayFeedbackAndSubmission(
     return { success: false, error: parsed.error.issues[0]?.message ?? "제출 정보를 확인하세요." };
   }
 
-  const audio = validateUploadedAudioInput(parsed.data, actor.data.email);
+  const audio = validateUploadedAudioInput(parsed.data, actor.data.userId);
   if (!audio.success) return audio;
 
   const groupId = await getQuestGroupId(parsed.data.questId);
@@ -127,7 +127,7 @@ export async function submitRelayFeedbackAndSubmission(
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("submit_relay_feedback_and_submission", {
     p_quest_id: parsed.data.questId,
-    p_student_email: actor.data.email,
+    p_student_user_id: actor.data.userId,
     p_target_submission_id: parsed.data.targetSubmissionId,
     p_comment: parsed.data.comment,
     p_audio_path: parsed.data.audioPath,
@@ -165,7 +165,7 @@ export async function submitRelayFinalFeedback(
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("submit_relay_final_feedback", {
     p_quest_id: parsed.data.questId,
-    p_student_email: actor.data.email,
+    p_student_user_id: actor.data.userId,
     p_target_submission_id: parsed.data.targetSubmissionId,
     p_comment: parsed.data.comment,
   });

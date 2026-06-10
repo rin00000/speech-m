@@ -14,12 +14,12 @@ import { StudiesIndexView } from "./_components/studies-index-view";
 export default async function StudiesPage() {
   const user = await getCurrentUser();
   const role = user?.role ?? "guest";
-  const email = user?.email ?? null;
-  const isAuthorized = role === "admin" || role === "student";
+  const userId = user?.userId ?? null;
+  const isAuthorized = userId !== null && (role === "admin" || role === "student");
 
   const [studies, studentProfiles] = isAuthorized
     ? await Promise.all([
-        getStudiesForViewer({ role, email }),
+        getStudiesForViewer({ role, userId }),
         role === "admin" ? getStudentProfiles() : Promise.resolve([]),
       ])
     : [[], []];

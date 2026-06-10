@@ -1,8 +1,8 @@
 "use server";
 
 /**
- * 스터디 참여 전에 필요한 수강생 실명 저장 액션.
- * 공개 표시명과 분리된 운영용 실명만 갱신해 커뮤니티 닉네임 정책과 충돌하지 않게 한다.
+ * 스터디 화면에서 수강생 실명 저장을 처리하는 Server Action 모듈입니다.
+ * getCurrentUser로 수강생 세션을 확인하고 user_profiles.real_name을 갱신한 뒤 관련 페이지를 재검증합니다.
  */
 
 import { revalidatePath } from "next/cache";
@@ -18,10 +18,10 @@ export type StudyRealNameState = {
 export async function saveStudyRealName(
   studyId: string,
   _prevState: StudyRealNameState,
-  formData: FormData,
+  formData: FormData
 ): Promise<StudyRealNameState> {
   const user = await getCurrentUser();
-  if (!user?.email || user.role !== "student") {
+  if (!user?.userId || user.role !== "student") {
     return { success: false, error: "수강생 계정으로 로그인해야 실명을 저장할 수 있습니다." };
   }
 
@@ -32,21 +32,26 @@ export async function saveStudyRealName(
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "실명을 확인하세요.",
+      error: parsed.error.issues[0]?.message ?? "실명을 확인해주세요.",
     };
   }
 
   const supabase = createAdminClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("user_profiles")
     .update({
       real_name: parsed.data.realName,
       updated_at: new Date().toISOString(),
     })
-    .eq("email", user.email);
+    .eq("user_id", user.userId)
+    .select("user_id")
+    .maybeSingle();
 
   if (error) {
     return { success: false, error: "실명을 저장하지 못했습니다." };
+  }
+  if (!data) {
+    return { success: false, error: "프로필 정보를 찾지 못했습니다." };
   }
 
   revalidatePath("/studies");

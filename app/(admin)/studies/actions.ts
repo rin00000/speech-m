@@ -29,8 +29,8 @@ export async function updateStudyGroup(groupId: string, formData: FormData) {
   return updateStudyGroupAction(groupId, formData);
 }
 
-export async function saveStudyGroupMembers(groupId: string, studentEmails: string[]) {
-  return saveStudyGroupMembersAction(groupId, studentEmails);
+export async function saveStudyGroupMembers(groupId: string, studentUserIds: string[]) {
+  return saveStudyGroupMembersAction(groupId, studentUserIds);
 }
 
 export async function createStudyQuest(groupId: string, formData: FormData) {

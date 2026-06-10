@@ -11,7 +11,8 @@ import {
 import type { UserRole } from "@/lib/auth/session";
 
 export type StudyMember = {
-  email: string;
+  userId: string;
+  email: string | null;
   displayName: string;
   displayOrder: number;
 };
@@ -19,7 +20,8 @@ export type StudyMember = {
 export type RelayFeedback = {
   id: string;
   submissionId: string;
-  authorEmail: string;
+  authorUserId: string;
+  authorEmail: string | null;
   authorName: string;
   comment: string;
   createdAt: string;
@@ -28,7 +30,8 @@ export type RelayFeedback = {
 export type RelaySubmission = {
   id: string;
   questId: string;
-  studentEmail: string;
+  studentUserId: string;
+  studentEmail: string | null;
   studentName: string;
   audioPath: string;
   audioUrl: string | null;
@@ -59,7 +62,7 @@ export type RelayQuestState = {
 };
 
 export type StudyViewer = {
-  email: string | null;
+  userId: string | null;
   role: UserRole;
 };
 
@@ -69,36 +72,36 @@ export type StudyAudioValidationResult =
 
 export function canViewStudy({
   viewer,
-  memberEmails,
+  memberUserIds,
 }: {
   viewer: StudyViewer;
-  memberEmails: string[];
+  memberUserIds: string[];
 }) {
   if (viewer.role === "admin") return true;
-  if (!viewer.email || viewer.role !== "student") return false;
-  return memberEmails.includes(viewer.email);
+  if (!viewer.userId || viewer.role !== "student") return false;
+  return memberUserIds.includes(viewer.userId);
 }
 
 export function getDisplayName({
-  email,
+  fallback,
   displayName,
 }: {
-  email: string;
+  fallback: string;
   displayName?: string | null;
 }) {
   const trimmed = displayName?.trim();
-  return trimmed || email;
+  return trimmed || fallback;
 }
 
 export function buildRelayQuestState({
   members,
   submissions,
-  currentUserEmail,
+  currentUserId,
   questStatus,
 }: {
   members: StudyMember[];
   submissions: RelaySubmission[];
-  currentUserEmail: string | null;
+  currentUserId: string | null;
   questStatus: "open" | "closed";
 }): RelayQuestState {
   const sortedMembers = [...members].sort((a, b) => {
@@ -106,23 +109,23 @@ export function buildRelayQuestState({
     return a.displayName.localeCompare(b.displayName, "ko");
   });
   const sortedSubmissions = [...submissions].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
-  const submittedEmails = new Set(sortedSubmissions.map((submission) => submission.studentEmail));
+  const submittedUserIds = new Set(sortedSubmissions.map((submission) => submission.studentUserId));
   const completedSubmissions = sortedSubmissions.filter((submission) => submission.feedback);
   const pendingSubmission =
     sortedSubmissions.find((submission) => !submission.feedback) ?? null;
   const firstSubmission = sortedSubmissions[0] ?? null;
   const userSubmission =
-    currentUserEmail
-      ? sortedSubmissions.find((submission) => submission.studentEmail === currentUserEmail) ?? null
+    currentUserId
+      ? sortedSubmissions.find((submission) => submission.studentUserId === currentUserId) ?? null
       : null;
-  const unsubmittedMembers = sortedMembers.filter((member) => !submittedEmails.has(member.email));
+  const unsubmittedMembers = sortedMembers.filter((member) => !submittedUserIds.has(member.userId));
   const hasAllSubmissions =
-    sortedMembers.length > 0 && sortedSubmissions.length >= sortedMembers.length;
+    sortedMembers.length > 0 && submittedUserIds.size >= sortedMembers.length;
   const isComplete =
     questStatus === "closed" ||
     (hasAllSubmissions && sortedSubmissions.every((submission) => submission.feedback));
   const isStudentMember =
-    Boolean(currentUserEmail) && sortedMembers.some((member) => member.email === currentUserEmail);
+    Boolean(currentUserId) && sortedMembers.some((member) => member.userId === currentUserId);
   const isOpen = questStatus === "open" && !isComplete;
   const hasUserSubmitted = Boolean(userSubmission);
 
@@ -139,15 +142,15 @@ export function buildRelayQuestState({
     sortedSubmissions.length > 0 &&
     sortedSubmissions.length < sortedMembers.length &&
     !hasUserSubmitted &&
-    pendingSubmission?.studentEmail !== currentUserEmail;
+    pendingSubmission?.studentUserId !== currentUserId;
 
   const canFinalFeedback =
     isOpen &&
     isStudentMember &&
     Boolean(pendingSubmission) &&
     hasAllSubmissions &&
-    firstSubmission?.studentEmail === currentUserEmail &&
-    pendingSubmission?.studentEmail !== currentUserEmail;
+    firstSubmission?.studentUserId === currentUserId &&
+    pendingSubmission?.studentUserId !== currentUserId;
 
   let status: RelayQuestStatus = "not_started";
   if (isComplete) {

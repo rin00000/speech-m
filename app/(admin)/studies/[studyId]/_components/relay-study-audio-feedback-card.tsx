@@ -1,8 +1,3 @@
-/**
- * 릴레이 제출 음성 카드.
- * 제출자/파일명/오디오 플레이어와 해당 제출에 달린 피드백 요약을 표시한다.
- */
-
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FileAudioIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/ui/cn";
@@ -11,15 +6,15 @@ import { formatDateTime } from "./relay-study-detail-common";
 
 export function AudioFeedbackCard({
   submission,
-  currentUserEmail,
+  currentUserId,
   compact = false,
 }: {
   submission: RelaySubmission;
-  currentUserEmail: string | null;
+  currentUserId: string | null;
   compact?: boolean;
 }) {
-  const isOwnAudio = submission.studentEmail === currentUserEmail;
-  const isOwnFeedback = submission.feedback?.authorEmail === currentUserEmail;
+  const isOwnAudio = submission.studentUserId === currentUserId;
+  const isOwnFeedback = submission.feedback?.authorUserId === currentUserId;
   const hasOwnMark = isOwnAudio || isOwnFeedback;
 
   return (
@@ -28,14 +23,14 @@ export function AudioFeedbackCard({
         "rounded-2xl border bg-white p-3 shadow-sm",
         hasOwnMark
           ? "border-periwinkle-200 bg-periwinkle-50/45 ring-1 ring-periwinkle-100"
-          : "border-gray-200",
+          : "border-gray-200"
       )}
     >
       <div className="flex items-start gap-3">
         <span
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-periwinkle-700",
-            hasOwnMark ? "bg-white" : "bg-periwinkle-50",
+            hasOwnMark ? "bg-white" : "bg-periwinkle-50"
           )}
         >
           <HugeiconsIcon icon={FileAudioIcon} size={17} color="currentColor" />
@@ -74,7 +69,7 @@ export function AudioFeedbackCard({
           className={cn(
             "mt-3 rounded-2xl px-3 py-2",
             isOwnFeedback ? "border border-periwinkle-100 bg-white" : "bg-gray-50",
-            compact ? "" : "py-3",
+            compact ? "" : "py-3"
           )}
         >
           {isOwnFeedback && (

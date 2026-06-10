@@ -1,38 +1,48 @@
-/**
- * 스터디 관리자 화면에서 쓰는 수강생 프로필 조회 로직.
- * 목록/상세 데이터 조립 파일이 관리자 선택지 조회까지 함께 들고 있지 않도록 분리한다.
- */
-
 import { createAdminClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.types";
 import { getDisplayName } from "./relay";
 
-type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"];
+const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
 
 export type StudyAdminProfile = {
-  email: string;
+  userId: string;
+  email: string | null;
   displayName: string;
   realName: string | null;
-  role: "admin" | "student" | "guest";
+  role: "student";
 };
 
 export async function getStudentProfiles(): Promise<StudyAdminProfile[]> {
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("user_profiles")
-    .select("email, display_name, real_name, role")
-    .eq("role", "student")
-    .order("display_name", { ascending: true });
+  const [
+    { data: studentRows, error: studentRowsError },
+    { data: profileRows, error: profileRowsError },
+  ] = await Promise.all([
+    supabase
+      .from("users")
+      .select("id, role")
+      .eq("role", "student")
+      .eq("status", "active"),
+    supabase.from("user_profiles").select("user_id, email, display_name, real_name"),
+  ]);
 
-  return ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "real_name" | "role">[]).map(
-    (profile) => ({
-      email: profile.email,
-      displayName: getDisplayName({
-        email: profile.email,
-        displayName: profile.real_name ?? profile.display_name,
-      }),
-      realName: profile.real_name,
-      role: profile.role,
-    }),
-  );
+  if (studentRowsError) throw studentRowsError;
+  if (profileRowsError) throw profileRowsError;
+
+  const profilesByUserId = new Map((profileRows ?? []).map((profile) => [profile.user_id, profile]));
+
+  return (studentRows ?? [])
+    .map((student) => {
+      const profile = profilesByUserId.get(student.id);
+      return {
+        userId: student.id,
+        email: profile?.email ?? null,
+        displayName: getDisplayName({
+          fallback: profile?.email ?? UNKNOWN_USER_DISPLAY_NAME,
+          displayName: profile?.real_name ?? profile?.display_name,
+        }),
+        realName: profile?.real_name ?? null,
+        role: "student" as const,
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, "ko"));
 }

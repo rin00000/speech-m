@@ -1,10 +1,5 @@
 "use server";
 
-/**
- * 관리반 예약과 쿠폰 운영에 사용하는 Server Action 모듈입니다.
- * 관리자 공지 생성·취소, 쿠폰 발급, 수강생 신청·취소 요청을 검증한 뒤 Supabase RPC로 위임합니다.
- */
-
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -31,8 +26,8 @@ const classFormSchema = z.object({
 });
 
 const grantFormSchema = z.object({
-  studentEmail: z.string().trim().email("수강생 이메일을 선택하세요."),
-  totalCount: z.coerce.number().int().min(1, "쿠폰은 1회 이상 발급해야 합니다.").max(100),
+  studentUserId: z.string().uuid("수강생을 선택하세요."),
+  totalCount: z.coerce.number().int().min(1, "쿠폰은 1개 이상 발급해야 합니다.").max(100),
   note: z.string().trim().max(300, "메모는 300자 이하로 입력하세요.").optional(),
 });
 
@@ -43,7 +38,7 @@ const managementClassRpcErrorMessages: Record<string, string> = {
   management_class_application_not_active: "취소할 활성 신청을 찾을 수 없습니다.",
   management_class_cancel_forbidden: "본인의 신청만 취소할 수 있습니다.",
   management_class_cancel_window_closed: "관리반 시작 1시간 전부터는 직접 취소할 수 없습니다.",
-  management_class_coupon_count_invalid: "쿠폰 발급 횟수를 확인하세요.",
+  management_class_coupon_count_invalid: "쿠폰 발급 개수를 확인하세요.",
   management_class_coupon_required: "사용 가능한 관리반 쿠폰이 없습니다.",
   management_class_full: "정원이 모두 찼습니다.",
   management_class_not_found: "관리반을 찾을 수 없습니다.",
@@ -52,7 +47,7 @@ const managementClassRpcErrorMessages: Record<string, string> = {
 };
 
 export async function createManagementClass(
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
   const actor = await requireAdminActor();
   if (!actor.success) return actor;
@@ -80,7 +75,7 @@ export async function createManagementClass(
     .insert({
       starts_at: startsAtIso,
       capacity: parsed.data.capacity,
-      created_by: actor.data.email,
+      created_by_user_id: actor.data.userId,
     })
     .select("id")
     .single();
@@ -92,13 +87,13 @@ export async function createManagementClass(
 }
 
 export async function grantManagementClassCoupons(
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionResult<{ id: string }>> {
   const actor = await requireAdminActor();
   if (!actor.success) return actor;
 
   const parsed = grantFormSchema.safeParse({
-    studentEmail: formData.get("studentEmail"),
+    studentUserId: formData.get("studentUserId"),
     totalCount: formData.get("totalCount"),
     note: formData.get("note"),
   });
@@ -108,9 +103,9 @@ export async function grantManagementClassCoupons(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc("grant_management_class_coupons", {
-    p_student_email: parsed.data.studentEmail,
+    p_student_user_id: parsed.data.studentUserId,
     p_total_count: parsed.data.totalCount,
-    p_granted_by: actor.data.email,
+    p_granted_by_user_id: actor.data.userId,
     p_note: parsed.data.note ?? "",
   });
 
@@ -126,7 +121,7 @@ export async function grantManagementClassCoupons(
 }
 
 export async function applyToManagementClass(
-  classId: string,
+  classId: string
 ): Promise<ActionResult<{ id: string }>> {
   const actor = await requireStudentActor();
   if (!actor.success) return actor;
@@ -137,7 +132,7 @@ export async function applyToManagementClass(
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc("apply_management_class", {
     p_class_id: classIdParsed.data,
-    p_student_email: actor.data.email,
+    p_student_user_id: actor.data.userId,
   });
 
   if (error) {
@@ -152,28 +147,28 @@ export async function applyToManagementClass(
 }
 
 export async function cancelMyManagementClassApplication(
-  applicationId: string,
+  applicationId: string
 ): Promise<ActionResult> {
   const actor = await requireStudentActor();
   if (!actor.success) return actor;
 
   return cancelManagementClassApplicationByActor({
     applicationId,
-    actorEmail: actor.data.email,
+    actorUserId: actor.data.userId,
     reason: "student_cancel",
     fallback: "관리반 신청을 취소하지 못했습니다.",
   });
 }
 
 export async function cancelManagementClassApplication(
-  applicationId: string,
+  applicationId: string
 ): Promise<ActionResult> {
   const actor = await requireAdminActor();
   if (!actor.success) return actor;
 
   return cancelManagementClassApplicationByActor({
     applicationId,
-    actorEmail: actor.data.email,
+    actorUserId: actor.data.userId,
     reason: "admin_cancel",
     fallback: "관리반 신청을 취소하지 못했습니다.",
   });
@@ -189,7 +184,7 @@ export async function cancelManagementClass(classId: string): Promise<ActionResu
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("cancel_management_class", {
     p_class_id: classIdParsed.data,
-    p_actor_email: actor.data.email,
+    p_actor_user_id: actor.data.userId,
     p_reason: "class_canceled",
   });
 
@@ -206,12 +201,12 @@ export async function cancelManagementClass(classId: string): Promise<ActionResu
 
 async function cancelManagementClassApplicationByActor({
   applicationId,
-  actorEmail,
+  actorUserId,
   reason,
   fallback,
 }: {
   applicationId: string;
-  actorEmail: string;
+  actorUserId: string;
   reason: string;
   fallback: string;
 }): Promise<ActionResult> {
@@ -221,7 +216,7 @@ async function cancelManagementClassApplicationByActor({
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("cancel_management_class_application", {
     p_application_id: applicationIdParsed.data,
-    p_actor_email: actorEmail,
+    p_actor_user_id: actorUserId,
     p_reason: reason,
   });
 
@@ -236,20 +231,20 @@ async function cancelManagementClassApplicationByActor({
   return { success: true, data: undefined };
 }
 
-async function requireAdminActor(): Promise<ActionResult<{ email: string }>> {
+async function requireAdminActor(): Promise<ActionResult<{ userId: string }>> {
   const user = await getCurrentUser();
   if (user?.role !== "admin") {
     return { success: false, error: "관리자 권한이 필요합니다." };
   }
-  return { success: true, data: { email: user.email } };
+  return { success: true, data: { userId: user.userId } };
 }
 
-async function requireStudentActor(): Promise<ActionResult<{ email: string }>> {
+async function requireStudentActor(): Promise<ActionResult<{ userId: string }>> {
   const user = await getCurrentUser();
-  if (!user?.email || user.role !== "student") {
+  if (!user || user.role !== "student") {
     return { success: false, error: "정회원 수강생만 이용할 수 있습니다." };
   }
-  return { success: true, data: { email: user.email } };
+  return { success: true, data: { userId: user.userId } };
 }
 
 function getManagementClassRpcErrorMessage(message: string | undefined, fallback: string) {

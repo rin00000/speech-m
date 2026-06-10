@@ -13,7 +13,7 @@ type RelaySubmissionRow = Database["public"]["Tables"]["study_relay_submissions"
 type RelayFeedbackRow = Database["public"]["Tables"]["study_relay_feedback"]["Row"];
 
 type StudyGroupSummaryRow = Pick<StudyGroupRow, "id" | "title" | "status">;
-type StudyGroupMemberSummaryRow = Pick<StudyGroupMemberRow, "group_id" | "student_email">;
+type StudyGroupMemberSummaryRow = Pick<StudyGroupMemberRow, "group_id" | "student_user_id">;
 type StudyQuestSummaryRow = Pick<
   StudyQuestRow,
   "id" | "group_id" | "script_title" | "due_at" | "status"
@@ -75,7 +75,7 @@ export async function getAdminStudyProgress(): Promise<AdminStudyProgressResult>
       .returns<StudyGroupSummaryRow[]>(),
     supabase
       .from("study_group_members")
-      .select("group_id,student_email")
+      .select("group_id,student_user_id")
       .returns<StudyGroupMemberSummaryRow[]>(),
     supabase
       .from("study_quests")
@@ -137,10 +137,10 @@ export async function getAdminStudyProgress(): Promise<AdminStudyProgressResult>
   });
 
   const now = Date.now();
-  const activeMemberEmails = new Set(
+  const activeMemberUserIds = new Set(
     members
       .filter((member) => activeGroupIds.has(member.group_id))
-      .map((member) => member.student_email),
+      .map((member) => member.student_user_id),
   );
   const totalExpectedSubmissions = openQuests.reduce(
     (sum, quest) => sum + (memberCountByGroupId.get(quest.group_id) ?? 0),
@@ -190,7 +190,7 @@ export async function getAdminStudyProgress(): Promise<AdminStudyProgressResult>
   return {
     progress: {
       activeStudyCount: activeGroups.length,
-      activeMemberCount: activeMemberEmails.size,
+      activeMemberCount: activeMemberUserIds.size,
       openQuestCount: openQuests.length,
       submissionRate: percentage(totalSubmissions, totalExpectedSubmissions),
       feedbackRate: percentage(totalFeedback, totalSubmissions),

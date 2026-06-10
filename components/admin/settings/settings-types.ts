@@ -6,7 +6,8 @@
 export type SettingsTab = "profile" | "ai" | "crawl" | "crm";
 
 export type UserProfile = {
-  email: string;
+  userId: string;
+  email: string | null;
   name: string | null;
   role: "admin" | "student" | "guest";
 };

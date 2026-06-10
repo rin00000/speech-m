@@ -8,6 +8,8 @@ import {
   getManagementClassCancelClosesAt,
 } from "./format";
 
+const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
+
 type ManagementClassRow = Database["public"]["Tables"]["management_classes"]["Row"];
 type CouponGrantRow = Database["public"]["Tables"]["management_class_coupon_grants"]["Row"];
 type CouponRow = Database["public"]["Tables"]["management_class_coupons"]["Row"];
@@ -20,17 +22,17 @@ type ManagementClassSummaryRow = Pick<
 >;
 type CouponGrantSummaryRow = Pick<
   CouponGrantRow,
-  "id" | "student_email" | "total_count" | "granted_by" | "note" | "created_at"
+  "id" | "student_user_id" | "total_count" | "granted_by_user_id" | "note" | "created_at"
 >;
 type CouponSummaryRow = Pick<
   CouponRow,
-  "id" | "grant_id" | "student_email" | "sequence_number" | "status" | "created_at"
+  "id" | "grant_id" | "student_user_id" | "sequence_number" | "status" | "created_at"
 >;
 type ApplicationSummaryRow = Pick<
   ApplicationRow,
-  "id" | "class_id" | "student_email" | "coupon_id" | "status" | "applied_at"
+  "id" | "class_id" | "student_user_id" | "coupon_id" | "status" | "applied_at"
 >;
-type StudentProfileRow = Pick<UserProfileRow, "email" | "display_name" | "real_name" | "role">;
+type StudentProfileRow = Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">;
 
 export type StudentManagementClassApplication = {
   id: string;
@@ -55,7 +57,8 @@ export type StudentManagementClassNotice = {
 
 export type AdminManagementClassApplication = {
   id: string;
-  studentEmail: string;
+  studentUserId: string;
+  studentEmail: string | null;
   studentName: string;
   couponLabel: string;
   appliedAt: string;
@@ -75,7 +78,8 @@ export type AdminManagementClassItem = {
 
 export type AdminManagementClassCouponGrant = {
   id: string;
-  studentEmail: string;
+  studentUserId: string;
+  studentEmail: string | null;
   studentName: string;
   totalCount: number;
   availableCount: number;
@@ -86,7 +90,8 @@ export type AdminManagementClassCouponGrant = {
 };
 
 export type AdminManagementClassStudent = {
-  email: string;
+  userId: string;
+  email: string | null;
   displayName: string;
 };
 
@@ -97,9 +102,9 @@ export type AdminManagementClassOpsData = {
 };
 
 export async function getStudentManagementClassDashboard(
-  email: string | null,
+  userId: string | null
 ): Promise<StudentManagementClassNotice[]> {
-  if (!email) return [];
+  if (!userId) return [];
 
   const supabase = createAdminClient();
   const nowIso = new Date().toISOString();
@@ -115,14 +120,14 @@ export async function getStudentManagementClassDashboard(
       .returns<ManagementClassSummaryRow[]>(),
     supabase
       .from("management_class_coupon_grants")
-      .select("id,student_email,total_count,granted_by,note,created_at")
-      .eq("student_email", email)
+      .select("id,student_user_id,total_count,granted_by_user_id,note,created_at")
+      .eq("student_user_id", userId)
       .order("created_at", { ascending: true })
       .returns<CouponGrantSummaryRow[]>(),
     supabase
       .from("management_class_coupons")
-      .select("id,grant_id,student_email,sequence_number,status,created_at")
-      .eq("student_email", email)
+      .select("id,grant_id,student_user_id,sequence_number,status,created_at")
+      .eq("student_user_id", userId)
       .order("created_at", { ascending: true })
       .returns<CouponSummaryRow[]>(),
   ]);
@@ -135,7 +140,7 @@ export async function getStudentManagementClassDashboard(
   const classIds = classes.map((item) => item.id);
   const { data: applicationRows } = await supabase
     .from("management_class_applications")
-    .select("id,class_id,student_email,coupon_id,status,applied_at")
+    .select("id,class_id,student_user_id,coupon_id,status,applied_at")
     .in("class_id", classIds)
     .eq("status", "active")
     .returns<ApplicationSummaryRow[]>();
@@ -144,13 +149,13 @@ export async function getStudentManagementClassDashboard(
   const activeApplicationsByClassId = groupBy(applications, (application) => application.class_id);
   const ownApplicationByClassId = new Map(
     applications
-      .filter((application) => application.student_email === email)
-      .map((application) => [application.class_id, application]),
+      .filter((application) => application.student_user_id === userId)
+      .map((application) => [application.class_id, application])
   );
   const grantsById = new Map(grants.map((grant) => [grant.id, grant]));
   const couponsById = new Map(coupons.map((coupon) => [coupon.id, coupon]));
   const availableCoupons = sortCouponsByGrant(coupons, grantsById).filter(
-    (coupon) => coupon.status === "available",
+    (coupon) => coupon.status === "available"
   );
   const nextCoupon = availableCoupons[0] ?? null;
 
@@ -188,29 +193,47 @@ export async function getStudentManagementClassDashboard(
 export async function getAdminManagementClassOpsData(): Promise<AdminManagementClassOpsData> {
   const supabase = createAdminClient();
 
-  const [classesResult, studentsResult, grantsResult] = await Promise.all([
+  const [classesResult, studentsResult, studentProfilesResult, grantsResult] = await Promise.all([
     supabase
       .from("management_classes")
       .select("id,starts_at,capacity,status")
       .order("starts_at", { ascending: false })
       .limit(30)
       .returns<ManagementClassSummaryRow[]>(),
-    supabase
-      .from("user_profiles")
-      .select("email,display_name,real_name,role")
-      .eq("role", "student")
-      .order("display_name", { ascending: true })
-      .returns<StudentProfileRow[]>(),
+    supabase.from("users").select("id").eq("role", "student").eq("status", "active"),
+    supabase.from("user_profiles").select("user_id,email,display_name,real_name"),
     supabase
       .from("management_class_coupon_grants")
-      .select("id,student_email,total_count,granted_by,note,created_at")
+      .select("id,student_user_id,total_count,granted_by_user_id,note,created_at")
       .order("created_at", { ascending: false })
       .limit(20)
       .returns<CouponGrantSummaryRow[]>(),
   ]);
 
   const classes = classesResult.data ?? [];
-  const students = studentsResult.data ?? [];
+  if (studentsResult.error || studentProfilesResult.error) {
+    throw new Error(
+      studentsResult.error?.message ??
+        studentProfilesResult.error?.message ??
+        "수강생 정보를 불러오지 못했습니다."
+    );
+  }
+  const profilesByUserId = new Map(
+    ((studentProfilesResult.data ?? []) as StudentProfileRow[]).map((profile) => [
+      profile.user_id,
+      profile,
+    ])
+  );
+  const students = (studentsResult.data ?? [])
+    .map((student) => {
+      const profile = profilesByUserId.get(student.id);
+      return {
+        userId: student.id,
+        email: profile?.email ?? null,
+        displayName: displayName(student.id, profilesByUserId),
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, "ko"));
   const grants = grantsResult.data ?? [];
   const classIds = classes.map((item) => item.id);
   const grantIds = grants.map((grant) => grant.id);
@@ -219,7 +242,7 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
     classIds.length > 0
       ? supabase
           .from("management_class_applications")
-          .select("id,class_id,student_email,coupon_id,status,applied_at")
+          .select("id,class_id,student_user_id,coupon_id,status,applied_at")
           .in("class_id", classIds)
           .eq("status", "active")
           .order("applied_at", { ascending: true })
@@ -228,7 +251,7 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
     grantIds.length > 0
       ? supabase
           .from("management_class_coupons")
-          .select("id,grant_id,student_email,sequence_number,status,created_at")
+          .select("id,grant_id,student_user_id,sequence_number,status,created_at")
           .in("grant_id", grantIds)
           .returns<CouponSummaryRow[]>()
       : Promise.resolve({ data: [] as CouponSummaryRow[] }),
@@ -241,7 +264,7 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
     applicationCouponIds.length > 0
       ? await supabase
           .from("management_class_coupons")
-          .select("id,grant_id,student_email,sequence_number,status,created_at")
+          .select("id,grant_id,student_user_id,sequence_number,status,created_at")
           .in("id", applicationCouponIds)
           .returns<CouponSummaryRow[]>()
       : { data: [] as CouponSummaryRow[] };
@@ -251,14 +274,14 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
     ...new Set(
       applicationCouponRows
         .map((coupon) => coupon.grant_id)
-        .filter((grantId) => !grants.some((grant) => grant.id === grantId)),
+        .filter((grantId) => !grants.some((grant) => grant.id === grantId))
     ),
   ];
   const { data: applicationCouponGrants } =
     missingApplicationGrantIds.length > 0
       ? await supabase
           .from("management_class_coupon_grants")
-          .select("id,student_email,total_count,granted_by,note,created_at")
+          .select("id,student_user_id,total_count,granted_by_user_id,note,created_at")
           .in("id", missingApplicationGrantIds)
           .returns<CouponGrantSummaryRow[]>()
       : { data: [] as CouponGrantSummaryRow[] };
@@ -268,7 +291,6 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
   const couponsById = new Map(allCoupons.map((coupon) => [coupon.id, coupon]));
   const grantsById = new Map(allGrants.map((grant) => [grant.id, grant]));
   const applicationsByClassId = groupBy(applications, (application) => application.class_id);
-  const profilesByEmail = new Map(students.map((student) => [student.email, student]));
   const couponsByGrantId = groupBy(grantCoupons, (coupon) => coupon.grant_id);
 
   return {
@@ -285,26 +307,25 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
         remainingSeats: Math.max(item.capacity - classApplications.length, 0),
         applications: classApplications.map((application) => ({
           id: application.id,
-          studentEmail: application.student_email,
-          studentName: displayName(application.student_email, profilesByEmail),
+          studentUserId: application.student_user_id,
+          studentEmail: profilesByUserId.get(application.student_user_id)?.email ?? null,
+          studentName: displayName(application.student_user_id, profilesByUserId),
           couponLabel: getCouponLabel(couponsById.get(application.coupon_id), grantsById),
           appliedAt: application.applied_at,
           appliedAtLabel: formatManagementClassShortDateTime(application.applied_at),
         })),
       };
     }),
-    students: students.map((student) => ({
-      email: student.email,
-      displayName: displayName(student.email, profilesByEmail),
-    })),
+    students,
     couponGrants: grants.map((grant) => {
       const grantCouponsForGrant = couponsByGrantId.get(grant.id) ?? [];
       const usedCount = grantCouponsForGrant.filter((coupon) => coupon.status === "used").length;
 
       return {
         id: grant.id,
-        studentEmail: grant.student_email,
-        studentName: displayName(grant.student_email, profilesByEmail),
+        studentUserId: grant.student_user_id,
+        studentEmail: profilesByUserId.get(grant.student_user_id)?.email ?? null,
+        studentName: displayName(grant.student_user_id, profilesByUserId),
         totalCount: grant.total_count,
         availableCount: Math.max(grant.total_count - usedCount, 0),
         usedCount,
@@ -318,7 +339,7 @@ export async function getAdminManagementClassOpsData(): Promise<AdminManagementC
 
 function sortCouponsByGrant(
   coupons: CouponSummaryRow[],
-  grantsById: Map<string, CouponGrantSummaryRow>,
+  grantsById: Map<string, CouponGrantSummaryRow>
 ) {
   return [...coupons].sort((a, b) => {
     const grantA = grantsById.get(a.grant_id);
@@ -333,19 +354,16 @@ function sortCouponsByGrant(
 
 function getCouponLabel(
   coupon: CouponSummaryRow | undefined,
-  grantsById: Map<string, CouponGrantSummaryRow>,
+  grantsById: Map<string, CouponGrantSummaryRow>
 ) {
   if (!coupon) return "-";
   const grant = grantsById.get(coupon.grant_id);
   return formatCouponLabel(coupon.sequence_number, grant?.total_count ?? coupon.sequence_number);
 }
 
-function displayName(
-  email: string,
-  profilesByEmail: Map<string, Pick<UserProfileRow, "email" | "display_name" | "real_name">>,
-) {
-  const profile = profilesByEmail.get(email);
-  return profile?.real_name?.trim() || profile?.display_name?.trim() || email;
+function displayName(userId: string, profilesByUserId: Map<string, StudentProfileRow>) {
+  const profile = profilesByUserId.get(userId);
+  return profile?.real_name?.trim() || profile?.display_name?.trim() || profile?.email || UNKNOWN_USER_DISPLAY_NAME;
 }
 
 function groupBy<T>(items: T[], getKey: (item: T) => string) {

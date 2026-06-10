@@ -23,9 +23,10 @@ type StudyQuestRow = Database["public"]["Tables"]["study_quests"]["Row"];
 type RelaySubmissionRow = Database["public"]["Tables"]["study_relay_submissions"]["Row"];
 type RelayFeedbackRow = Database["public"]["Tables"]["study_relay_feedback"]["Row"];
 type UserProfileRow = Database["public"]["Tables"]["user_profiles"]["Row"];
+const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
 
 type StudyGroupSummaryRow = Pick<StudyGroupRow, "id" | "title" | "description" | "status">;
-type StudyMemberSummaryRow = Pick<StudyGroupMemberRow, "group_id" | "student_email" | "display_order">;
+type StudyMemberSummaryRow = Pick<StudyGroupMemberRow, "group_id" | "student_user_id" | "display_order">;
 type StudyQuestSummaryRow = Pick<
   StudyQuestRow,
   "id" | "group_id" | "script_title" | "due_at" | "status"
@@ -107,8 +108,8 @@ const EMPTY_DATA: StudentDashboardData = {
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-export async function getStudentDashboardData(email: string | null): Promise<StudentDashboardData> {
-  if (!email) return EMPTY_DATA;
+export async function getStudentDashboardData(userId: string | null): Promise<StudentDashboardData> {
+  if (!userId) return EMPTY_DATA;
 
   const supabase = createAdminClient();
   const practiceHighlightsPromise = supabase
@@ -117,12 +118,12 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
     .order("created_at", { ascending: false })
     .limit(3)
     .returns<PracticeScriptSummaryRow[]>();
-  const managementClassNoticesPromise = getStudentManagementClassDashboard(email);
+  const managementClassNoticesPromise = getStudentManagementClassDashboard(userId);
 
   const { data: membershipRows } = await supabase
     .from("study_group_members")
-    .select("group_id,student_email,display_order")
-    .eq("student_email", email)
+    .select("group_id,student_user_id,display_order")
+    .eq("student_user_id", userId)
     .returns<StudyMemberSummaryRow[]>();
 
   const practiceHighlightsResult = await practiceHighlightsPromise;
@@ -145,7 +146,7 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
       .returns<StudyGroupSummaryRow[]>(),
     supabase
       .from("study_group_members")
-      .select("group_id,student_email,display_order")
+      .select("group_id,student_user_id,display_order")
       .in("group_id", groupIds)
       .returns<StudyMemberSummaryRow[]>(),
     supabase
@@ -183,12 +184,12 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
       : { data: [] as RelayFeedbackRow[] };
 
   const feedback = feedbackRows ?? [];
-  const profiles = await getProfilesByEmail([
+  const profiles = await getProfilesByUserId([
     ...new Set([
-      email,
-      ...(memberRows ?? []).map((member) => member.student_email),
-      ...submissions.map((submission) => submission.student_email),
-      ...feedback.map((item) => item.feedback_author_email),
+      userId,
+      ...(memberRows ?? []).map((member) => member.student_user_id),
+      ...submissions.map((submission) => submission.student_user_id),
+      ...feedback.map((item) => item.feedback_author_user_id),
     ]),
   ]);
   const groupById = new Map(groups.map((group) => [group.id, group]));
@@ -201,8 +202,9 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
     feedbackBySubmissionId.set(item.submission_id, {
       id: item.id,
       submissionId: item.submission_id,
-      authorEmail: item.feedback_author_email,
-      authorName: displayName(item.feedback_author_email, profiles),
+      authorUserId: item.feedback_author_user_id,
+      authorEmail: profiles.get(item.feedback_author_user_id)?.email ?? null,
+      authorName: displayName(item.feedback_author_user_id, profiles),
       comment: item.comment,
       createdAt: item.created_at,
     });
@@ -214,8 +216,9 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
     .forEach((member) => {
       const members = studyMembersByGroupId.get(member.group_id) ?? [];
       members.push({
-        email: member.student_email,
-        displayName: displayName(member.student_email, profiles),
+        userId: member.student_user_id,
+        email: profiles.get(member.student_user_id)?.email ?? null,
+        displayName: displayName(member.student_user_id, profiles),
         displayOrder: member.display_order,
       });
       studyMembersByGroupId.set(member.group_id, members);
@@ -247,7 +250,7 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
         submissions: (submissionsByQuestId.get(quest.id) ?? []).map((submission) =>
           toRelaySubmission(submission, profiles, feedbackBySubmissionId),
         ),
-        currentUserEmail: email,
+        currentUserId: userId,
         questStatus: quest.status,
       });
 
@@ -290,14 +293,14 @@ export async function getStudentDashboardData(email: string | null): Promise<Stu
       const group = groupById.get(quest.group_id);
       if (!group) return null;
 
-      if (submission.student_email !== email) return null;
+      if (submission.student_user_id !== userId) return null;
 
       return {
         id: item.id,
         studyId: group.id,
         studyTitle: group.title,
         questTitle: quest.script_title,
-        authorName: displayName(item.feedback_author_email, profiles),
+        authorName: displayName(item.feedback_author_user_id, profiles),
         comment: item.comment,
         createdAt: item.created_at,
       } satisfies StudentDashboardFeedback;
@@ -348,14 +351,15 @@ function buildTask({
 
 function toRelaySubmission(
   submission: RelaySubmissionRow,
-  profiles: Map<string, Pick<UserProfileRow, "email" | "display_name" | "real_name">>,
+  profiles: Map<string, Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">>,
   feedbackBySubmissionId: Map<string, RelayFeedback>,
 ): RelaySubmission {
   return {
     id: submission.id,
     questId: submission.quest_id,
-    studentEmail: submission.student_email,
-    studentName: displayName(submission.student_email, profiles),
+    studentUserId: submission.student_user_id,
+    studentEmail: profiles.get(submission.student_user_id)?.email ?? null,
+    studentName: displayName(submission.student_user_id, profiles),
     audioPath: submission.audio_path,
     audioUrl: null,
     audioFileName: submission.audio_file_name,
@@ -377,31 +381,38 @@ function groupBy<T>(items: T[], getKey: (item: T) => string) {
   return grouped;
 }
 
-async function getProfilesByEmail(emails: string[]) {
-  const uniqueEmails = [...new Set(emails)].filter(Boolean);
-  if (uniqueEmails.length === 0) return new Map<string, Pick<UserProfileRow, "email" | "display_name" | "real_name">>();
+async function getProfilesByUserId(userIds: string[]) {
+  const uniqueUserIds = [...new Set(userIds)].filter(Boolean);
+  if (uniqueUserIds.length === 0) {
+    return new Map<
+      string,
+      Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">
+    >();
+  }
 
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("user_profiles")
-    .select("email, display_name, real_name")
-    .in("email", uniqueEmails);
+    .select("user_id, email, display_name, real_name")
+    .in("user_id", uniqueUserIds);
 
   return new Map(
-    ((data ?? []) as Pick<UserProfileRow, "email" | "display_name" | "real_name">[]).map((profile) => [
-      profile.email,
+    ((
+      data ?? []
+    ) as Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">[]).map((profile) => [
+      profile.user_id,
       profile,
     ]),
   );
 }
 
 function displayName(
-  email: string,
-  profiles: Map<string, Pick<UserProfileRow, "email" | "display_name" | "real_name">>,
+  userId: string,
+  profiles: Map<string, Pick<UserProfileRow, "user_id" | "email" | "display_name" | "real_name">>,
 ) {
-  const profile = profiles.get(email);
+  const profile = profiles.get(userId);
   return getDisplayName({
-    email,
+    fallback: profile?.email ?? UNKNOWN_USER_DISPLAY_NAME,
     displayName: profile?.real_name ?? profile?.display_name,
   });
 }

@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * 사용자 프로필 설정 탭.
- * 이메일/권한 배지 표시와 닉네임 저장 폼만 담당한다.
- */
-
 import type { FormEvent } from "react";
 import { LogoutButton } from "@/components/app/layout/logout-button";
 import type { UserProfile } from "./settings-types";
@@ -21,9 +16,9 @@ const getRoleBadge = (role: string) => {
 };
 
 const getRoleLabel = (role: string) => {
-  if (role === "admin") return "👑 아카데미 원장 / 관리자";
-  if (role === "student") return "🎓 정회원 수강생";
-  return " 준비생 / 게스트";
+  if (role === "admin") return "관리자";
+  if (role === "student") return "정회원 수강생";
+  return "준비생 / 게스트";
 };
 
 export const ProfileSettingsPanel = ({
@@ -40,19 +35,23 @@ export const ProfileSettingsPanel = ({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) => {
   return (
-    <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:space-y-6 md:rounded-3xl md:p-6">
+    <div className="space-y-5 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm md:space-y-6 md:p-6">
       <div>
-        <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">개인 프로필 관리</h3>
-        <p className="text-xs font-semibold text-gray-400 mt-1">
-          Speech-M 서비스 내부에서 다른 정회원 및 강사진에게 표시되는 계정 정보를 변경합니다.
+        <h3 className="text-lg font-extrabold tracking-tight text-gray-900">개인 프로필 관리</h3>
+        <p className="mt-1 text-xs font-semibold text-gray-400">
+          서비스 안에서 표시되는 이름과 계정 정보를 확인합니다.
         </p>
       </div>
 
-      <div className="border-t border-gray-100 pt-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50/50 border border-gray-100">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-gray-400 uppercase">이메일 계정 (ID)</span>
-            <p className="text-sm font-bold text-gray-800">{user.email}</p>
+      <div className="space-y-4 border-t border-gray-100 pt-6">
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-center">
+          <div className="min-w-0 space-y-1">
+            <span className="text-[11px] font-bold uppercase text-gray-400">내부 사용자 ID</span>
+            <p className="break-all text-xs font-bold text-gray-700">{user.userId}</p>
+            <span className="mt-3 block text-[11px] font-bold uppercase text-gray-400">
+              연락처 이메일
+            </span>
+            <p className="break-all text-sm font-bold text-gray-800">{user.email ?? "미등록"}</p>
           </div>
           <span className={`inline-flex rounded-full px-3 py-1 text-xs ${getRoleBadge(user.role)}`}>
             {getRoleLabel(user.role)}
@@ -70,8 +69,8 @@ export const ProfileSettingsPanel = ({
                 type="text"
                 value={displayName}
                 onChange={(event) => onDisplayNameChange(event.target.value)}
-                placeholder="이름을 입력해 주세요"
-                className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm focus:border-periwinkle-500 focus:ring-1 focus:ring-periwinkle-500 outline-none transition-colors"
+                placeholder="이름을 입력하세요"
+                className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm outline-none transition-colors focus:border-periwinkle-500 focus:ring-1 focus:ring-periwinkle-500"
               />
               <button
                 type="submit"

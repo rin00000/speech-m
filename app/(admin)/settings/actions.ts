@@ -11,7 +11,7 @@ import type { DbJson } from "@/types/database.types";
 export async function updateProfileName(name: string): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.email) {
+    if (!user) {
       return { success: false, error: "인증되지 않은 사용자입니다. 로그인이 필요합니다." };
     }
 
@@ -21,17 +21,23 @@ export async function updateProfileName(name: string): Promise<{ success: boolea
     }
 
     const supabase = createAdminClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("user_profiles")
       .update({
         display_name: trimmedName,
         updated_at: new Date().toISOString(),
       })
-      .eq("email", user.email);
+      .eq("user_id", user.userId)
+      .select("user_id")
+      .maybeSingle();
 
     if (error) {
       console.error("updateProfileName error:", error);
       return { success: false, error: `데이터베이스 업데이트 실패: ${error.message}` };
+    }
+    if (!data) {
+      // Long-term: user creation and migration should guarantee a profile row.
+      return { success: false, error: "프로필 정보를 찾지 못했습니다. 다시 로그인 후 시도해주세요." };
     }
 
     revalidatePath("/settings");

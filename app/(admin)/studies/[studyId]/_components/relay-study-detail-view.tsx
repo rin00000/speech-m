@@ -28,13 +28,13 @@ import { QuestHeader } from "./relay-study-quest-header";
 
 type RelayStudyDetailViewProps = {
   detail: StudyDetail;
-  currentUserEmail: string | null;
+  currentUserId: string | null;
   role: UserRole;
 };
 
 export function RelayStudyDetailView({
   detail,
-  currentUserEmail,
+  currentUserId,
   role,
 }: RelayStudyDetailViewProps) {
   const router = useRouter();
@@ -209,7 +209,7 @@ export function RelayStudyDetailView({
                   <PendingRelayCard
                     quest={activeQuest}
                     role={role}
-                    currentUserEmail={currentUserEmail}
+                    currentUserId={currentUserId}
                     comment={comment}
                     file={file}
                     isPending={isPending}
@@ -221,7 +221,7 @@ export function RelayStudyDetailView({
                   />
                   <CompletedStackCard
                     quest={activeQuest}
-                    currentUserEmail={currentUserEmail}
+                    currentUserId={currentUserId}
                   />
                   <UnsubmittedMembersCard quest={activeQuest} />
                 </div>

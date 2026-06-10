@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * 관리자용 스터디 운영 화면.
- * 스터디 생성/선택 상태와 멤버·퀘스트 저장 액션을 한곳에서 조율한다.
- */
-
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,8 +21,8 @@ import {
 } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { TextInput } from "./studies-index-common";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TextInput } from "./studies-index-common";
 
 type AdminStudiesViewProps = {
   studies: StudyListItem[];
@@ -39,66 +34,64 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
   const [selectedStudyId, setSelectedStudyId] = useState(studies[0]?.id ?? "");
   const selectedStudy = useMemo(
     () => studies.find((study) => study.id === selectedStudyId) ?? studies[0] ?? null,
-    [selectedStudyId, studies],
+    [selectedStudyId, studies]
   );
-  const [selectedEmailsByStudyId, setSelectedEmailsByStudyId] = useState<Record<string, string[]>>(
-    () => Object.fromEntries(studies.map((study) => [study.id, study.memberEmails])),
-  );
+  const [selectedUserIdsByStudyId, setSelectedUserIdsByStudyId] = useState<
+    Record<string, string[]>
+  >(() => Object.fromEntries(studies.map((study) => [study.id, study.memberUserIds])));
   const [memberSearch, setMemberSearch] = useState("");
   const [isEditingMembers, setIsEditingMembers] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
-  const selectedEmails = useMemo(() => {
+
+  const selectedUserIds = useMemo(() => {
     if (!selectedStudy) return [];
-    return selectedEmailsByStudyId[selectedStudy.id] ?? selectedStudy.memberEmails;
-  }, [selectedEmailsByStudyId, selectedStudy]);
-  const studentProfilesByEmail = useMemo(
-    () => new Map(studentProfiles.map((student) => [student.email, student])),
-    [studentProfiles],
+    return selectedUserIdsByStudyId[selectedStudy.id] ?? selectedStudy.memberUserIds;
+  }, [selectedStudy, selectedUserIdsByStudyId]);
+  const profilesByUserId = useMemo(
+    () => new Map(studentProfiles.map((student) => [student.userId, student])),
+    [studentProfiles]
   );
-  const selectedMembers = useMemo(
-    () =>
-      selectedEmails.map((email) => ({
-        email,
-        displayName: studentProfilesByEmail.get(email)?.displayName ?? email,
-      })),
-    [selectedEmails, studentProfilesByEmail],
-  );
-  const visibleSummaryMembers = selectedMembers.slice(0, 6);
-  const hiddenSummaryMemberCount = Math.max(selectedMembers.length - visibleSummaryMembers.length, 0);
-  const savedMemberEmails = selectedStudy?.memberEmails ?? [];
+  const selectedMembers = selectedUserIds.map((userId) => {
+    const profile = profilesByUserId.get(userId);
+    return {
+      userId,
+      displayName: profile?.displayName ?? profile?.email ?? userId,
+      email: profile?.email ?? null,
+    };
+  });
+  const savedMemberUserIds = selectedStudy?.memberUserIds ?? [];
   const hasMemberChanges =
-    selectedEmails.length !== savedMemberEmails.length ||
-    selectedEmails.some((email) => !savedMemberEmails.includes(email));
+    selectedUserIds.length !== savedMemberUserIds.length ||
+    selectedUserIds.some((userId) => !savedMemberUserIds.includes(userId));
   const filteredStudentProfiles = useMemo(() => {
     const keyword = memberSearch.trim().toLowerCase();
     if (!keyword) return studentProfiles;
-
     return studentProfiles.filter((student) =>
-      `${student.displayName} ${student.email}`.toLowerCase().includes(keyword),
+      `${student.displayName} ${student.email ?? ""}`.toLowerCase().includes(keyword)
     );
   }, [memberSearch, studentProfiles]);
-  const setSelectedEmails = (updater: (prev: string[]) => string[]) => {
+
+  const setSelectedUserIds = (updater: (previous: string[]) => string[]) => {
     if (!selectedStudy) return;
-    setSelectedEmailsByStudyId((prev) => ({
-      ...prev,
-      [selectedStudy.id]: updater(prev[selectedStudy.id] ?? selectedStudy.memberEmails),
+    setSelectedUserIdsByStudyId((previous) => ({
+      ...previous,
+      [selectedStudy.id]: updater(previous[selectedStudy.id] ?? selectedStudy.memberUserIds),
     }));
   };
-  const toggleStudentEmail = (email: string, checked: boolean) => {
-    setSelectedEmails((prev) => {
-      if (checked) return prev.includes(email) ? prev : [...prev, email];
-      return prev.filter((selectedEmail) => selectedEmail !== email);
+
+  const toggleStudentUserId = (userId: string, checked: boolean) => {
+    setSelectedUserIds((previous) => {
+      if (checked) return previous.includes(userId) ? previous : [...previous, userId];
+      return previous.filter((selectedUserId) => selectedUserId !== userId);
     });
   };
-  const removeSelectedEmail = (email: string) => {
-    setSelectedEmails((prev) => prev.filter((selectedEmail) => selectedEmail !== email));
-  };
+
   const cancelMemberEdit = () => {
     if (!selectedStudy) return;
-    setSelectedEmailsByStudyId((prev) => ({
-      ...prev,
-      [selectedStudy.id]: selectedStudy.memberEmails,
+    setSelectedUserIdsByStudyId((previous) => ({
+      ...previous,
+      [selectedStudy.id]: selectedStudy.memberUserIds,
     }));
     setMemberSearch("");
     setIsEditingMembers(false);
@@ -107,7 +100,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
   const run = (
     fn: () => Promise<{ success: boolean; error?: string }>,
     successText: string,
-    onSuccess?: () => void,
+    onSuccess?: () => void
   ) => {
     setNotice(null);
     startTransition(async () => {
@@ -140,7 +133,8 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <HugeiconsIcon icon={Add01Icon} size={18} color="currentColor" />새 스터디
+              <HugeiconsIcon icon={Add01Icon} size={18} color="currentColor" />
+              새 스터디
             </CardTitle>
           </CardHeader>
           <CardBody>
@@ -151,10 +145,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
               className="space-y-3"
             >
               <TextInput name="title" placeholder="릴레이 스터디" required />
-              <TextInput
-                name="description"
-                placeholder="학생끼리 음성 피드백을 이어가는 스터디"
-              />
+              <TextInput name="description" placeholder="스터디 설명" />
               <Button type="submit" disabled={isPending} className="w-full">
                 스터디 만들기
               </Button>
@@ -165,9 +156,9 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
         <div className="space-y-2">
           {studies.length === 0 ? (
             <EmptyState
-              icon="🏢"
+              icon="SM"
               title="운영 중인 스터디가 없습니다"
-              description="상단의 '새 스터디' 영역에서 스터디 그룹을 만들어 보세요."
+              description="새 스터디 영역에서 스터디 그룹을 만들어보세요."
             />
           ) : (
             studies.map((study) => (
@@ -179,7 +170,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                   setMemberSearch("");
                   setIsEditingMembers(false);
                 }}
-                className={`w-full rounded-2xl border p-4 text-left shadow-sm transition-colors md:rounded-3xl ${
+                className={`w-full rounded-3xl border p-4 text-left shadow-sm transition-colors ${
                   selectedStudy?.id === study.id
                     ? "border-periwinkle-200 bg-periwinkle-50"
                     : "border-gray-200 bg-white hover:bg-gray-50"
@@ -225,7 +216,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                 action={(formData) =>
                   run(
                     async () => updateStudyGroup(selectedStudy.id, formData),
-                    "스터디 정보를 저장했습니다.",
+                    "스터디 정보를 저장했습니다."
                   )
                 }
                 className="grid gap-3 md:grid-cols-[1fr_140px_auto]"
@@ -255,7 +246,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                   멤버
                 </CardTitle>
                 <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold leading-none text-gray-500">
-                  선택 {selectedEmails.length}명
+                  선택 {selectedUserIds.length}명
                 </span>
               </div>
             </CardHeader>
@@ -268,19 +259,14 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {visibleSummaryMembers.map((member) => (
+                      {selectedMembers.slice(0, 8).map((member) => (
                         <span
-                          key={member.email}
+                          key={member.userId}
                           className="inline-flex max-w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-extrabold text-gray-700"
                         >
                           <span className="truncate">{member.displayName}</span>
                         </span>
                       ))}
-                      {hiddenSummaryMemberCount > 0 && (
-                        <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-extrabold text-gray-500">
-                          외 {hiddenSummaryMemberCount}명
-                        </span>
-                      )}
                     </div>
                   )}
                   <Button
@@ -305,7 +291,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                       수강생 검색
                     </span>
                     <span className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 focus-within:border-periwinkle-300">
-                      <HugeiconsIcon icon={Search01Icon} size={16} color="currentColor" className="text-gray-400" />
+                      <HugeiconsIcon icon={Search01Icon} size={16} color="currentColor" />
                       <input
                         type="search"
                         value={memberSearch}
@@ -319,13 +305,17 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                     <div className="flex flex-wrap gap-2">
                       {selectedMembers.map((member) => (
                         <span
-                          key={member.email}
+                          key={member.userId}
                           className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-periwinkle-200 bg-periwinkle-50 px-3 py-1.5 text-xs font-extrabold text-periwinkle-700"
                         >
                           <span className="truncate">{member.displayName}</span>
                           <button
                             type="button"
-                            onClick={() => removeSelectedEmail(member.email)}
+                            onClick={() =>
+                              setSelectedUserIds((previous) =>
+                                previous.filter((userId) => userId !== member.userId)
+                              )
+                            }
                             className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-periwinkle-500 hover:bg-periwinkle-100 hover:text-periwinkle-700"
                             aria-label={`${member.displayName} 멤버 제거`}
                           >
@@ -336,20 +326,16 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                     </div>
                   )}
                   <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
-                    {studentProfiles.length === 0 ? (
+                    {filteredStudentProfiles.length === 0 ? (
                       <p className="rounded-2xl border border-dashed border-gray-200 py-8 text-center text-sm font-semibold text-gray-400 sm:col-span-2">
-                        정회원 수강생이 없습니다.
-                      </p>
-                    ) : filteredStudentProfiles.length === 0 ? (
-                      <p className="rounded-2xl border border-dashed border-gray-200 py-8 text-center text-sm font-semibold text-gray-400 sm:col-span-2">
-                        검색 결과가 없습니다.
+                        선택 가능한 수강생이 없습니다.
                       </p>
                     ) : (
                       filteredStudentProfiles.map((student) => {
-                        const checked = selectedEmails.includes(student.email);
+                        const checked = selectedUserIds.includes(student.userId);
                         return (
                           <label
-                            key={student.email}
+                            key={student.userId}
                             className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 ${
                               checked
                                 ? "border-periwinkle-200 bg-periwinkle-50"
@@ -359,7 +345,9 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={(event) => toggleStudentEmail(student.email, event.target.checked)}
+                              onChange={(event) =>
+                                toggleStudentUserId(student.userId, event.target.checked)
+                              }
                               className="h-4 w-4 accent-periwinkle-600"
                             />
                             <span className="min-w-0">
@@ -367,7 +355,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                                 {student.displayName}
                               </span>
                               <span className="block truncate text-[11px] font-medium text-gray-400">
-                                {student.email}
+                                {student.email ?? student.userId}
                               </span>
                             </span>
                           </label>
@@ -390,12 +378,12 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                       disabled={isPending}
                       onClick={() =>
                         run(
-                          async () => saveStudyGroupMembers(selectedStudy.id, selectedEmails),
+                          async () => saveStudyGroupMembers(selectedStudy.id, selectedUserIds),
                           "스터디 멤버를 저장했습니다.",
                           () => {
                             setMemberSearch("");
                             setIsEditingMembers(false);
-                          },
+                          }
                         )
                       }
                       className="w-full"
@@ -411,7 +399,8 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <HugeiconsIcon icon={Calendar01Icon} size={18} color="currentColor" />새 퀘스트
+                <HugeiconsIcon icon={Calendar01Icon} size={18} color="currentColor" />
+                새 퀘스트
               </CardTitle>
             </CardHeader>
             <CardBody>
@@ -419,17 +408,17 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                 action={(formData) =>
                   run(
                     async () => createStudyQuest(selectedStudy.id, formData),
-                    "릴레이 퀘스트를 만들었습니다.",
+                    "릴레이 퀘스트를 만들었습니다."
                   )
                 }
                 className="space-y-3"
               >
-                <TextInput name="scriptTitle" placeholder="이번주 뉴스 원고" required />
+                <TextInput name="scriptTitle" placeholder="이번 주 뉴스 원고" required />
                 <textarea
                   name="scriptContent"
                   required
                   rows={7}
-                  placeholder="원고 내용을 입력하세요."
+                  placeholder="원고 내용을 입력하세요"
                   className="w-full resize-none rounded-2xl border border-gray-200 px-3 py-2 text-sm font-medium leading-relaxed text-gray-800 focus:border-periwinkle-300"
                 />
                 <label className="block">
@@ -443,9 +432,6 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
                     aria-label="퀘스트 마감일과 시간"
                     className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700"
                   />
-                  <span className="mt-1.5 block text-[11px] font-semibold leading-tight text-gray-400">
-                    이 시간까지 수강생 음성 제출을 받습니다.
-                  </span>
                 </label>
                 <Button type="submit" disabled={isPending} className="w-full">
                   퀘스트 만들기

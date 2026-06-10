@@ -1,16 +1,7 @@
 "use client";
 
-/**
- * 릴레이 상세 화면의 3열 카드 묶음.
- * 완료 스택, 현재 릴레이 액션, 미참여 명단을 각각 독립 카드로 표시한다.
- */
-
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  CheckmarkCircle01Icon,
-  Comment01Icon,
-  UserGroupIcon,
-} from "@hugeicons/core-free-icons";
+import { CheckmarkCircle01Icon, Comment01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import type { UserRole } from "@/lib/auth/session";
@@ -21,10 +12,10 @@ import { FeedbackTextarea, UploadControl } from "./relay-study-submission-contro
 
 export function CompletedStackCard({
   quest,
-  currentUserEmail,
+  currentUserId,
 }: {
   quest: StudyQuestDetail;
-  currentUserEmail: string | null;
+  currentUserId: string | null;
 }) {
   return (
     <Card>
@@ -42,7 +33,7 @@ export function CompletedStackCard({
             <AudioFeedbackCard
               key={submission.id}
               submission={submission}
-              currentUserEmail={currentUserEmail}
+              currentUserId={currentUserId}
               compact
             />
           ))
@@ -55,7 +46,7 @@ export function CompletedStackCard({
 export function PendingRelayCard({
   quest,
   role,
-  currentUserEmail,
+  currentUserId,
   comment,
   file,
   isPending,
@@ -67,7 +58,7 @@ export function PendingRelayCard({
 }: {
   quest: StudyQuestDetail;
   role: UserRole;
-  currentUserEmail: string | null;
+  currentUserId: string | null;
   comment: string;
   file: File | null;
   isPending: boolean;
@@ -78,7 +69,7 @@ export function PendingRelayCard({
   onFinalFeedback: () => void;
 }) {
   const pendingSubmission = quest.relay.pendingSubmission;
-  const isStudent = role === "student" && Boolean(currentUserEmail);
+  const isStudent = role === "student" && Boolean(currentUserId);
 
   return (
     <Card>
@@ -94,7 +85,7 @@ export function PendingRelayCard({
             <EmptyPanel text="이번 퀘스트 릴레이가 완료되었습니다." />
           ) : (
             <div className="space-y-4">
-              <EmptyPanel text="첫 음성을 기다리고 있습니다." />
+              <EmptyPanel text="첫 음성 제출을 기다리고 있습니다." />
               {quest.relay.canStart && (
                 <UploadControl
                   file={file}
@@ -108,10 +99,7 @@ export function PendingRelayCard({
           )
         ) : (
           <>
-            <AudioFeedbackCard
-              submission={pendingSubmission}
-              currentUserEmail={currentUserEmail}
-            />
+            <AudioFeedbackCard submission={pendingSubmission} currentUserId={currentUserId} />
 
             {quest.relay.canFeedbackAndUpload && (
               <div className="space-y-3">
@@ -119,7 +107,7 @@ export function PendingRelayCard({
                 <UploadControl
                   file={file}
                   isPending={isPending}
-                  buttonLabel="피드백 남기고 내 음성 제출"
+                  buttonLabel="피드백 남기고 새 음성 제출"
                   onFileChange={onFileChange}
                   onSubmit={onFeedbackAndUpload}
                 />
@@ -143,8 +131,8 @@ export function PendingRelayCard({
             {isStudent && !quest.relay.canFeedbackAndUpload && !quest.relay.canFinalFeedback && (
               <EmptyPanel
                 text={
-                  pendingSubmission.studentEmail === currentUserEmail
-                    ? "내 음성이 피드백을 기다리고 있습니다."
+                  pendingSubmission.studentUserId === currentUserId
+                    ? "내 음성의 피드백을 기다리고 있습니다."
                     : quest.relay.userSubmission
                       ? "이번 퀘스트 제출을 완료했습니다."
                       : "아직 내 차례가 아닙니다."
@@ -166,7 +154,7 @@ export function UnsubmittedMembersCard({ quest }: { quest: StudyQuestDetail }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <HugeiconsIcon icon={UserGroupIcon} size={18} color="currentColor" />
-          미참여 명단
+          미제출 명단
         </CardTitle>
       </CardHeader>
       <CardBody className="space-y-2">
@@ -175,12 +163,14 @@ export function UnsubmittedMembersCard({ quest }: { quest: StudyQuestDetail }) {
         ) : (
           quest.relay.unsubmittedMembers.map((member) => (
             <div
-              key={member.email}
+              key={member.userId}
               className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-3 py-2.5"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-extrabold text-gray-800">{member.displayName}</p>
-                <p className="truncate text-[11px] font-medium text-gray-400">{member.email}</p>
+                <p className="truncate text-[11px] font-medium text-gray-400">
+                  {member.email ?? member.userId}
+                </p>
               </div>
               <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
             </div>

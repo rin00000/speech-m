@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * 관리자가 관리반 공지와 쿠폰, 신청 현황을 운영하는 클라이언트 뷰입니다.
- * Server Action 호출 결과를 화면 상태로 보여주고 관리 작업 후 라우터를 갱신합니다.
- */
-
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -35,18 +30,14 @@ type NoticeState = {
   text: string;
 } | null;
 
-export function ManagementClassesAdminView({
-  data,
-}: {
-  data: AdminManagementClassOpsData;
-}) {
+export function ManagementClassesAdminView({ data }: { data: AdminManagementClassOpsData }) {
   const router = useRouter();
   const [notice, setNotice] = useState<NoticeState>(null);
   const [isPending, startTransition] = useTransition();
 
   const run = (
     fn: () => Promise<{ success: boolean; error?: string }>,
-    successText: string,
+    successText: string
   ) => {
     setNotice(null);
     startTransition(async () => {
@@ -85,16 +76,13 @@ export function ManagementClassesAdminView({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <HugeiconsIcon icon={CalendarAdd01Icon} size={18} color="currentColor" />
-              관리반 공지 올리기
+              관리반 공지 열기
             </CardTitle>
           </CardHeader>
           <CardBody>
             <form
               action={(formData) =>
-                run(
-                  () => createManagementClass(formData),
-                  "관리반 공지를 등록했습니다.",
-                )
+                run(() => createManagementClass(formData), "관리반 공지를 등록했습니다.")
               }
               className="space-y-3"
             >
@@ -131,16 +119,14 @@ export function ManagementClassesAdminView({
           <CardBody>
             <form
               action={(formData) =>
-                run(
-                  () => grantManagementClassCoupons(formData),
-                  "관리반 쿠폰을 발급했습니다.",
-                )
+                run(() => grantManagementClassCoupons(formData), "관리반 쿠폰을 발급했습니다.")
               }
               className="space-y-3"
             >
               <FieldLabel label="수강생">
                 <select
-                  name="studentEmail"
+                  name="studentUserId"
+                  defaultValue=""
                   required
                   disabled={data.students.length === 0}
                   className="w-full rounded-2xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800 focus:border-periwinkle-300 disabled:bg-gray-50 disabled:text-gray-400"
@@ -148,15 +134,20 @@ export function ManagementClassesAdminView({
                   {data.students.length === 0 ? (
                     <option value="">수강생 없음</option>
                   ) : (
-                    data.students.map((student) => (
-                      <option key={student.email} value={student.email}>
-                        {student.displayName} · {student.email}
+                    <>
+                      <option value="" disabled>
+                        수강생 선택
                       </option>
-                    ))
+                      {data.students.map((student) => (
+                      <option key={student.userId} value={student.userId}>
+                        {student.displayName} · {student.email ?? student.userId}
+                      </option>
+                      ))}
+                    </>
                   )}
                 </select>
               </FieldLabel>
-              <FieldLabel label="발급 횟수">
+              <FieldLabel label="발급 개수">
                 <TextInput name="totalCount" type="number" min={1} max={100} defaultValue={5} required />
               </FieldLabel>
               <FieldLabel label="메모">
@@ -175,7 +166,7 @@ export function ManagementClassesAdminView({
           </CardHeader>
           <CardBody>
             {data.couponGrants.length === 0 ? (
-              <EmptyPanel text="아직 발급된 관리반 쿠폰이 없습니다." />
+              <EmptyPanel text="아직 발급한 관리반 쿠폰이 없습니다." />
             ) : (
               <div className="space-y-2">
                 {data.couponGrants.map((grant) => (
@@ -189,7 +180,7 @@ export function ManagementClassesAdminView({
                           {grant.studentName}
                         </p>
                         <p className="mt-1 break-all text-[11px] font-medium text-gray-400">
-                          {grant.studentEmail}
+                          {grant.studentEmail ?? grant.studentUserId}
                         </p>
                       </div>
                       <span className="shrink-0 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold leading-none text-gray-500">
@@ -222,7 +213,7 @@ export function ManagementClassesAdminView({
         </div>
 
         {data.classes.length === 0 ? (
-          <EmptyPanel text="아직 등록된 관리반 공지가 없습니다." />
+          <EmptyPanel text="아직 등록한 관리반 공지가 없습니다." />
         ) : (
           data.classes.map((item) => (
             <Card key={item.id}>
@@ -248,7 +239,7 @@ export function ManagementClassesAdminView({
                         onClick={() =>
                           run(
                             () => cancelManagementClass(item.id),
-                            "관리반 공지를 취소하고 신청 쿠폰을 복구했습니다.",
+                            "관리반 공지를 취소하고 신청 쿠폰을 복구했습니다."
                           )
                         }
                         className="inline-flex items-center justify-center rounded-full border border-red-200 bg-white px-3 py-1.5 text-[11px] font-extrabold text-red-600 hover:bg-red-50 disabled:pointer-events-none disabled:opacity-50"
@@ -281,7 +272,7 @@ export function ManagementClassesAdminView({
                               {application.studentName}
                             </p>
                             <p className="mt-1 break-all text-[11px] font-medium text-gray-400">
-                              {application.studentEmail}
+                              {application.studentEmail ?? application.studentUserId}
                             </p>
                           </div>
                           <span className="inline-flex w-fit rounded-full border border-periwinkle-200 bg-periwinkle-50 px-2.5 py-1 text-xs font-extrabold leading-none text-periwinkle-700">
@@ -296,7 +287,7 @@ export function ManagementClassesAdminView({
                             onClick={() =>
                               run(
                                 () => cancelManagementClassApplication(application.id),
-                                "신청을 취소하고 쿠폰을 복구했습니다.",
+                                "신청을 취소하고 쿠폰을 복구했습니다."
                               )
                             }
                             className="inline-flex justify-center rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-extrabold text-gray-700 hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-50 md:justify-self-end"
@@ -326,10 +317,7 @@ function FieldLabel({ label, children }: { label: string; children: ReactNode })
   );
 }
 
-function TextInput({
-  className = "",
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+function TextInput({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
@@ -365,7 +353,9 @@ function StatusBadge({ status }: { status: AdminManagementClassOpsData["classes"
   const label = status === "open" ? "오픈" : status === "closed" ? "마감" : "취소";
 
   return (
-    <span className={`inline-flex rounded-full border px-3 py-1.5 text-[11px] font-extrabold leading-none ${className}`}>
+    <span
+      className={`inline-flex rounded-full border px-3 py-1.5 text-[11px] font-extrabold leading-none ${className}`}
+    >
       {label}
     </span>
   );

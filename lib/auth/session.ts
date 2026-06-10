@@ -1,14 +1,99 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { authOptions } from "@/lib/auth/options";
 import { createAdminClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
-import { getDevPersonaFromCookieValue } from "./dev-personas";
+import { getDevPersonaFromCookieValue, type DevPersona } from "./dev-personas";
+import type { UserRole, UserStatus } from "@/types/database.types";
 
-export type UserRole = "admin" | "student" | "guest";
+export type { UserRole, UserStatus };
+
+export type CurrentUser = {
+  userId: string;
+  email: string | null;
+  name: string | null;
+  realName: string | null;
+  image: string | null;
+  role: UserRole;
+  status: UserStatus;
+};
+
+type UserRow = {
+  role: UserRole;
+  status: UserStatus;
+};
+
+type ProfileRow = {
+  email: string | null;
+  display_name: string | null;
+  real_name: string | null;
+  avatar_url: string | null;
+};
+
+async function getCurrentUserById(
+  userId: string,
+  fallback?: Partial<Pick<CurrentUser, "email" | "name" | "realName" | "image">>
+): Promise<CurrentUser | null> {
+  const supabase = createAdminClient();
+  const [{ data: userRow }, { data: profileRow }] = await Promise.all([
+    supabase.from("users").select("role, status").eq("id", userId).maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("email, display_name, real_name, avatar_url")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+
+  if (!userRow || userRow.status !== "active") return null;
+
+  const user = userRow as UserRow;
+  const profile = profileRow as ProfileRow | null;
+
+  return {
+    userId,
+    email: profile?.email ?? fallback?.email ?? null,
+    name: profile?.display_name ?? fallback?.name ?? null,
+    realName: profile?.real_name ?? fallback?.realName ?? null,
+    image: profile?.avatar_url ?? fallback?.image ?? null,
+    role: user.role,
+    status: user.status,
+  };
+}
+
+async function ensureDevPersona(persona: DevPersona) {
+  const supabase = createAdminClient();
+  await supabase.from("users").upsert(
+    {
+      id: persona.userId,
+      role: persona.role,
+      status: persona.status,
+    },
+    { onConflict: "id" }
+  );
+
+  await supabase.from("user_profiles").upsert(
+    {
+      user_id: persona.userId,
+      email: persona.email,
+      display_name: persona.name,
+      real_name: persona.realName,
+    },
+    { onConflict: "user_id" }
+  );
+
+  await supabase.from("user_auth_identities").upsert(
+    {
+      user_id: persona.userId,
+      provider: "credentials",
+      provider_account_id: `dev:${persona.id}`,
+      provider_email: persona.email,
+      email_verified: true,
+    },
+    { onConflict: "provider,provider_account_id" }
+  );
+}
 
 export async function getCurrentUser() {
-  // 개발용 역할 시뮬레이션 (쿠키 기반)
   try {
     const cookieStore = await cookies();
     const mockRole = cookieStore.get("mock_role")?.value;
@@ -16,41 +101,26 @@ export async function getCurrentUser() {
       const devPersona = getDevPersonaFromCookieValue(mockRole);
       if (devPersona === null) return null;
       if (devPersona !== undefined) {
-        const supabase = createAdminClient();
-        const { data } = await supabase
-          .from("user_profiles")
-          .select("role, display_name, real_name")
-          .eq("email", devPersona.email)
-          .maybeSingle();
-
-        return {
-          ...devPersona,
-          name: data?.display_name ?? devPersona.name,
-          realName: data?.real_name ?? null,
-          role: (data?.role as UserRole | undefined) ?? devPersona.role,
-        };
+        await ensureDevPersona(devPersona);
+        return getCurrentUserById(devPersona.userId, {
+          email: devPersona.email,
+          name: devPersona.name,
+          realName: devPersona.realName,
+        });
       }
     }
   } catch {
-    // 빌드 정적 분석 시 에러 방지
+    // Avoid static build failures when cookies are unavailable.
   }
 
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
+  if (!session?.user?.userId) return null;
 
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("user_profiles")
-    .select("role, display_name, real_name")
-    .eq("email", session.user.email)
-    .maybeSingle();
-
-  return {
-    email: session.user.email,
-    name: data?.display_name ?? session.user.name ?? null,
-    realName: data?.real_name ?? null,
-    role: (data?.role as UserRole | undefined) ?? "guest",
-  };
+  return getCurrentUserById(session.user.userId, {
+    email: session.user.email ?? null,
+    name: session.user.name ?? null,
+    image: session.user.image ?? null,
+  });
 }
 
 export async function requireUser() {

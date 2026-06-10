@@ -3,13 +3,14 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ENV_PATH = resolve(process.cwd(), ".env.local");
-const SEEDED_EMAILS = [
-  "mock-admin@speech-m.com",
-  "mock-student@speech-m.com",
-  "relay.student2@speech-m.local",
-  "relay.student3@speech-m.local",
-  "relay.guest1@speech-m.local",
-  "relay.guest2@speech-m.local",
+const RELAY_GROUP_TITLE = "Relay Study Dev";
+const RELAY_GROUP_TITLES = [RELAY_GROUP_TITLE, "릴레이 스터디"];
+const SEEDED_USER_IDS = [
+  "00000000-0000-4000-8000-000000000001",
+  "00000000-0000-4000-8000-000000000002",
+  "00000000-0000-4000-8000-000000000003",
+  "00000000-0000-4000-8000-000000000004",
+  "00000000-0000-4000-8000-000000000005",
 ];
 
 main().catch((error) => {
@@ -23,7 +24,7 @@ async function main() {
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error(".env.local에 NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY가 필요합니다.");
+    throw new Error(".env.local must include NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
   }
 
   assertLocalSupabaseUrl(url);
@@ -32,61 +33,63 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  await cleanupRelayStudy(supabase);
+  await cleanupSeededUsers(supabase);
+
+  console.info("Relay study dev cleanup complete.");
+}
+
+async function cleanupRelayStudy(supabase) {
   const { data: groups, error: groupError } = await supabase
     .from("study_groups")
     .select("id")
     .eq("type", "relay")
-    .eq("title", "릴레이 스터디");
+    .in("title", RELAY_GROUP_TITLES);
 
   if (groupError) throw new Error(`study_groups lookup failed: ${groupError.message}`);
 
   const groupIds = (groups ?? []).map((group) => group.id);
-  if (groupIds.length > 0) {
-    const { data: quests, error: questError } = await supabase
-      .from("study_quests")
-      .select("id")
-      .in("group_id", groupIds);
+  if (groupIds.length === 0) return;
 
-    if (questError) throw new Error(`study_quests lookup failed: ${questError.message}`);
+  const { data: quests, error: questError } = await supabase
+    .from("study_quests")
+    .select("id")
+    .in("group_id", groupIds);
 
-    const questIds = (quests ?? []).map((quest) => quest.id);
-    if (questIds.length > 0) {
-      const { data: submissions, error: submissionError } = await supabase
-        .from("study_relay_submissions")
-        .select("audio_path")
-        .in("quest_id", questIds)
-        .is("audio_deleted_at", null);
+  if (questError) throw new Error(`study_quests lookup failed: ${questError.message}`);
 
-      if (submissionError) {
-        throw new Error(`study_relay_submissions lookup failed: ${submissionError.message}`);
-      }
+  const questIds = (quests ?? []).map((quest) => quest.id);
+  if (questIds.length > 0) {
+    const { data: submissions, error: submissionError } = await supabase
+      .from("study_relay_submissions")
+      .select("audio_path")
+      .in("quest_id", questIds)
+      .is("audio_deleted_at", null);
 
-      const audioPaths = (submissions ?? []).map((submission) => submission.audio_path);
-      if (audioPaths.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from("study-audio")
-          .remove(audioPaths);
-
-        if (storageError) throw new Error(`study-audio cleanup failed: ${storageError.message}`);
-      }
+    if (submissionError) {
+      throw new Error(`study_relay_submissions lookup failed: ${submissionError.message}`);
     }
 
-    const { error: deleteGroupError } = await supabase
-      .from("study_groups")
-      .delete()
-      .in("id", groupIds);
+    const audioPaths = (submissions ?? []).map((submission) => submission.audio_path);
+    if (audioPaths.length > 0) {
+      const { error: storageError } = await supabase.storage.from("study-audio").remove(audioPaths);
 
-    if (deleteGroupError) throw new Error(`study_groups cleanup failed: ${deleteGroupError.message}`);
+      if (storageError) throw new Error(`study-audio cleanup failed: ${storageError.message}`);
+    }
   }
 
-  const { error: profileError } = await supabase
-    .from("user_profiles")
+  const { error: deleteGroupError } = await supabase
+    .from("study_groups")
     .delete()
-    .in("email", SEEDED_EMAILS);
+    .in("id", groupIds);
 
-  if (profileError) throw new Error(`user_profiles cleanup failed: ${profileError.message}`);
+  if (deleteGroupError) throw new Error(`study_groups cleanup failed: ${deleteGroupError.message}`);
+}
 
-  console.info("Relay study dev cleanup complete.");
+async function cleanupSeededUsers(supabase) {
+  const { error } = await supabase.from("users").delete().in("id", SEEDED_USER_IDS);
+
+  if (error) throw new Error(`users cleanup failed: ${error.message}`);
 }
 
 function loadEnvLocal() {
@@ -114,7 +117,7 @@ function assertLocalSupabaseUrl(rawUrl) {
 
   if (!isLocalHost && !allowRemote) {
     throw new Error(
-      `Refusing to cleanup non-local Supabase project (${url.hostname}). 원격 테스트 정리가 필요하면 ALLOW_REMOTE_SUPABASE_SEED=true를 명시하세요.`,
+      `Refusing to cleanup non-local Supabase project (${url.hostname}). Set ALLOW_REMOTE_SUPABASE_SEED=true to override.`,
     );
   }
 }

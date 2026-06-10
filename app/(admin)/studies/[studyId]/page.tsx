@@ -19,8 +19,8 @@ export default async function RelayStudyPage({
 }) {
   const [{ studyId }, user] = await Promise.all([params, getCurrentUser()]);
   const role = user?.role ?? "guest";
-  const email = user?.email ?? null;
-  const detail = await getStudyDetail({ studyId, viewer: { role, email } });
+  const userId = user?.userId ?? null;
+  const detail = await getStudyDetail({ studyId, viewer: { role, userId } });
   const needsRealName = Boolean(
     detail && role === "student" && !user?.realName?.trim(),
   );
@@ -40,7 +40,7 @@ export default async function RelayStudyPage({
         />
       ) : detail ? (
         <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
-          <RelayStudyDetailView detail={detail} currentUserEmail={email} role={role} />
+          <RelayStudyDetailView detail={detail} currentUserId={userId} role={role} />
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 md:p-6">
