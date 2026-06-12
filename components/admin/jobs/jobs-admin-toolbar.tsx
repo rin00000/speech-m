@@ -9,15 +9,17 @@ import { ManualJobForm } from "./manual-job-form";
 
 export function JobsAdminToolbar() {
   return (
-    <>
-      <ManualJobForm />
-
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
         <CrawlButton source="mediajob" label="미디어잡 즉시 동기화" />
         <CrawlButton source="saramin" label="사람인 즉시 동기화" />
         <CrawlButton source="jobkorea" label="잡코리아 즉시 동기화" />
         <AiFitButton />
       </div>
-    </>
+
+      <div className="flex lg:shrink-0 lg:justify-end">
+        <ManualJobForm />
+      </div>
+    </div>
   );
 }

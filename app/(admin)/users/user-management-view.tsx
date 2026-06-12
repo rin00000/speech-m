@@ -27,6 +27,7 @@ type PendingChange = {
   userIds: string[];
   labels: string[];
   targetRole: UserRole;
+  requiresAdminConfirm: boolean;
 };
 
 const roleLabels: Record<UserRole, string> = {
@@ -51,9 +52,9 @@ function getDisplayLabel(user: UserManagementItem) {
 }
 
 function getRoleBadgeClass(role: UserRole) {
-  if (role === "admin") return "border-rose-200 bg-rose-50 text-rose-700";
-  if (role === "student") return "border-periwinkle-200 bg-periwinkle-50 text-periwinkle-700";
-  return "border-gray-200 bg-gray-50 text-gray-600";
+  if (role === "admin") return "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100";
+  if (role === "student") return "border-periwinkle-200 bg-periwinkle-50 text-periwinkle-700 hover:bg-periwinkle-100";
+  return "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100";
 }
 
 function getUserSearchText(user: UserManagementItem) {
@@ -85,6 +86,8 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
   const [loadingTarget, setLoadingTarget] = useState<string | null>(null);
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [adminConfirmText, setAdminConfirmText] = useState("");
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredUsers = useMemo(() => {
@@ -128,11 +131,14 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
       targetRole,
       userIds: targets.map((target) => target.userId),
       labels: targets.map(getDisplayLabel),
+      requiresAdminConfirm: targets.some((t) => t.role === "admin" && targetRole !== "admin"),
     });
+    setAdminConfirmText("");
   };
 
   const confirmRoleChange = async () => {
     if (!pendingChange) return;
+    if (pendingChange.requiresAdminConfirm && adminConfirmText !== "관리자 해제") return;
 
     const { userIds, targetRole } = pendingChange;
     setPendingChange(null);
@@ -305,7 +311,6 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
                   <th className="px-5 py-4">연락처 이메일</th>
                   <th className="px-5 py-4">상태</th>
                   <th className="px-5 py-4">권한</th>
-                  <th className="px-5 py-4 text-right">변경</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
@@ -344,25 +349,41 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-bold ${getRoleBadgeClass(user.role)}`}
-                        >
-                          {roleLabels[user.role]}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="inline-flex rounded-full border border-gray-200 bg-white p-1">
-                          {(["guest", "student", "admin"] as UserRole[]).map((role) => (
-                            <button
-                              key={role}
-                              type="button"
-                              onClick={() => requestRoleChange(role, [user])}
-                              disabled={user.role === role || loadingTarget !== null}
-                              className={`rounded-full px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40 ${roleButtonClass[role]}`}
-                            >
-                              {roleLabels[role]}
-                            </button>
-                          ))}
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            onClick={() => setOpenDropdownId(openDropdownId === user.userId ? null : user.userId)}
+                            className={`rounded-full border px-2.5 py-1 text-xs font-bold cursor-pointer transition-colors ${getRoleBadgeClass(user.role)}`}
+                          >
+                            {roleLabels[user.role]}
+                          </button>
+                          {openDropdownId === user.userId && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setOpenDropdownId(null)}
+                                aria-hidden="true"
+                              />
+                              <div className="absolute left-0 top-full z-20 mt-1 flex w-max flex-col gap-1 rounded-2xl border border-gray-200 bg-white p-2 shadow-lg animate-in fade-in zoom-in-95 duration-150">
+                                {(["guest", "student", "admin"] as UserRole[])
+                                  .filter((role) => role !== user.role)
+                                  .map((role) => (
+                                    <button
+                                      key={role}
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenDropdownId(null);
+                                        requestRoleChange(role, [user]);
+                                      }}
+                                      disabled={loadingTarget !== null}
+                                      className={`rounded-xl px-4 py-2 text-left text-xs font-bold hover:bg-gray-50 ${roleButtonClass[role]}`}
+                                    >
+                                      {roleLabels[role]}로 변경
+                                    </button>
+                                  ))}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -377,11 +398,29 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
       {pendingChange && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 p-4">
           <div className="w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-            <h3 className="text-lg font-extrabold text-gray-900">권한을 변경할까요?</h3>
+            <h3 className="text-lg font-extrabold text-gray-900">
+              {pendingChange.requiresAdminConfirm ? "관리자 권한 해제" : "권한을 변경할까요?"}
+            </h3>
             <p className="mt-3 text-sm font-medium leading-snug text-gray-500">
               {getPendingLabelPreview(pendingChange.labels)} 사용자를{" "}
               {roleLabels[pendingChange.targetRole]} 권한으로 변경합니다.
             </p>
+
+            {pendingChange.requiresAdminConfirm && (
+              <div className="mt-4 text-left rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                <p className="mb-2 text-xs font-bold text-rose-700">
+                  ⚠️ 관리자 권한을 해제하는 작업입니다. 안전을 위해 아래에 <span className="font-black select-all text-rose-900">관리자 해제</span>를 입력해 주세요.
+                </p>
+                <input 
+                  type="text" 
+                  value={adminConfirmText}
+                  onChange={(e) => setAdminConfirmText(e.target.value)}
+                  className="w-full rounded-xl border border-rose-200 px-3 py-2 text-sm font-bold text-rose-900 outline-none focus:border-rose-400 focus:bg-white"
+                  placeholder="관리자 해제"
+                />
+              </div>
+            )}
+
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
@@ -393,7 +432,10 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
               <button
                 type="button"
                 onClick={confirmRoleChange}
-                className="flex-1 rounded-full bg-periwinkle-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-periwinkle-700"
+                disabled={pendingChange.requiresAdminConfirm && adminConfirmText !== "관리자 해제"}
+                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  pendingChange.requiresAdminConfirm ? "bg-rose-600 hover:bg-rose-700" : "bg-periwinkle-600 hover:bg-periwinkle-700"
+                }`}
               >
                 변경
               </button>
