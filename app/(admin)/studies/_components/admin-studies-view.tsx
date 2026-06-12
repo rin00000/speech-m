@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * 릴레이 스터디 그룹, 멤버, 퀘스트를 관리하는 관리자 전용 화면입니다.
+ */
+
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,6 +37,39 @@ type AdminStudiesViewProps = {
 };
 
 type Tab = "groups" | "members" | "quests";
+
+type ActionResult = {
+  success: boolean;
+  error?: string;
+};
+
+type ActionRunner = (
+  fn: () => Promise<ActionResult>,
+  successText: string,
+  onSuccess?: () => void
+) => void;
+
+type GroupsTabProps = {
+  studies: StudyListItem[];
+  selectedStudy: StudyListItem | null;
+  setSelectedStudyId: (studyId: string) => void;
+  run: ActionRunner;
+  isPending: boolean;
+};
+
+type MembersTabProps = {
+  selectedStudy: StudyListItem;
+  studies: StudyListItem[];
+  studentProfiles: StudyAdminProfile[];
+  run: ActionRunner;
+  isPending: boolean;
+};
+
+type QuestsTabProps = {
+  selectedStudy: StudyListItem;
+  run: ActionRunner;
+  isPending: boolean;
+};
 
 export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewProps) {
   const router = useRouter();
@@ -171,7 +208,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
 // ------------------------------------------------------------------
 // Tab 1: Groups Management
 // ------------------------------------------------------------------
-function GroupsTab({ studies, selectedStudy, setSelectedStudyId, run, isPending }: any) {
+function GroupsTab({ studies, selectedStudy, setSelectedStudyId, run, isPending }: GroupsTabProps) {
   return (
     <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr] items-start">
       <div className="space-y-4">
@@ -249,7 +286,7 @@ function GroupsTab({ studies, selectedStudy, setSelectedStudyId, run, isPending 
               description="좌측에서 새 스터디 그룹을 만들어보세요."
             />
           ) : (
-            studies.map((study: any) => (
+            studies.map((study) => (
               <button
                 key={study.id}
                 type="button"
@@ -285,9 +322,9 @@ function GroupsTab({ studies, selectedStudy, setSelectedStudyId, run, isPending 
 // ------------------------------------------------------------------
 // Tab 2: Members Management
 // ------------------------------------------------------------------
-function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }: any) {
+function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }: MembersTabProps) {
   const [selectedUserIdsByStudyId, setSelectedUserIdsByStudyId] = useState<Record<string, string[]>>(() => 
-    Object.fromEntries(studies.map((study: any) => [study.id, study.memberUserIds]))
+    Object.fromEntries<string[]>(studies.map((study) => [study.id, study.memberUserIds] as const))
   );
   const [memberSearch, setMemberSearch] = useState("");
   const [isEditingMembers, setIsEditingMembers] = useState(false);
@@ -297,11 +334,11 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
   }, [selectedStudy, selectedUserIdsByStudyId]);
 
   const profilesByUserId = useMemo(
-    () => new Map<string, any>(studentProfiles.map((student: any) => [student.userId, student])),
+    () => new Map<string, StudyAdminProfile>(studentProfiles.map((student) => [student.userId, student] as const)),
     [studentProfiles]
   );
 
-  const selectedMembers = selectedUserIds.map((userId: string) => {
+  const selectedMembers = selectedUserIds.map((userId) => {
     const profile = profilesByUserId.get(userId);
     return {
       userId,
@@ -313,12 +350,12 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
   const savedMemberUserIds = selectedStudy.memberUserIds ?? [];
   const hasMemberChanges =
     selectedUserIds.length !== savedMemberUserIds.length ||
-    selectedUserIds.some((userId: string) => !savedMemberUserIds.includes(userId));
+    selectedUserIds.some((userId) => !savedMemberUserIds.includes(userId));
 
   const filteredStudentProfiles = useMemo(() => {
     const keyword = memberSearch.trim().toLowerCase();
     if (!keyword) return studentProfiles;
-    return studentProfiles.filter((student: any) =>
+    return studentProfiles.filter((student) =>
       `${student.displayName} ${student.email ?? ""}`.toLowerCase().includes(keyword)
     );
   }, [memberSearch, studentProfiles]);
@@ -368,7 +405,7 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {selectedMembers.map((member: any) => (
+                {selectedMembers.map((member) => (
                   <span
                     key={member.userId}
                     className="inline-flex max-w-full rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-extrabold text-gray-700"
@@ -412,7 +449,7 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
             </label>
             {selectedMembers.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {selectedMembers.map((member: any) => (
+                {selectedMembers.map((member) => (
                   <span
                     key={member.userId}
                     className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-periwinkle-200 bg-periwinkle-50 px-3 py-1.5 text-xs font-extrabold text-periwinkle-700"
@@ -440,7 +477,7 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
                   선택 가능한 수강생이 없습니다.
                 </p>
               ) : (
-                filteredStudentProfiles.map((student: any) => {
+                filteredStudentProfiles.map((student) => {
                   const checked = selectedUserIds.includes(student.userId);
                   return (
                     <label
@@ -510,7 +547,7 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
 // ------------------------------------------------------------------
 // Tab 3: Quests Management
 // ------------------------------------------------------------------
-function QuestsTab({ selectedStudy, run, isPending }: any) {
+function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
   return (
     <Card className="max-w-3xl">
       <CardHeader>

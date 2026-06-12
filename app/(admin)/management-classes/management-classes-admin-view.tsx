@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * 관리반 운영 공지와 쿠폰 발급을 처리하는 관리자 전용 화면입니다.
+ */
+
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -29,6 +33,22 @@ type NoticeState = {
   tone: "success" | "error";
   text: string;
 } | null;
+
+type ActionResult = {
+  success: boolean;
+  error?: string;
+};
+
+type ActionRunner = (
+  fn: () => Promise<ActionResult>,
+  successText: string
+) => void;
+
+type ManagementClassViewProps = {
+  data: AdminManagementClassOpsData;
+  run: ActionRunner;
+  isPending: boolean;
+};
 
 export function ManagementClassesAdminView({ data }: { data: AdminManagementClassOpsData }) {
   const router = useRouter();
@@ -99,10 +119,10 @@ export function ManagementClassesAdminView({ data }: { data: AdminManagementClas
         <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr] items-start">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Metric label="운영 공지" value={`${data.classes.filter((item: any) => item.status === "open").length}`} />
+              <Metric label="운영 공지" value={`${data.classes.filter((item) => item.status === "open").length}`} />
               <Metric
                 label="활성 신청"
-                value={`${data.classes.reduce((sum: number, item: any) => sum + item.activeApplicationCount, 0)}`}
+                value={`${data.classes.reduce((sum, item) => sum + item.activeApplicationCount, 0)}`}
               />
             </div>
             <Card>
@@ -129,7 +149,7 @@ export function ManagementClassesAdminView({ data }: { data: AdminManagementClas
             <div className="grid grid-cols-1 gap-3">
               <Metric
                 label="총 발급 잔여 쿠폰"
-                value={`${data.couponGrants.reduce((sum: number, grant: any) => sum + grant.availableCount, 0)}`}
+                value={`${data.couponGrants.reduce((sum, grant) => sum + grant.availableCount, 0)}`}
               />
             </div>
             <Card>
@@ -164,7 +184,7 @@ export function ManagementClassesAdminView({ data }: { data: AdminManagementClas
 // Shared Sub-components
 // --------------------------------------------------------
 
-function NoticeForm({ run, isPending }: any) {
+function NoticeForm({ run, isPending }: Omit<ManagementClassViewProps, "data">) {
   return (
     <form
       action={(formData) => run(() => createManagementClass(formData), "관리반 공지를 등록했습니다.")}
@@ -193,7 +213,7 @@ function NoticeForm({ run, isPending }: any) {
   );
 }
 
-function CouponForm({ data, run, isPending }: any) {
+function CouponForm({ data, run, isPending }: ManagementClassViewProps) {
   return (
     <form
       action={(formData) => run(() => grantManagementClassCoupons(formData), "관리반 쿠폰을 발급했습니다.")}
@@ -212,7 +232,7 @@ function CouponForm({ data, run, isPending }: any) {
           ) : (
             <>
               <option value="" disabled>수강생 선택</option>
-              {data.students.map((student: any) => (
+              {data.students.map((student) => (
                 <option key={student.userId} value={student.userId}>
                   {student.displayName} · {student.email ?? student.userId}
                 </option>
@@ -236,13 +256,13 @@ function CouponForm({ data, run, isPending }: any) {
   );
 }
 
-function NoticeList({ data, run, isPending }: any) {
+function NoticeList({ data, run, isPending }: ManagementClassViewProps) {
   if (data.classes.length === 0) {
     return <EmptyPanel text="아직 등록한 관리반 공지가 없습니다." />;
   }
   return (
     <div className="space-y-4">
-      {data.classes.map((item: any) => (
+      {data.classes.map((item) => (
         <Card key={item.id}>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -289,7 +309,7 @@ function NoticeList({ data, run, isPending }: any) {
                   <span className="text-right">관리</span>
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {item.applications.map((application: any) => (
+                  {item.applications.map((application) => (
                     <article
                       key={application.id}
                       className="grid gap-3 px-4 py-3 md:grid-cols-[1.2fr_0.7fr_0.7fr_auto] md:items-center"
@@ -335,7 +355,7 @@ function CouponList({ data }: { data: AdminManagementClassOpsData }) {
   }
   return (
     <div className="space-y-2">
-      {data.couponGrants.map((grant: any) => (
+      {data.couponGrants.map((grant) => (
         <article key={grant.id} className="rounded-2xl border border-gray-100 bg-gray-50/70 px-3 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
