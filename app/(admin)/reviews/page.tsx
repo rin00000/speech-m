@@ -10,7 +10,7 @@ export default function ReviewsPage() {
         description="시험 경험 및 면접 질문 보관함 (보안 구역)"
       />
 
-      <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 md:p-6">
+      <div className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
         <EmptyState
           icon="🚧"
           title="시험 후기를 준비하고 있어요"

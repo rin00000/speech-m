@@ -108,6 +108,46 @@
   --color-app-text: var(--app-text);
   --color-app-muted: var(--app-muted);
   --color-accent-soft: var(--app-accent-soft);
+
+  /* Service-wide semantic colors matching periwinkle's lightness/saturation */
+  --color-amber-50: #fef8f4;
+  --color-emerald-50: #f4fef8;
+  --color-red-50: #fef4f8;
+  --color-amber-100: #fceee5;
+  --color-emerald-100: #e5fcee;
+  --color-red-100: #fce5ee;
+  --color-amber-200: #fbe0d2;
+  --color-emerald-200: #d2fbe0;
+  --color-red-200: #fbd2e0;
+  --color-amber-300: #f0c6b0;
+  --color-emerald-300: #b0f0c6;
+  --color-red-300: #f0b0c6;
+  --color-amber-400: #cdac8e;
+  --color-emerald-400: #8ecdac;
+  --color-red-400: #cd8eac;
+  --color-amber-500: #bd8f6a;
+  --color-emerald-500: #6abd8f;
+  --color-red-500: #bd6a8f;
+  --color-amber-600: #b3724d;
+  --color-emerald-600: #4db372;
+  --color-red-600: #b34d72;
+  --color-amber-700: #94593a;
+  --color-emerald-700: #3a9459;
+  --color-red-700: #943a59;
+  --color-amber-800: #75422a;
+  --color-emerald-800: #2a7542;
+  --color-red-800: #752a42;
+  --color-amber-900: #522b1b;
+  --color-emerald-900: #1b522b;
+  --color-red-900: #521b2b;
+
+  /* Additional job-specific colors for custom cases */
+  --color-job-gray-100: #ebeef2;
+  --color-job-gray-600: #7b8599;
+  --color-job-gray-900: #2b303b;
+  --color-job-yellow-100: #fcfce5;
+  --color-job-yellow-900: #52521b;
+
   --font-sans: var(--font-display-pretendard);
   --font-mono: var(--font-geist-mono);
   --radius-card: var(--radius-card);

@@ -18,7 +18,7 @@ export const PracticeScriptCreateModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4">
       <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
         <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4 shrink-0">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">🎙️ 새 원고 등록</h2>

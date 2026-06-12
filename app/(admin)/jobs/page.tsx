@@ -121,7 +121,7 @@ export default async function JobsPage({
         description="미디어잡, 회사 홈페이지 등에서 수집된 공고를 관리합니다."
       />
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 md:p-6">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
         <JobsStatusSummary
           statusCounts={statusCounts}
           workQueueCount={workQueueCount}

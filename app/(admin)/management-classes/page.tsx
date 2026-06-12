@@ -19,7 +19,7 @@ export default async function ManagementClassesPage() {
         description="관리반 공지, 수강생 쿠폰, 선착순 신청 현황을 관리합니다."
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
         <ManagementClassesAdminView data={data} />
       </div>
     </div>

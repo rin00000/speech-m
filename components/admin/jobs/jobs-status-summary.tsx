@@ -41,8 +41,8 @@ export function JobsStatusSummary({
       label: showRejected ? "전체" : "작업 대상",
       value: showRejected ? statusCounts.all : workQueueCount,
       icon: GridViewIcon,
-      activeBg: "bg-gray-900",
-      activeText: "text-white",
+      activeBg: "bg-job-gray-100",
+      activeText: "text-job-gray-900",
       status: null,
       href: buildJobsAdminHref({
         source: activeSource,
@@ -54,8 +54,8 @@ export function JobsStatusSummary({
       label: "검토 중",
       value: statusCounts.pending,
       icon: Clock01Icon,
-      activeBg: "bg-amber-100",
-      activeText: "text-amber-900",
+      activeBg: "bg-job-yellow-100",
+      activeText: "text-job-yellow-900",
       status: "pending",
       href: buildJobsAdminHref({ status: "pending", source: activeSource }),
       scope: "work",
@@ -122,7 +122,7 @@ export function JobsStatusSummary({
               </div>
               
               {isActive && (
-                <div className={cn("hidden h-2 w-2 rounded-full md:block", activeBg !== "bg-gray-900" ? activeText.replace('text-', 'bg-') : "bg-white")} />
+                <div className={cn("hidden h-2 w-2 rounded-full md:block", activeText.replace('text-', 'bg-'))} />
               )}
             </Link>
           );

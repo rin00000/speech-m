@@ -53,11 +53,11 @@ export default async function PracticePage() {
       />
 
       {isAuthorized ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <PracticeListView scripts={scripts} isAdmin={isAdmin} />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 md:p-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm md:rounded-3xl md:p-8">
             <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-periwinkle-100/50 blur-2xl" />
             

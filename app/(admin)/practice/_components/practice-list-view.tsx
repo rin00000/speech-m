@@ -132,7 +132,7 @@ export function PracticeListView({
 
       {hasScripts && (
         <div
-          className={`fixed inset-0 z-40 transition-opacity duration-200 ${
+          className={`fixed inset-0 z-[60] transition-opacity duration-200 ${
             selectedScript
               ? "pointer-events-auto bg-gray-900/20 opacity-100"
               : "pointer-events-none bg-gray-900/0 opacity-0"

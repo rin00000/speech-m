@@ -14,7 +14,7 @@ export default async function UserManagementPage() {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <Header title="회원 권한 관리" description="관리자만 접근할 수 있는 권한 관리 영역입니다." />
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 md:p-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm">
             <span className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-600">
               <HugeiconsIcon icon={LockIcon} size={26} color="currentColor" strokeWidth={1.8} />
@@ -68,7 +68,7 @@ export default async function UserManagementPage() {
         description="내부 UUID 기준으로 사용자의 관리자, 수강생, 게스트 권한을 관리합니다."
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
         {usersError || profilesError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">
             사용자 데이터를 불러오지 못했습니다.

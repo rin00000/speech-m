@@ -39,11 +39,11 @@ export default async function RelayStudyPage({
           displayName={user?.name ?? null}
         />
       ) : detail ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <RelayStudyDetailView detail={detail} currentUserId={userId} role={role} />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 md:p-6">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm md:rounded-3xl md:p-8">
             <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-periwinkle-50 text-periwinkle-600">
               <HugeiconsIcon icon={LockIcon} size={28} color="currentColor" />
