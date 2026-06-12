@@ -89,30 +89,17 @@ export function PracticeListView({
         </div>
       )}
       {hasScripts ? (
-        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.4fr)] lg:gap-5">
-          <div className="space-y-3">
-            <PracticeCategoryTabs
-              activeCategory={activeCategory}
-              isAdmin={isAdmin}
-              onCategoryChange={handleCategoryChange}
-              onOpenCreateModal={() => setIsModalOpen(true)}
-            />
-            <PracticeScriptList
-              scripts={filtered}
-              selectedScriptId={effectiveSelectedScriptId}
-              onSelect={selectScript}
-            />
-          </div>
-
-          <PracticeScriptReader
-            script={selectedScript}
+        <div className="mx-auto w-full max-w-3xl space-y-3">
+          <PracticeCategoryTabs
+            activeCategory={activeCategory}
             isAdmin={isAdmin}
-            isEditing={isEditing}
-            isDeleting={isDeleting}
-            onEdit={() => setIsEditing(true)}
-            onCancelEdit={() => setIsEditing(false)}
-            onSaved={() => setIsEditing(false)}
-            onDelete={() => void handleDeleteSelected()}
+            onCategoryChange={handleCategoryChange}
+            onOpenCreateModal={() => setIsModalOpen(true)}
+          />
+          <PracticeScriptList
+            scripts={filtered}
+            selectedScriptId={effectiveSelectedScriptId}
+            onSelect={selectScript}
           />
         </div>
       ) : (
@@ -140,6 +127,45 @@ export function PracticeListView({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {hasScripts && (
+        <div
+          className={`fixed inset-0 z-40 transition-opacity duration-200 ${
+            selectedScript
+              ? "pointer-events-auto bg-gray-900/20 opacity-100"
+              : "pointer-events-none bg-gray-900/0 opacity-0"
+          }`}
+        >
+          <button
+            type="button"
+            aria-label="원고 닫기"
+            onClick={() => selectScript(null)}
+            className="absolute inset-0 h-full w-full cursor-default"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="원고 내용"
+            className={`absolute inset-y-0 right-0 flex h-dvh w-full max-w-3xl transform flex-col overflow-hidden bg-white shadow-sm transition-transform duration-200 ease-out md:w-[min(720px,calc(100vw-96px))] ${
+              selectedScript ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            {selectedScript && (
+              <PracticeScriptReader
+                script={selectedScript}
+                isAdmin={isAdmin}
+                isEditing={isEditing}
+                isDeleting={isDeleting}
+                onEdit={() => setIsEditing(true)}
+                onCancelEdit={() => setIsEditing(false)}
+                onSaved={() => setIsEditing(false)}
+                onDelete={() => void handleDeleteSelected()}
+                onClose={() => selectScript(null)}
+              />
+            )}
+          </aside>
         </div>
       )}
 
