@@ -6,7 +6,7 @@
  */
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BookOpen01Icon } from "@hugeicons/core-free-icons";
+import { BookOpen01Icon, Delete01Icon, FileEditIcon } from "@hugeicons/core-free-icons";
 import { PracticeScriptEditForm } from "./practice-script-edit-form";
 import type { ScriptItem } from "./practice-list-types";
 
@@ -30,75 +30,68 @@ export const PracticeScriptReader = ({
   onDelete: () => void;
 }) => {
   return (
-    <div className="flex min-h-[420px] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:min-h-[500px] md:rounded-3xl md:p-6">
+    <div className="flex min-h-[420px] flex-col rounded-2xl border border-gray-200 bg-white shadow-sm md:min-h-[500px] md:rounded-3xl">
       {script ? (
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col">
           {isEditing ? (
-            <PracticeScriptEditForm script={script} onCancel={onCancelEdit} onSaved={onSaved} />
+            <div className="flex flex-1 flex-col p-4 md:p-6">
+              <PracticeScriptEditForm script={script} onCancel={onCancelEdit} onSaved={onSaved} />
+            </div>
           ) : (
             <>
-              <div className="border-b border-gray-100 pb-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-periwinkle-50 px-2.5 py-0.5 text-xs font-bold text-periwinkle-700">
-                        {script.type}
-                      </span>
-                      <span className="text-xs font-semibold text-gray-400">
-                        난이도: {script.difficulty}
-                      </span>
-                    </div>
-                    <h2 className="mt-3 text-lg md:text-xl font-extrabold text-gray-900 leading-snug">
+              <div className="border-b border-gray-100 p-4 md:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-2 text-xs font-bold leading-none text-gray-500">
+                      <span>{script.type}</span>
+                      <span className="h-1 w-1 rounded-full bg-gray-300" />
+                      <span>{script.difficulty}</span>
+                    </p>
+                    <h2 className="mt-2 text-lg font-extrabold leading-snug text-gray-900 md:text-xl">
                       {script.title}
                     </h2>
-                    <p className="mt-1 text-xs text-gray-400 leading-tight">{script.description}</p>
+                    {script.description && (
+                      <p className="mt-2 text-xs font-medium leading-snug text-gray-500">
+                        {script.description}
+                      </p>
+                    )}
                   </div>
                   {isAdmin && (
-                    <div className="flex shrink-0 gap-2 sm:justify-end">
+                    <div className="flex shrink-0 items-center gap-1">
                       <button
+                        type="button"
                         onClick={onEdit}
-                        className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50"
+                        title="원고 수정"
+                        aria-label="원고 수정"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800"
                       >
-                        수정
+                        <HugeiconsIcon icon={FileEditIcon} size={16} color="currentColor" />
                       </button>
                       <button
+                        type="button"
                         onClick={onDelete}
                         disabled={isDeleting}
-                        className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                        title="원고 삭제"
+                        aria-label="원고 삭제"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-100 text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
                       >
-                        {isDeleting ? "삭제 중..." : "삭제"}
+                        <HugeiconsIcon icon={Delete01Icon} size={16} color="currentColor" />
                       </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-gray-100 bg-gray-50 p-4 md:mt-6 md:p-8">
-                <pre className="whitespace-pre-wrap break-words font-sans text-sm font-medium leading-[1.8] text-gray-800 tracking-wide select-all md:text-base">
+              <div className="flex-1 p-4 md:p-6">
+                <pre className="min-h-[300px] whitespace-pre-wrap break-words rounded-2xl border border-gray-100 bg-gray-50/80 p-4 font-sans text-sm font-medium leading-[1.8] text-gray-800 select-all md:p-6 md:text-base">
                   {script.content}
                 </pre>
-              </div>
-
-              <div className="mt-5 flex gap-3 rounded-2xl border border-periwinkle-100/50 bg-periwinkle-50/50 p-4 md:mt-6">
-                <span className="text-periwinkle-600 shrink-0 mt-0.5">
-                  <HugeiconsIcon icon={BookOpen01Icon} size={16} color="currentColor" />
-                </span>
-                <div>
-                  <h4 className="text-xs font-bold text-periwinkle-800">💡 원장님의 원포인트 레슨</h4>
-                  <p className="mt-1 text-[11px] leading-relaxed text-periwinkle-700 font-medium">
-                    {script.difficulty === "어려움"
-                      ? "중간중간 포함된 복잡한 숫자 표기와 고난도 전문 어휘들은 소리 내어 3번 이상 반복 연습하세요. 호흡 배분이 승부처입니다."
-                      : script.difficulty === "보통"
-                        ? "가장 대중적인 포맷입니다. 기어들어가지 않는 또렷한 발성과 차분하게 팩트를 전달하는 아우라를 풍겨보세요."
-                        : "초심자를 위한 기본 대본입니다. 미소 띤 미려한 눈빛과 경쾌한 톤조절, 전달하고자 하는 따스한 마음을 소리에 실어보세요."}
-                  </p>
-                </div>
               </div>
             </>
           )}
         </div>
       ) : (
-        <div className="flex-grow flex flex-col items-center justify-center text-center">
+        <div className="flex flex-grow flex-col items-center justify-center p-8 text-center">
           <span className="text-gray-300">
             <HugeiconsIcon icon={BookOpen01Icon} size={48} color="currentColor" />
           </span>

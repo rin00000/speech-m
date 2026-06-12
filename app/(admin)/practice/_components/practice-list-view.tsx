@@ -13,7 +13,12 @@ import { PracticeScriptList } from "./practice-script-list";
 import { PracticeScriptReader } from "./practice-script-reader";
 import type { PracticeCategory, ScriptItem } from "./practice-list-types";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckmarkCircle01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import {
+  Add01Icon,
+  BookOpen01Icon,
+  Cancel01Icon,
+  CheckmarkCircle01Icon,
+} from "@hugeicons/core-free-icons";
 
 export function PracticeListView({
   scripts,
@@ -23,15 +28,17 @@ export function PracticeListView({
   isAdmin?: boolean;
 }) {
   const [activeCategory, setActiveCategory] = useState<PracticeCategory>("practice");
-  const [selectedScriptId, setSelectedScriptId] = useState<string | null>(scripts[0]?.id ?? null);
+  const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
+  const hasScripts = scripts.length > 0;
   const filtered = scripts.filter((script) => script.category === activeCategory);
-  const effectiveSelectedScriptId = selectedScriptId ?? filtered[0]?.id ?? null;
-  const selectedScript = scripts.find((script) => script.id === effectiveSelectedScriptId);
+  const selectedScriptInCategory = filtered.some((script) => script.id === selectedScriptId);
+  const effectiveSelectedScriptId = selectedScriptInCategory ? selectedScriptId : null;
+  const selectedScript = filtered.find((script) => script.id === effectiveSelectedScriptId);
 
   const selectScript = (id: string | null) => {
     setSelectedScriptId(id);
@@ -40,8 +47,7 @@ export function PracticeListView({
 
   const handleCategoryChange = (category: PracticeCategory) => {
     setActiveCategory(category);
-    const firstInCategory = scripts.find((script) => script.category === category);
-    selectScript(firstInCategory?.id ?? null);
+    selectScript(null);
   };
 
   const handleDeleteSelected = async () => {
@@ -68,7 +74,7 @@ export function PracticeListView({
     <>
       {notice && (
         <div
-          className={`mb-4 flex items-center gap-2.5 rounded-2xl border p-4 text-sm font-semibold animate-fadeIn ${
+          className={`mb-4 flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold animate-fadeIn ${
             notice.tone === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-red-200 bg-red-50 text-red-800"
@@ -82,32 +88,60 @@ export function PracticeListView({
           <span>{notice.text}</span>
         </div>
       )}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_1.3fr] lg:gap-8">
-        <div className="space-y-4 md:space-y-6">
-          <PracticeCategoryTabs
-            activeCategory={activeCategory}
+      {hasScripts ? (
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.4fr)] lg:gap-5">
+          <div className="space-y-3">
+            <PracticeCategoryTabs
+              activeCategory={activeCategory}
+              isAdmin={isAdmin}
+              onCategoryChange={handleCategoryChange}
+              onOpenCreateModal={() => setIsModalOpen(true)}
+            />
+            <PracticeScriptList
+              scripts={filtered}
+              selectedScriptId={effectiveSelectedScriptId}
+              onSelect={selectScript}
+            />
+          </div>
+
+          <PracticeScriptReader
+            script={selectedScript}
             isAdmin={isAdmin}
-            onCategoryChange={handleCategoryChange}
-            onOpenCreateModal={() => setIsModalOpen(true)}
-          />
-          <PracticeScriptList
-            scripts={filtered}
-            selectedScriptId={effectiveSelectedScriptId}
-            onSelect={selectScript}
+            isEditing={isEditing}
+            isDeleting={isDeleting}
+            onEdit={() => setIsEditing(true)}
+            onCancelEdit={() => setIsEditing(false)}
+            onSaved={() => setIsEditing(false)}
+            onDelete={() => void handleDeleteSelected()}
           />
         </div>
-
-        <PracticeScriptReader
-          script={selectedScript}
-          isAdmin={isAdmin}
-          isEditing={isEditing}
-          isDeleting={isDeleting}
-          onEdit={() => setIsEditing(true)}
-          onCancelEdit={() => setIsEditing(false)}
-          onSaved={() => setIsEditing(false)}
-          onDelete={() => void handleDeleteSelected()}
-        />
-      </div>
+      ) : (
+        <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm md:rounded-3xl">
+          <div className="max-w-sm">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400">
+              <HugeiconsIcon icon={BookOpen01Icon} size={24} color="currentColor" />
+            </span>
+            <h2 className="mt-4 text-lg font-extrabold text-gray-900">
+              등록된 연습 원고가 없습니다
+            </h2>
+            <p className="mt-2 text-sm font-medium leading-snug text-gray-500">
+              {isAdmin
+                ? "첫 원고를 추가하면 수강생 연습실에 바로 표시됩니다."
+                : "관리자가 원고를 등록하면 이곳에서 확인할 수 있습니다."}
+            </p>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="mt-5 inline-flex items-center justify-center gap-1.5 rounded-full bg-periwinkle-600 px-4 py-2 text-xs font-extrabold text-white shadow-sm transition-colors hover:bg-periwinkle-700"
+              >
+                <HugeiconsIcon icon={Add01Icon} size={16} color="currentColor" />
+                <span>새 원고</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {isModalOpen && <PracticeScriptCreateModal onClose={() => setIsModalOpen(false)} />}
     </>
