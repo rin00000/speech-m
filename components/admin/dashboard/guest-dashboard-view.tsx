@@ -13,6 +13,7 @@ import {
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
+import { InfoHint } from "@/components/ui/info-hint";
 import { GuestUpgradeRequestCard } from "./guest-upgrade-request-card";
 import { relativeTime } from "@/lib/jobs/utils";
 import type { GuestDashboardData } from "@/lib/dashboard/guest-dashboard";
@@ -48,12 +49,14 @@ export function GuestDashboardView({
                 <HugeiconsIcon icon={SparklesIcon} size={12} color="currentColor" />
                 <span>Director&apos;s Eye Curation</span>
               </div>
-              <h2 className="mt-2 text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
-                {userName ? `${userName}님, 환영합니다!` : "방송 준비의 시작, Speech-M"}
-              </h2>
-              <p className="mt-2 max-w-xl text-sm font-medium leading-snug text-gray-500">
-                원장이 직접 선별한 지상파·아나운서·리포터·쇼호스트 채용 공고를 무료로 열람하세요.
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <h2 className="min-w-0 text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
+                  {userName ? `${userName}님, 환영합니다!` : "방송 준비의 시작, Speech-M"}
+                </h2>
+                <InfoHint>
+                  원장이 직접 선별한 지상파·아나운서·리포터·쇼호스트 채용 공고를 무료로 열람하세요.
+                </InfoHint>
+              </div>
             </div>
 
             <Link
@@ -158,13 +161,15 @@ export function GuestDashboardView({
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-extrabold text-gray-900">
-                  🎓 수강생 전용 기능 안내
-                </h3>
-                <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                  수강생 권한을 받으면 릴레이 스터디, 1:1 코칭 피드백, 고급 연습 원고실 등
-                  전용 학습 기능을 이용할 수 있습니다. 아래에서 등업을 요청해 보세요.
-                </p>
+                <div className="flex items-center gap-2">
+                  <h3 className="min-w-0 text-sm font-extrabold text-gray-900">
+                    🎓 수강생 전용 기능 안내
+                  </h3>
+                  <InfoHint align="left">
+                    수강생 권한을 받으면 릴레이 스터디, 1:1 코칭 피드백, 고급 연습 원고실 등
+                    전용 학습 기능을 이용할 수 있습니다. 아래에서 등업을 요청해 보세요.
+                  </InfoHint>
+                </div>
               </div>
               <GuestUpgradeRequestCard pendingRequest={data.pendingUpgradeRequest} />
             </div>
@@ -173,12 +178,14 @@ export function GuestDashboardView({
           <section className="rounded-2xl border border-periwinkle-100 bg-periwinkle-50/50 p-4 shadow-sm md:rounded-3xl md:p-6">
             <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-extrabold text-gray-900">
-                  🎤 로그인하고 더 많은 기능을 이용하세요
-                </h3>
-                <p className="mt-1 text-xs font-medium leading-relaxed text-gray-500">
-                  무료 가입 후 등업을 요청하면 릴레이 스터디, 연습 원고실 등 수강생 전용 기능에 접근할 수 있습니다.
-                </p>
+                <div className="flex items-center justify-center gap-2 sm:justify-start">
+                  <h3 className="min-w-0 text-sm font-extrabold text-gray-900">
+                    🎤 로그인하고 더 많은 기능을 이용하세요
+                  </h3>
+                  <InfoHint align="right">
+                    무료 가입 후 등업을 요청하면 릴레이 스터디, 연습 원고실 등 수강생 전용 기능에 접근할 수 있습니다.
+                  </InfoHint>
+                </div>
               </div>
               <Link
                 href="/login"

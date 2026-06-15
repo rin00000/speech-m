@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * 공개 채용 공고 목록과 검색 UI를 제공하는 게스트 접근 화면입니다.
+ */
+
 import { useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -11,6 +15,7 @@ import {
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import type { Database } from "@/types/database.types";
+import { InfoHint } from "@/components/ui/info-hint";
 import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -56,23 +61,30 @@ export function PublicJobsView({
               <HugeiconsIcon icon={SparklesIcon} size={12} color="currentColor" />
               <span>Director&apos;s Eye Curation</span>
             </div>
-            <h1 className="text-xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
-              방송 채용 정보 필터
-            </h1>
-            <p className="max-w-xl text-sm font-medium leading-snug text-gray-500">
-              원장의 안목으로 우선 선별한 지상파, 아나운서, 기상캐스터, 리포터, 매체 전문 채용 공고를 모았습니다.
-            </p>
+            <div className="flex items-center gap-2">
+              <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+                방송 채용 정보 필터
+              </h1>
+              <InfoHint>
+                원장의 안목으로 우선 선별한 지상파, 아나운서, 기상캐스터, 리포터, 매체 전문 채용 공고를 모았습니다.
+              </InfoHint>
+            </div>
           </div>
 
           {(!isLoggedIn || userRole === "guest") && (
             <div className="shrink-0 rounded-2xl border border-periwinkle-200 bg-periwinkle-50 p-4 text-periwinkle-900 md:max-w-xs">
-              <h3 className="flex items-center gap-1 text-xs font-bold text-periwinkle-800">
-                <HugeiconsIcon icon={BookOpen01Icon} size={14} color="currentColor" />
-                <span>수강생 전용 혜택</span>
-              </h3>
-              <p className="mt-1 text-[11px] font-medium leading-snug text-periwinkle-700">
-                수강생 권한을 받으면 우선순위 1:1 연습 자료와 포트폴리오용 원고 라이브러리에 접근할 수 있습니다.
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="flex items-center gap-1 text-xs font-bold text-periwinkle-800">
+                  <HugeiconsIcon icon={BookOpen01Icon} size={14} color="currentColor" />
+                  <span>수강생 전용 혜택</span>
+                </h3>
+                <InfoHint
+                  className="text-periwinkle-700"
+                  align="right"
+                >
+                  수강생 권한을 받으면 우선순위 1:1 연습 자료와 포트폴리오용 원고 라이브러리에 접근할 수 있습니다.
+                </InfoHint>
+              </div>
               <Link
                 href={isLoggedIn ? "/dashboard" : "/login"}
                 className="mt-3 inline-flex w-full justify-center rounded-full bg-periwinkle-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-periwinkle-700"
@@ -107,8 +119,10 @@ export function PublicJobsView({
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400">
             <HugeiconsIcon icon={Briefcase01Icon} size={24} color="currentColor" />
           </span>
-          <p className="mt-4 text-sm font-semibold text-gray-700">검색 조건에 맞는 공고가 없습니다.</p>
-          <p className="mt-1 text-xs text-gray-400">검색 키워드를 확인해 보세요.</p>
+          <div className="mt-4 flex items-center gap-2">
+            <p className="text-sm font-semibold text-gray-700">검색 조건에 맞는 공고가 없습니다.</p>
+            <InfoHint>검색 키워드를 확인해 보세요.</InfoHint>
+          </div>
         </div>
       ) : (
         <>
