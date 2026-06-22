@@ -1,3 +1,8 @@
+/**
+ * 보호 라우트의 1차 인증 게이트를 담당하는 Next.js Proxy 모듈입니다.
+ * 경로 요구사항을 분류하고, NextAuth JWT의 userId로 DB 상태를 재검증하며,
+ * 무효 세션의 NextAuth 쿠키 정리까지 처리합니다.
+ */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -7,6 +12,7 @@ import type { UserRole, UserStatus } from "@/types/database.types";
 const USER_PROTECTED_PREFIXES = ["/dashboard", "/settings", "/practice", "/reviews", "/studies"];
 const ADMIN_PROTECTED_PREFIXES = ["/users", "/management-classes", "/api/admin/job-fit/run"];
 const CRAWL_PROTECTED_PATHS = ["/api/crawl/", "/api/admin/benchmark-job-fit"];
+const SUPABASE_PROXY_AUTH_TIMEOUT_MS = 3000;
 
 type AuthRequirement = "none" | "user" | "admin";
 
@@ -54,6 +60,9 @@ async function getCurrentProxyUser(userId: string): Promise<ProxyAuthResult> {
   url.searchParams.set("select", "role,status");
   url.searchParams.set("id", `eq.${userId}`);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SUPABASE_PROXY_AUTH_TIMEOUT_MS);
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -61,6 +70,7 @@ async function getCurrentProxyUser(userId: string): Promise<ProxyAuthResult> {
         authorization: `Bearer ${serviceRoleKey}`,
       },
       cache: "no-store",
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -81,6 +91,8 @@ async function getCurrentProxyUser(userId: string): Promise<ProxyAuthResult> {
   } catch (error) {
     console.error("[auth] proxy users lookup failed", error);
     return { status: "check_failed" };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
