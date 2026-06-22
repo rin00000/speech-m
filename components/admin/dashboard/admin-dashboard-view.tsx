@@ -27,40 +27,46 @@ export async function AdminDashboardView() {
   const supabase = createAdminClient();
   const activeDeadline = activeDeadlineOrExpression();
 
-  const recentPublishedJobsResult = await supabase
-    .from("job_postings")
-    .select("id,title,company,location,source,source_url,deadline,published_at")
-    .eq("status", "approved")
-    .not("published_at", "is", null)
-    .or(activeDeadline)
-    .order("published_at", { ascending: false })
-    .limit(6)
-    .returns<RecentPublishedJob[]>();
-
-  const pendingUpgradeRequestsResult = await supabase
-    .from("student_upgrade_requests")
-    .select("id,user_id,display_name,message,requested_at")
-    .eq("status", "pending")
-    .order("requested_at", { ascending: true })
-    .returns<
-      {
-        id: string;
-        user_id: string;
-        display_name: string | null;
-        message: string;
-        requested_at: string;
-      }[]
-    >();
-  const aiPendingJobsResult = await supabase
-    .from("job_postings")
-    .select("id,title,company,source,created_at,ai_fit_snapshot,source_url", { count: "exact" })
-    .eq("status", "pending")
-    .not("ai_fit_snapshot", "is", null)
-    .or(activeDeadline)
-    .order("created_at", { ascending: false })
-    .limit(4)
-    .returns<TodayTaskAiPendingJob[]>();
-  const studyProgressResult = await getAdminStudyProgress();
+  const [
+    recentPublishedJobsResult,
+    pendingUpgradeRequestsResult,
+    aiPendingJobsResult,
+    studyProgressResult,
+  ] = await Promise.all([
+    supabase
+      .from("job_postings")
+      .select("id,title,company,location,source,source_url,deadline,published_at")
+      .eq("status", "approved")
+      .not("published_at", "is", null)
+      .or(activeDeadline)
+      .order("published_at", { ascending: false })
+      .limit(6)
+      .returns<RecentPublishedJob[]>(),
+    supabase
+      .from("student_upgrade_requests")
+      .select("id,user_id,display_name,message,requested_at")
+      .eq("status", "pending")
+      .order("requested_at", { ascending: true })
+      .returns<
+        {
+          id: string;
+          user_id: string;
+          display_name: string | null;
+          message: string;
+          requested_at: string;
+        }[]
+      >(),
+    supabase
+      .from("job_postings")
+      .select("id,title,company,source,created_at,ai_fit_snapshot,source_url", { count: "exact" })
+      .eq("status", "pending")
+      .not("ai_fit_snapshot", "is", null)
+      .or(activeDeadline)
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .returns<TodayTaskAiPendingJob[]>(),
+    getAdminStudyProgress(),
+  ]);
 
   const hasJobsError = Boolean(recentPublishedJobsResult.error);
   const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
