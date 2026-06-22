@@ -1,4 +1,12 @@
+"use client";
+
+/**
+ * 공고 관리 상단 상태 카드 영역입니다.
+ * 카드 클릭 피드백은 optimistic state로 즉시 반영하고 서버 필터 결과와 다시 동기화합니다.
+ */
+
 import Link from "next/link";
+import { useState, type MouseEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Cancel01Icon,
@@ -19,6 +27,20 @@ type JobsStatusSummaryProps = {
   rejectedRetentionDays: number;
 };
 
+type OptimisticActiveState = {
+  activeSource: JobSource | null;
+  activeStatus: JobStatus | null;
+  showRejected: boolean;
+};
+
+type OptimisticActiveSnapshot = {
+  active: OptimisticActiveState;
+  serverKey: string;
+};
+
+const buildActiveKey = ({ activeSource, activeStatus, showRejected }: OptimisticActiveState) =>
+  `${activeSource ?? "all"}:${activeStatus ?? "all"}:${showRejected ? "showRejected" : "workOnly"}`;
+
 export function JobsStatusSummary({
   statusCounts,
   workQueueCount,
@@ -27,6 +49,30 @@ export function JobsStatusSummary({
   showRejected,
   rejectedRetentionDays,
 }: JobsStatusSummaryProps) {
+  const serverActive = {
+    activeSource,
+    activeStatus,
+    showRejected,
+  };
+  const serverKey = buildActiveKey(serverActive);
+  const [optimisticSnapshot, setOptimisticSnapshot] = useState<OptimisticActiveSnapshot>({
+    active: serverActive,
+    serverKey,
+  });
+  const optimisticActive =
+    optimisticSnapshot.serverKey === serverKey ? optimisticSnapshot.active : serverActive;
+
+  const handleOptimisticClick = (
+    event: MouseEvent<HTMLAnchorElement>,
+    nextActive: OptimisticActiveState,
+  ) => {
+    if (event.defaultPrevented || event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
+      return;
+    }
+
+    setOptimisticSnapshot({ active: nextActive, serverKey });
+  };
+
   const statCards: {
     label: string;
     value: number;
@@ -34,21 +80,23 @@ export function JobsStatusSummary({
     activeBg: string;
     activeText: string;
     status: JobStatus | null;
+    showRejected: boolean;
     href: string;
     scope: "work" | "all";
   }[] = [
     {
-      label: showRejected ? "전체" : "작업 대상",
-      value: showRejected ? statusCounts.all : workQueueCount,
+      label: optimisticActive.showRejected ? "전체" : "작업 대상",
+      value: optimisticActive.showRejected ? statusCounts.all : workQueueCount,
       icon: GridViewIcon,
       activeBg: "bg-job-gray-100",
       activeText: "text-job-gray-900",
       status: null,
+      showRejected: optimisticActive.showRejected,
       href: buildJobsAdminHref({
-        source: activeSource,
-        showRejected: showRejected ? true : undefined,
+        source: optimisticActive.activeSource,
+        showRejected: optimisticActive.showRejected ? true : undefined,
       }),
-      scope: showRejected ? "all" : "work",
+      scope: optimisticActive.showRejected ? "all" : "work",
     },
     {
       label: "검토 중",
@@ -57,7 +105,8 @@ export function JobsStatusSummary({
       activeBg: "bg-job-yellow-100",
       activeText: "text-job-yellow-900",
       status: "pending",
-      href: buildJobsAdminHref({ status: "pending", source: activeSource }),
+      showRejected: false,
+      href: buildJobsAdminHref({ status: "pending", source: optimisticActive.activeSource }),
       scope: "work",
     },
     {
@@ -67,7 +116,8 @@ export function JobsStatusSummary({
       activeBg: "bg-emerald-100",
       activeText: "text-emerald-900",
       status: "approved",
-      href: buildJobsAdminHref({ status: "approved", source: activeSource }),
+      showRejected: false,
+      href: buildJobsAdminHref({ status: "approved", source: optimisticActive.activeSource }),
       scope: "work",
     },
     {
@@ -77,7 +127,8 @@ export function JobsStatusSummary({
       activeBg: "bg-red-100",
       activeText: "text-red-900",
       status: "rejected",
-      href: buildJobsAdminHref({ status: "rejected", source: activeSource }),
+      showRejected: false,
+      href: buildJobsAdminHref({ status: "rejected", source: optimisticActive.activeSource }),
       scope: "work",
     },
   ];
@@ -85,16 +136,25 @@ export function JobsStatusSummary({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2 md:flex-nowrap md:gap-3">
-        {statCards.map(({ label, value, icon, activeBg, activeText, status: cardStatus, href, scope }) => {
+        {statCards.map(({ label, value, icon, activeBg, activeText, status: cardStatus, showRejected: cardShowRejected, href, scope }) => {
           const isActive =
             cardStatus === null
-              ? activeStatus === null && (scope === "all" ? showRejected : !showRejected)
-              : activeStatus === cardStatus;
+              ? optimisticActive.activeStatus === null &&
+                (scope === "all" ? optimisticActive.showRejected : !optimisticActive.showRejected)
+              : optimisticActive.activeStatus === cardStatus;
           
           return (
             <Link
               key={label}
               href={href}
+              aria-current={isActive ? "page" : undefined}
+              onClick={(event) =>
+                handleOptimisticClick(event, {
+                  activeSource: optimisticActive.activeSource,
+                  activeStatus: cardStatus,
+                  showRejected: cardShowRejected,
+                })
+              }
               className={cn(
                 "group relative flex flex-1 items-center justify-between gap-3 rounded-xl border p-3 transition-all duration-200 md:p-4",
                 isActive
@@ -131,20 +191,34 @@ export function JobsStatusSummary({
       
       {/* info messages */}
       <div className="flex justify-between items-center px-1 pt-1">
-        {!showRejected && statusCounts.rejected > 0 ? (
+        {!optimisticActive.showRejected && statusCounts.rejected > 0 ? (
           <p className="text-[11px] leading-tight text-gray-500">
             거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
             <Link
-              href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+              href={buildJobsAdminHref({ source: optimisticActive.activeSource, showRejected: true })}
+              onClick={(event) =>
+                handleOptimisticClick(event, {
+                  activeSource: optimisticActive.activeSource,
+                  activeStatus: null,
+                  showRejected: true,
+                })
+              }
               className="font-medium text-periwinkle-700 underline-offset-2 hover:underline"
             >
               DB 전체 보기
             </Link>
           </p>
-        ) : showRejected ? (
+        ) : optimisticActive.showRejected ? (
           <p className="text-[11px] leading-tight text-gray-500">
             <Link
-              href={buildJobsAdminHref({ source: activeSource })}
+              href={buildJobsAdminHref({ source: optimisticActive.activeSource })}
+              onClick={(event) =>
+                handleOptimisticClick(event, {
+                  activeSource: optimisticActive.activeSource,
+                  activeStatus: null,
+                  showRejected: false,
+                })
+              }
               className="font-medium text-periwinkle-700 underline-offset-2 hover:underline"
             >
               작업 대상만(거절 숨김)
