@@ -46,7 +46,7 @@ export function TodayTasksPanel({
   const hasErrors = hasUpgradeRequestsError || hasAiPendingJobsError;
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-5">
+    <section className="min-w-0 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700">
@@ -72,7 +72,7 @@ export function TodayTasksPanel({
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+      <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
         <TaskSummaryCard
           icon={UserIcon}
           title="등업 요청 대기"
@@ -131,7 +131,7 @@ function TaskSummaryCard({
   const isActionable = !hasError && count > 0;
 
   return (
-    <article className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+    <article className="min-w-0 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span
@@ -189,7 +189,7 @@ function AiPendingJobPreview({ job }: { job: TodayTaskAiPendingJob }) {
   const snapshot = parseAiFitSnapshot(job.ai_fit_snapshot);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white px-3 py-2">
+    <div className="min-w-0 rounded-2xl border border-gray-100 bg-white px-3 py-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {job.source_url ? (
