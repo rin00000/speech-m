@@ -16,10 +16,68 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const EXPIRED_WORD = "\uB9C8\uAC10";
 const SARAMIN_EXPIRED_APPLY_TEXT = "\uC811\uC218\uB9C8\uAC10";
 const MEDIAJOB_EXPIRED_TEXT = "\uB9C8\uAC10\uB41C \uACF5\uACE0\uC785\uB2C8\uB2E4";
+const JOBKOREA_EXPIRED_STATUS_TEXTS = [
+  "\uB9C8\uAC10 \uACF5\uACE0",
+  "\uB9C8\uAC10\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+] as const;
+const KOREA_TIME_ZONE = "Asia/Seoul";
 
 const normalizeText = (value: string): string => value.replace(/\s+/g, " ").trim();
 
 const isMediajobSource = (source: JobSource): boolean => source.startsWith("mediajob_");
+
+const getKoreaTodayIso = (today: Date = new Date()): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: KOREA_TIME_ZONE }).format(today);
+
+const getIsoDatePart = (value: string): string | null => {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? null;
+};
+
+const isJobPostingType = (type: unknown): boolean => {
+  if (typeof type === "string") return type === "JobPosting";
+  if (Array.isArray(type)) return type.includes("JobPosting");
+  return false;
+};
+
+const collectJobPostingValidThrough = (value: unknown, out: string[]): void => {
+  if (Array.isArray(value)) {
+    for (const item of value) collectJobPostingValidThrough(item, out);
+    return;
+  }
+
+  if (value === null || typeof value !== "object") return;
+
+  const node = value as Record<string, unknown>;
+  if (isJobPostingType(node["@type"]) && typeof node.validThrough === "string") {
+    out.push(node.validThrough);
+  }
+  collectJobPostingValidThrough(node["@graph"], out);
+};
+
+const parseJsonLd = (text: string): unknown | null => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+const isPastValidThrough = (validThrough: string, today: Date): boolean => {
+  const validThroughDate = getIsoDatePart(validThrough);
+  if (!validThroughDate) return false;
+
+  const todayIso = getKoreaTodayIso(today);
+  if (validThroughDate < todayIso) return true;
+  if (validThroughDate > todayIso) return false;
+
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(validThrough)) {
+    const timestamp = Date.parse(validThrough);
+    return Number.isFinite(timestamp) && timestamp < today.getTime();
+  }
+
+  return false;
+};
 
 export function isExpiredDetailVerificationCandidate(job: ExpiredDetailCandidate): boolean {
   const hasNonIsoDeadline = Boolean(job.deadline && !ISO_DATE.test(job.deadline));
@@ -64,6 +122,33 @@ export function isMediajobExpiredHtml(html: string): boolean {
     $("#tab02 > dd.rcmd_ap_way.bottom > div > span").first().text(),
   );
   return applyText.includes(EXPIRED_WORD);
+}
+
+export function isJobkoreaExpiredHtml(html: string, today: Date = new Date()): boolean {
+  if (JOBKOREA_EXPIRED_STATUS_TEXTS.some((text) => html.includes(text))) return true;
+
+  const $ = cheerio.load(html);
+  const asideStatusText = normalizeText(
+    $("main aside button span span")
+      .map((_, el) => $(el).text())
+      .get()
+      .join(" "),
+  );
+  if (JOBKOREA_EXPIRED_STATUS_TEXTS.some((text) => asideStatusText.includes(text))) {
+    return true;
+  }
+
+  const bodyText = normalizeText($("body").text());
+  if (JOBKOREA_EXPIRED_STATUS_TEXTS.some((text) => bodyText.includes(text))) {
+    return true;
+  }
+
+  const validThroughValues: string[] = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    collectJobPostingValidThrough(parseJsonLd($(el).text()), validThroughValues);
+  });
+
+  return validThroughValues.some((validThrough) => isPastValidThrough(validThrough, today));
 }
 
 export function isJobkoreaExpiredStatus(status: number): boolean {
@@ -114,10 +199,12 @@ export async function checkJobDetailExpired(
   }
 
   if (job.source === "jobkorea") {
+    const html = await response.text();
+    const expired = isJobkoreaExpiredHtml(html);
     return {
-      state: "active",
+      state: expired ? "expired" : "active",
       checkedUrl,
-      reason: "jobkorea_detail_available",
+      reason: expired ? "jobkorea_expired_signal" : "jobkorea_active_signal_absent",
       status: response.status,
     };
   }

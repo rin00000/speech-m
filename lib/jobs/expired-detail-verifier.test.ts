@@ -7,6 +7,7 @@ import {
   checkJobDetailExpired,
   compareExpiredDetailCandidates,
   isExpiredDetailVerificationCandidate,
+  isJobkoreaExpiredHtml,
   isJobkoreaExpiredStatus,
   isMediajobExpiredHtml,
   isSaraminExpiredHtml,
@@ -76,7 +77,25 @@ describe("expired detail parsers", () => {
     expect(isJobkoreaExpiredStatus(200)).toBe(false);
   });
 
-  it("checks JobKorea detail availability by status", async () => {
+  it("detects JobKorea expired detail text and structured validThrough", () => {
+    expect(
+      isJobkoreaExpiredHtml(
+        "<main><aside><button><span><span>\uB9C8\uAC10 \uACF5\uACE0</span></span></button></aside></main>"
+      )
+    ).toBe(true);
+    expect(
+      isJobkoreaExpiredHtml(
+        '<script type="application/ld+json">{"@type":"JobPosting","validThrough":"2000-01-01T23:59"}</script>'
+      )
+    ).toBe(true);
+    expect(
+      isJobkoreaExpiredHtml(
+        '<script type="application/ld+json">{"@type":"JobPosting","validThrough":"2099-01-01T23:59"}</script>'
+      )
+    ).toBe(false);
+  });
+
+  it("checks JobKorea detail availability by status and HTML signals", async () => {
     const expired = await checkJobDetailExpired(
       makeCandidate({
         id: "jobkorea-1",
@@ -85,9 +104,21 @@ describe("expired detail parsers", () => {
       }),
       async () => new Response("", { status: 404 })
     );
-    const active = await checkJobDetailExpired(
+    const expiredHtml = await checkJobDetailExpired(
       makeCandidate({
         id: "jobkorea-2",
+        source: "jobkorea",
+        source_url: "https://www.jobkorea.co.kr/Recruit/GI_Read/49123093",
+      }),
+      async () =>
+        new Response(
+          '<script type="application/ld+json">{"@type":"JobPosting","validThrough":"2000-01-01T23:59"}</script>',
+          { status: 200 }
+        )
+    );
+    const active = await checkJobDetailExpired(
+      makeCandidate({
+        id: "jobkorea-3",
         source: "jobkorea",
         source_url: "https://www.jobkorea.co.kr/Recruit/GI_Read/49258289",
       }),
@@ -95,6 +126,7 @@ describe("expired detail parsers", () => {
     );
 
     expect(expired.state).toBe("expired");
+    expect(expiredHtml.state).toBe("expired");
     expect(active.state).toBe("active");
   });
 

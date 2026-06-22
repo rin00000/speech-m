@@ -36,6 +36,7 @@ export {
   checkJobDetailExpired,
   compareExpiredDetailCandidates,
   isExpiredDetailVerificationCandidate,
+  isJobkoreaExpiredHtml,
   isJobkoreaExpiredStatus,
   isMediajobExpiredHtml,
   isSaraminExpiredHtml,
