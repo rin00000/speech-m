@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ComponentPropsWithoutRef, MouseEvent } from "react";
-import { flushSync } from "react-dom";
 import { useLoading } from "@/lib/ui/loading-context";
 
 type TransitionLinkProps = ComponentPropsWithoutRef<typeof Link>;
@@ -40,15 +40,17 @@ export function TransitionLink({
   onClick,
   ...props
 }: TransitionLinkProps) {
+  const router = useRouter();
   const { startNavigation } = useLoading();
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
     if (!shouldShowNavigationFeedback(event)) return;
 
-    flushSync(() => {
-      startNavigation();
-    });
+    event.preventDefault();
+    const url = new URL(event.currentTarget.href);
+    startNavigation();
+    router.push(`${url.pathname}${url.search}${url.hash}`);
   };
 
   return (

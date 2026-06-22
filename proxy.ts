@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { getDevPersonaFromCookieValue } from "@/lib/auth/dev-personas";
 import { getNextAuthSessionCookieNamesToClear } from "@/lib/auth/session-cookies";
 import type { UserRole, UserStatus } from "@/types/database.types";
 
@@ -46,6 +47,20 @@ function isCrawlProtectedPath(pathname: string) {
 
 function isApiPath(pathname: string) {
   return pathname.startsWith("/api/");
+}
+
+function getDevProxyAuth(
+  request: NextRequest
+): Exclude<ProxyAuthResult, { status: "check_failed" }> | null {
+  if (process.env.NODE_ENV === "production") return null;
+
+  const devPersona = getDevPersonaFromCookieValue(request.cookies.get("mock_role")?.value);
+  if (devPersona === undefined) return null;
+  if (devPersona === null || devPersona.status !== "active") {
+    return { status: "invalid", clearSession: false };
+  }
+
+  return { status: "authenticated", role: devPersona.role };
 }
 
 async function getCurrentProxyUser(userId: string): Promise<ProxyAuthResult> {
@@ -152,6 +167,17 @@ export async function proxy(request: NextRequest) {
 
   const requirement = getAuthRequirement(pathname);
   if (requirement === "none") {
+    return NextResponse.next();
+  }
+
+  const devAuth = getDevProxyAuth(request);
+  if (devAuth) {
+    if (devAuth.status === "invalid") {
+      return unauthorizedResponse(request, devAuth.clearSession);
+    }
+    if (requirement === "admin" && devAuth.role !== "admin") {
+      return forbiddenResponse(request);
+    }
     return NextResponse.next();
   }
 

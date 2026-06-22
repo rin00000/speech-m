@@ -7,7 +7,6 @@
  */
 
 import type { MouseEvent, ReactNode } from "react";
-import { flushSync } from "react-dom";
 import type { UserRole } from "@/lib/auth/session";
 import { LoadingProvider, useLoading } from "@/lib/ui/loading-context";
 import { BottomTab } from "./bottom-tab";
@@ -67,15 +66,13 @@ function AppShellContent({
 
   const handleNavigationFeedback = (event: MouseEvent<HTMLDivElement>) => {
     if (!shouldShowNavigationFeedback(event)) return;
-    flushSync(() => {
-      startNavigation();
-    });
+    startNavigation();
   };
 
   return (
     <div
       className="flex min-h-dvh md:h-dvh md:overflow-hidden md:gap-4 md:p-4"
-      onClickCapture={handleNavigationFeedback}
+      onClick={handleNavigationFeedback}
     >
       {!hideNav && (
         <SideRail
