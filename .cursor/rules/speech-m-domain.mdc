@@ -13,7 +13,7 @@ alwaysApply: true
 - The system strictly uses 3 roles: `admin` (원장/관리자), `student` (정회원 수강생), and `guest` (준비생/게스트).
 - Role-based UI polymorphism is preferred over separate route groups for dashboards (e.g., `DashboardPage` dynamically rendering `AdminDashboardView`, `StudentDashboardView`, or `GuestDashboardView` based on role).
 - Navigation visibility is controlled centrally via `getNavItemsForRole()` in `nav-items.ts`.
-- Route protection is handled at the Server Component or Server Action level using `requireUser()`, `requireAdmin()`, and `getCurrentUser()` from `lib/auth/session.ts` instead of middleware.
+- Proxy may handle protected-route UX and first-pass routing blocks, but final authentication and authorization boundaries stay in Server Components, Server Actions, APIs, and DB policies using `getCurrentUser()`, `requireUser()`, and `requireAdmin()` from `lib/auth/session.ts`.
 
 # Pipeline Intent
 - Optimize the workflow `Scrape -> AI Filter -> Human-in-the-loop -> AI Post`.

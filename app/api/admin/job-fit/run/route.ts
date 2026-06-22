@@ -5,7 +5,11 @@
 
 import { revalidatePath } from "next/cache";
 import { after, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import {
+  getAdminAuthCheck,
+  getAuthCheckErrorMessage,
+  getAuthCheckHttpStatus,
+} from "@/lib/auth/session";
 import { runJobFitBatch } from "@/lib/ai/job-fit";
 import { ADMIN_JOB_FIT_BATCH_LIMIT } from "@/lib/ai/job-fit/constants";
 import { acquireAdminJobFitRunLock } from "@/lib/ai/job-fit/pipeline/admin-run-lock";
@@ -13,9 +17,12 @@ import { acquireAdminJobFitRunLock } from "@/lib/ai/job-fit/pipeline/admin-run-l
 export const maxDuration = 300;
 
 export async function POST() {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await getAdminAuthCheck();
+  if (auth.status !== "authenticated") {
+    return NextResponse.json(
+      { success: false, error: getAuthCheckErrorMessage(auth) },
+      { status: getAuthCheckHttpStatus(auth) }
+    );
   }
 
   const lock = await acquireAdminJobFitRunLock();

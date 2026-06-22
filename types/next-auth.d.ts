@@ -18,6 +18,9 @@ declare module "next-auth" {
       userId?: string;
       role: UserRole;
       status: UserStatus;
+      authInvalid?: boolean;
+      authInvalidReason?: string;
+      authCheckFailed?: boolean;
     };
   }
 }
@@ -27,5 +30,8 @@ declare module "next-auth/jwt" {
     userId?: string;
     role?: UserRole;
     status?: UserStatus;
+    authInvalid?: boolean;
+    authInvalidReason?: string;
+    authCheckFailed?: boolean;
   }
 }

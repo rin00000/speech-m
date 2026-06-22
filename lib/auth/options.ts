@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import type { Profile } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import type { OAuthConfig, OAuthUserConfig } from "next-auth/providers/oauth";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -46,6 +47,19 @@ type IdentityResult = {
   is_new: boolean;
 };
 
+type AuthInvalidReason = "missing_user" | "inactive_user";
+
+type UserRow = {
+  role: UserRole;
+  status: UserStatus;
+};
+
+type ProfileRow = {
+  email: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
 function getEmailVerified(provider: string, profile?: Profile) {
   if (provider !== "google" || !profile || typeof profile !== "object") return false;
   const profileRecord = profile as Record<string, unknown>;
@@ -78,6 +92,31 @@ async function findOrCreateIdentity(input: {
   const result = data?.[0] as IdentityResult | undefined;
   if (!result) throw new Error("auth_identity_resolution_empty");
   return result;
+}
+
+function clearAuthFlags(token: JWT) {
+  delete token.authInvalid;
+  delete token.authInvalidReason;
+  delete token.authCheckFailed;
+}
+
+function markTokenInvalid(token: JWT, reason: AuthInvalidReason) {
+  delete token.userId;
+  token.role = "guest";
+  token.status = "suspended";
+  token.authInvalid = true;
+  token.authInvalidReason = reason;
+  delete token.authCheckFailed;
+  return token;
+}
+
+function markTokenCheckFailed(token: JWT) {
+  token.role = "guest";
+  token.status = "suspended";
+  token.authCheckFailed = true;
+  delete token.authInvalid;
+  delete token.authInvalidReason;
+  return token;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -126,36 +165,68 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.picture = user.image;
+        clearAuthFlags(token);
       }
 
       if (!token.userId) return token;
 
       const supabase = createAdminClient();
-      const [{ data: userRow }, { data: profileRow }] = await Promise.all([
-        supabase.from("users").select("role, status").eq("id", token.userId).maybeSingle(),
-        supabase
-          .from("user_profiles")
-          .select("email, display_name, avatar_url")
-          .eq("user_id", token.userId)
-          .maybeSingle(),
-      ]);
+      const { data: userRow, error: userError } = await supabase
+        .from("users")
+        .select("role, status")
+        .eq("id", token.userId)
+        .maybeSingle();
 
-      token.role = userRow?.role ?? token.role ?? "guest";
-      token.status = userRow?.status ?? token.status ?? "active";
-      token.email = profileRow?.email ?? token.email;
-      token.name = profileRow?.display_name ?? token.name;
-      token.picture = profileRow?.avatar_url ?? token.picture;
+      if (userError) {
+        console.error("[auth] jwt users lookup failed", userError);
+        return markTokenCheckFailed(token);
+      }
+      if (!userRow) return markTokenInvalid(token, "missing_user");
+      if (userRow.status !== "active") return markTokenInvalid(token, "inactive_user");
+
+      const { data: profileRow, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("email, display_name, avatar_url")
+        .eq("user_id", token.userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("[auth] jwt user_profiles lookup failed", profileError);
+      }
+
+      const userRecord = userRow as UserRow;
+      const profile = profileError ? null : (profileRow as ProfileRow | null);
+
+      clearAuthFlags(token);
+      token.role = userRecord.role;
+      token.status = userRecord.status;
+      token.email = profile?.email ?? token.email;
+      token.name = profile?.display_name ?? token.name;
+      token.picture = profile?.avatar_url ?? token.picture;
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        if (token.userId) {
+        const isAuthenticated =
+          Boolean(token.userId) &&
+          token.status === "active" &&
+          token.authInvalid !== true &&
+          token.authCheckFailed !== true;
+
+        if (isAuthenticated && token.userId) {
           session.user.userId = token.userId;
         } else {
           delete session.user.userId;
         }
-        session.user.role = token.role ?? "guest";
-        session.user.status = token.status ?? "active";
+        session.user.role = isAuthenticated ? token.role ?? "guest" : "guest";
+        session.user.status = isAuthenticated ? token.status ?? "active" : "suspended";
+        session.user.authInvalid = token.authInvalid === true;
+        session.user.authCheckFailed = token.authCheckFailed === true;
+        if (token.authInvalidReason) {
+          session.user.authInvalidReason = token.authInvalidReason;
+        } else {
+          delete session.user.authInvalidReason;
+        }
         session.user.email = token.email ?? null;
         session.user.name = token.name ?? null;
         session.user.image = token.picture ?? null;

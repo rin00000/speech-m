@@ -4,6 +4,7 @@
  */
 
 import { revalidatePath } from "next/cache";
+import type { AuthFailureCode } from "@/lib/auth/session";
 import type { ManualJobPostingFieldErrors } from "@/lib/jobs/manual-job-posting";
 import type { JobStatus } from "@/types/database.types";
 
@@ -20,6 +21,7 @@ export type RunCrawlResult = {
   updated?: number;
   total?: number;
   error?: string;
+  authStatus?: AuthFailureCode;
 };
 
 export type RunAiFitResult = {
@@ -30,11 +32,17 @@ export type RunAiFitResult = {
   pending?: number;
   failed?: number;
   error?: string;
+  authStatus?: AuthFailureCode;
 };
 
 export type CreateManualJobPostingResult =
   | { success: true; id?: string }
-  | { success: false; error: string; fieldErrors?: ManualJobPostingFieldErrors };
+  | {
+      success: false;
+      error: string;
+      fieldErrors?: ManualJobPostingFieldErrors;
+      authStatus?: AuthFailureCode;
+    };
 
 export type DuplicateFingerprintRow = {
   id: string;
@@ -61,6 +69,7 @@ export type MarkPublishedResult = {
   success: boolean;
   updated?: number;
   error?: string;
+  authStatus?: AuthFailureCode;
 };
 
 export type JobPostDraftPromptResult =

@@ -17,7 +17,11 @@ import {
 } from "@/lib/ai/job-fit";
 import { buildJobPostDraftPrompt } from "@/lib/ai/post/prompt";
 import { isDeadlineActiveForDedup } from "@/lib/crawl/fingerprint";
-import { getCurrentUser } from "@/lib/auth/session";
+import {
+  getAdminAuthCheck,
+  getAuthCheckErrorMessage,
+  getAuthCheckFailureCode,
+} from "@/lib/auth/session";
 import {
   buildManualJobPostingPayload,
   type ManualJobPostingInput,
@@ -34,6 +38,21 @@ import {
   type RunAiFitResult,
   type RunCrawlResult,
 } from "./_actions/jobs-action-helpers";
+
+async function getJobsAdminError() {
+  const auth = await getAdminAuthCheck();
+  if (auth.status === "authenticated") return null;
+  return {
+    authStatus: getAuthCheckFailureCode(auth),
+    error: getAuthCheckErrorMessage(auth),
+  };
+}
+
+async function requireJobsAdminOrThrow() {
+  const failure = await getJobsAdminError();
+  if (failure) throw new Error(failure.error);
+}
+
 export type { CrawlSource } from "@/lib/crawl/trigger";
 export type {
   CreateManualJobPostingResult,
@@ -48,6 +67,9 @@ export const evaluateAiFilterBenchmark = async (metrics: BenchmarkMetrics): Prom
   evaluateBenchmarkPassFail(metrics);
 
 export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => {
+  const authError = await getJobsAdminError();
+  if (authError) return { success: false, ...authError };
+
   const secret = process.env.CRAWL_API_SECRET;
   if (!secret) {
     return { success: false, error: "CRAWL_API_SECRET 환경변수가 설정되지 않았습니다." };
@@ -85,6 +107,9 @@ export const runCrawl = async (source: CrawlSource): Promise<RunCrawlResult> => 
 };
 
 export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
+  const authError = await getJobsAdminError();
+  if (authError) return { success: false, ...authError };
+
   try {
     const result = await runJobFitBatch(30);
     revalidateJobsViews();
@@ -100,10 +125,8 @@ export const runAiFitBatch = async (): Promise<RunAiFitResult> => {
 export const createManualJobPosting = async (
   input: ManualJobPostingInput
 ): Promise<CreateManualJobPostingResult> => {
-  const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
-    return { success: false, error: "관리자 권한이 필요합니다." };
-  }
+  const authError = await getJobsAdminError();
+  if (authError) return { success: false, ...authError };
 
   const built = buildManualJobPostingPayload(input);
   if (!built.success) {
@@ -186,6 +209,8 @@ export const createManualJobPosting = async (
  * rejected로 확정될 때 `rejected_at`을 채우고, 그 외로 되돌리면 null로 둔다.
  */
 export const updateJobStatus = async (id: string, status: JobStatus) => {
+  await requireJobsAdminOrThrow();
+
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("job_postings")
@@ -197,6 +222,8 @@ export const updateJobStatus = async (id: string, status: JobStatus) => {
 };
 
 export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
+  await requireJobsAdminOrThrow();
+
   if (!ids.length) return;
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -212,6 +239,8 @@ export const bulkUpdateJobStatus = async (ids: string[], status: JobStatus) => {
  * `status === "rejected"`인 행만 하드 삭제한다. id 목록에 다른 상태가 섞여 있어도 DB 조건으로 제외된다.
  */
 export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> => {
+  await requireJobsAdminOrThrow();
+
   if (!ids.length) return;
   const supabase = createAdminClient();
   for (let i = 0; i < ids.length; i += DELETE_REJECTED_CHUNK) {
@@ -235,6 +264,9 @@ export const deleteRejectedJobPostings = async (ids: string[]): Promise<void> =>
 
 /** 승인된 공고만 내부 게시 처리: `published_at`에 내부 게시 시각을 최초 1회 설정(idempotent). */
 export const markJobsPublished = async (ids: string[]): Promise<MarkPublishedResult> => {
+  const authError = await getJobsAdminError();
+  if (authError) return { success: false, ...authError };
+
   if (!ids.length) return { success: true, updated: 0 };
   const supabase = createAdminClient();
   const now = new Date().toISOString();

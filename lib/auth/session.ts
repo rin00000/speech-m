@@ -18,6 +18,14 @@ export type CurrentUser = {
   status: UserStatus;
 };
 
+export type AuthCheckResult =
+  | { status: "authenticated"; user: CurrentUser }
+  | { status: "invalid"; reason: "missing_session" | "missing_user" | "inactive_user" | "dev_persona_signed_out" }
+  | { status: "check_failed"; reason: "users_lookup_failed"; error?: unknown }
+  | { status: "forbidden"; user: CurrentUser };
+
+export type AuthFailureCode = "unauthorized" | "forbidden" | "check_failed";
+
 type UserRow = {
   role: UserRole;
   status: UserStatus;
@@ -33,30 +41,45 @@ type ProfileRow = {
 async function getCurrentUserById(
   userId: string,
   fallback?: Partial<Pick<CurrentUser, "email" | "name" | "realName" | "image">>
-): Promise<CurrentUser | null> {
+): Promise<AuthCheckResult> {
   const supabase = createAdminClient();
-  const [{ data: userRow }, { data: profileRow }] = await Promise.all([
-    supabase.from("users").select("role, status").eq("id", userId).maybeSingle(),
-    supabase
-      .from("user_profiles")
-      .select("email, display_name, real_name, avatar_url")
-      .eq("user_id", userId)
-      .maybeSingle(),
-  ]);
+  const { data: userRow, error: userError } = await supabase
+    .from("users")
+    .select("role, status")
+    .eq("id", userId)
+    .maybeSingle();
 
-  if (!userRow || userRow.status !== "active") return null;
+  if (userError) {
+    console.error("[auth] users lookup failed", userError);
+    return { status: "check_failed", reason: "users_lookup_failed", error: userError };
+  }
+  if (!userRow) return { status: "invalid", reason: "missing_user" };
+  if (userRow.status !== "active") return { status: "invalid", reason: "inactive_user" };
+
+  const { data: profileRow, error: profileError } = await supabase
+    .from("user_profiles")
+    .select("email, display_name, real_name, avatar_url")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("[auth] user_profiles lookup failed", profileError);
+  }
 
   const user = userRow as UserRow;
-  const profile = profileRow as ProfileRow | null;
+  const profile = profileError ? null : (profileRow as ProfileRow | null);
 
   return {
-    userId,
-    email: profile?.email ?? fallback?.email ?? null,
-    name: profile?.display_name ?? fallback?.name ?? null,
-    realName: profile?.real_name ?? fallback?.realName ?? null,
-    image: profile?.avatar_url ?? fallback?.image ?? null,
-    role: user.role,
-    status: user.status,
+    status: "authenticated",
+    user: {
+      userId,
+      email: profile?.email ?? fallback?.email ?? null,
+      name: profile?.display_name ?? fallback?.name ?? null,
+      realName: profile?.real_name ?? fallback?.realName ?? null,
+      image: profile?.avatar_url ?? fallback?.image ?? null,
+      role: user.role,
+      status: user.status,
+    },
   };
 }
 
@@ -93,13 +116,34 @@ async function ensureDevPersona(persona: DevPersona) {
   );
 }
 
-export async function getCurrentUser() {
+export function getAuthCheckHttpStatus(result: AuthCheckResult): 200 | 401 | 403 | 503 {
+  if (result.status === "authenticated") return 200;
+  if (result.status === "check_failed") return 503;
+  if (result.status === "forbidden") return 403;
+  return 401;
+}
+
+export function getAuthCheckErrorMessage(result: Exclude<AuthCheckResult, { status: "authenticated" }>) {
+  if (result.status === "check_failed") return "Authentication check failed.";
+  if (result.status === "forbidden") return "Forbidden.";
+  return "Unauthorized.";
+}
+
+export function getAuthCheckFailureCode(
+  result: Exclude<AuthCheckResult, { status: "authenticated" }>
+): AuthFailureCode {
+  if (result.status === "check_failed") return "check_failed";
+  if (result.status === "forbidden") return "forbidden";
+  return "unauthorized";
+}
+
+export async function getCurrentUserAuthCheck(): Promise<AuthCheckResult> {
   try {
     const cookieStore = await cookies();
     const mockRole = cookieStore.get("mock_role")?.value;
     if (mockRole && process.env.NODE_ENV !== "production") {
       const devPersona = getDevPersonaFromCookieValue(mockRole);
-      if (devPersona === null) return null;
+      if (devPersona === null) return { status: "invalid", reason: "dev_persona_signed_out" };
       if (devPersona !== undefined) {
         await ensureDevPersona(devPersona);
         return getCurrentUserById(devPersona.userId, {
@@ -114,13 +158,28 @@ export async function getCurrentUser() {
   }
 
   const session = await getServerSession(authOptions);
-  if (!session?.user?.userId) return null;
+  if (session?.user?.authCheckFailed) {
+    return { status: "check_failed", reason: "users_lookup_failed" };
+  }
+  if (!session?.user?.userId) return { status: "invalid", reason: "missing_session" };
 
   return getCurrentUserById(session.user.userId, {
     email: session.user.email ?? null,
     name: session.user.name ?? null,
     image: session.user.image ?? null,
   });
+}
+
+export async function getCurrentUser() {
+  const result = await getCurrentUserAuthCheck();
+  return result.status === "authenticated" ? result.user : null;
+}
+
+export async function getAdminAuthCheck(): Promise<AuthCheckResult> {
+  const result = await getCurrentUserAuthCheck();
+  if (result.status !== "authenticated") return result;
+  if (result.user.role !== "admin") return { status: "forbidden", user: result.user };
+  return result;
 }
 
 export async function requireUser() {
