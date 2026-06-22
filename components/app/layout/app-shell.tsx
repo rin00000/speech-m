@@ -6,13 +6,45 @@
  * LoadingProvider로 전체를 감싸 Server Action 버튼이 글로벌 Progress Bar와 연동되도록 한다.
  */
 
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { UserRole } from "@/lib/auth/session";
 import { LoadingProvider, useLoading } from "@/lib/ui/loading-context";
 import { BottomTab } from "./bottom-tab";
 import { DevRoleSimulator } from "./dev-role-simulator";
 import { SideRail } from "./side-rail";
 import { cn } from "@/lib/ui/cn";
+
+function shouldShowNavigationFeedback(event: MouseEvent<HTMLElement>) {
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return false;
+  }
+
+  if (!(event.target instanceof Element)) return false;
+
+  const anchor = event.target.closest<HTMLAnchorElement>("a[href]");
+  if (!anchor || !event.currentTarget.contains(anchor)) return false;
+
+  const target = anchor.getAttribute("target");
+  if ((target && target !== "_self") || anchor.hasAttribute("download")) return false;
+
+  const rawHref = anchor.getAttribute("href");
+  if (!rawHref || rawHref.startsWith("#")) return false;
+
+  const url = new URL(anchor.href);
+  if (url.origin !== window.location.origin) return false;
+
+  const currentRoute = `${window.location.pathname}${window.location.search}`;
+  const nextRoute = `${url.pathname}${url.search}`;
+  return currentRoute !== nextRoute;
+}
 
 function AppShellContent({
   children,
@@ -31,10 +63,20 @@ function AppShellContent({
   previewPathname?: string;
   hideNav: boolean;
 }) {
-  const { isNavigating } = useLoading();
+  const { isNavigating, startNavigation } = useLoading();
+
+  const handleNavigationFeedback = (event: MouseEvent<HTMLDivElement>) => {
+    if (!shouldShowNavigationFeedback(event)) return;
+    flushSync(() => {
+      startNavigation();
+    });
+  };
 
   return (
-    <div className="flex min-h-dvh md:h-dvh md:overflow-hidden md:gap-4 md:p-4">
+    <div
+      className="flex min-h-dvh md:h-dvh md:overflow-hidden md:gap-4 md:p-4"
+      onClickCapture={handleNavigationFeedback}
+    >
       {!hideNav && (
         <SideRail
           userRole={userRole}

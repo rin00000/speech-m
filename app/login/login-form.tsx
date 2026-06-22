@@ -9,14 +9,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
-import { getSafeCallbackPath } from "@/lib/auth/redirects";
 
 type Provider = "google" | "naver";
 
-export default function LoginForm() {
-  const searchParams = useSearchParams();
-  const callbackUrl = getSafeCallbackPath(searchParams.get("callbackUrl")) ?? "/auth/after-login";
+export default function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const [loading, setLoading] = useState<Provider | null>(null);
 
   const handleSignIn = (provider: Provider) => {
@@ -50,31 +46,19 @@ export default function LoginForm() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-12px); }
         }
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-enter {
-          animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .animate-enter-delay {
-          opacity: 0;
-          animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-        }
       `}</style>
 
       {/* ─── Top: Illustration Area ─── */}
-      <div className="relative flex w-full flex-[1.4] flex-col items-center overflow-hidden bg-bg pt-[12vh]">
-        {/* Glowing orbs background */}
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <div className="absolute -left-[10%] -top-[10%] h-[80%] w-[80%] rounded-full bg-rose-300/40 blur-[100px]" />
-          <div className="absolute -right-[10%] top-[20%] h-[70%] w-[70%] rounded-full bg-blue-300/40 blur-[120px]" />
-          <div className="absolute -bottom-[20%] left-[10%] h-[60%] w-[60%] rounded-full bg-purple-300/40 blur-[100px]" />
-        </div>
-
+      <div
+        className="relative flex w-full flex-[1.4] flex-col items-center overflow-hidden pt-[12vh]"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 38%, #d2e0fb 0%, #e5eefc 42%, #f8fafc 100%)",
+        }}
+      >
         {/* Logo and Title */}
-        <div className="animate-enter relative z-20 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/30 bg-white/20 shadow-sm backdrop-blur-md">
+        <div className="relative z-20 flex flex-col items-center gap-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/40 bg-white/30 shadow-sm">
             <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-white drop-shadow-md">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
               <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
@@ -130,7 +114,7 @@ export default function LoginForm() {
       </div>
 
       {/* ─── Bottom: Login Action Area ─── */}
-      <div className="animate-enter-delay relative z-10 flex w-full flex-col items-center bg-white pb-14 pt-2">
+      <div className="relative z-10 flex w-full flex-col items-center bg-white pb-14 pt-2">
         <div className="flex w-full max-w-sm flex-col gap-3 px-6">
           {/* Google 버튼 */}
           <button
@@ -218,7 +202,7 @@ function OrbitItem({
 }) {
   const counterAnim = dir === "cw" ? "orbit-reverse" : "orbit-reverse-ccw";
   return (
-    <div className={`absolute flex h-12 w-12 items-center justify-center rounded-full bg-white/30 p-[2px] shadow backdrop-blur-sm ${POS_CLASSES[pos]}`}>
+    <div className={`absolute flex h-12 w-12 items-center justify-center rounded-full bg-white/40 p-[2px] shadow ${POS_CLASSES[pos]}`}>
       <div
         className="flex h-full w-full items-center justify-center rounded-full bg-white/90 shadow-sm"
         style={{ animation: `${counterAnim} ${duration} linear infinite` }}

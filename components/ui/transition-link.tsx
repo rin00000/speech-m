@@ -1,49 +1,58 @@
 "use client";
 
-import Link, { LinkProps } from "next/link";
-import { useRouter } from "next/navigation";
-import { ReactNode } from "react";
+import Link from "next/link";
+import type { ComponentPropsWithoutRef, MouseEvent } from "react";
+import { flushSync } from "react-dom";
 import { useLoading } from "@/lib/ui/loading-context";
 
-interface TransitionLinkProps extends LinkProps {
-  children: ReactNode;
-  className?: string;
-  title?: string;
+type TransitionLinkProps = ComponentPropsWithoutRef<typeof Link>;
+
+function shouldShowNavigationFeedback(event: MouseEvent<HTMLAnchorElement>) {
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return false;
+  }
+
+  const anchor = event.currentTarget;
+  const target = anchor.getAttribute("target");
+  if ((target && target !== "_self") || anchor.hasAttribute("download")) return false;
+
+  const rawHref = anchor.getAttribute("href");
+  if (!rawHref || rawHref.startsWith("#")) return false;
+
+  const url = new URL(anchor.href);
+  if (url.origin !== window.location.origin) return false;
+
+  const currentRoute = `${window.location.pathname}${window.location.search}`;
+  const nextRoute = `${url.pathname}${url.search}`;
+  return currentRoute !== nextRoute;
 }
 
 export function TransitionLink({
   children,
   href,
-  className,
-  title,
+  onClick,
   ...props
 }: TransitionLinkProps) {
-  const router = useRouter();
   const { startNavigation } = useLoading();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // 특수 키 클릭(새 탭 열기 등)은 기본 브라우저 흐름을 따르도록 격리
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
-      return;
-    }
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    onClick?.(event);
+    if (!shouldShowNavigationFeedback(event)) return;
 
-    e.preventDefault();
-
-    // 0ms 만에 즉시 로딩 프로그레스 바 실행 및 본문 스켈레톤 활성화!
-    startNavigation();
-
-    // 페이지 이동 요청
-    router.push(href.toString());
+    flushSync(() => {
+      startNavigation();
+    });
   };
 
   return (
-    <Link
-      href={href}
-      className={className}
-      title={title}
-      onClick={handleClick}
-      {...props}
-    >
+    <Link href={href} onClick={handleClick} {...props}>
       {children}
     </Link>
   );
