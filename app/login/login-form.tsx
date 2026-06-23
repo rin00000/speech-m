@@ -2,15 +2,18 @@
 
 /**
  * 로그인 폼 컴포넌트 (통합 Start+Login 화면).
- * Google, Naver OAuth 소셜 로그인을 제공.
+ * Google, Naver OAuth 소셜 로그인과 로그인 제공자 유지 안내를 제공.
  * 버튼 클릭 시 즉시 로딩 상태(스피너 + disabled)로 전환해 중복 클릭 방지.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 
 type Provider = "google" | "naver";
+type ProviderNoticeState = "checking" | "visible" | "dismissed";
+
+const PROVIDER_NOTICE_STORAGE_KEY = "speech-m:login-provider-notice:v1";
 
 type LoginFormProps = {
   callbackUrl: string;
@@ -18,17 +21,97 @@ type LoginFormProps = {
 
 const LoginForm = ({ callbackUrl }: LoginFormProps) => {
   const [loading, setLoading] = useState<Provider | null>(null);
+  const [providerNoticeState, setProviderNoticeState] =
+    useState<ProviderNoticeState>("checking");
+  const providerNoticeConfirmRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    let nextState: ProviderNoticeState;
+    try {
+      const isAcknowledged =
+        window.localStorage.getItem(PROVIDER_NOTICE_STORAGE_KEY) === "acknowledged";
+      nextState = isAcknowledged ? "dismissed" : "visible";
+    } catch {
+      nextState = "visible";
+    }
+
+    const timeoutId = window.setTimeout(() => setProviderNoticeState(nextState), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (providerNoticeState === "visible") {
+      providerNoticeConfirmRef.current?.focus();
+    }
+  }, [providerNoticeState]);
+
+  const handleProviderNoticeConfirm = () => {
+    try {
+      window.localStorage.setItem(PROVIDER_NOTICE_STORAGE_KEY, "acknowledged");
+    } catch {
+      // Storage가 차단되어도 현재 화면에서는 로그인을 계속할 수 있게 한다.
+    }
+    setProviderNoticeState("dismissed");
+  };
+
+  const handleProviderNoticeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab") return;
+    event.preventDefault();
+    providerNoticeConfirmRef.current?.focus();
+  };
 
   const handleSignIn = (provider: Provider) => {
-    if (loading) return;
+    if (loading || providerNoticeState !== "dismissed") return;
     setLoading(provider);
     void signIn(provider, { callbackUrl });
   };
 
   const isLoading = loading !== null;
+  const isLoginDisabled = isLoading || providerNoticeState !== "dismissed";
 
   return (
     <main className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-white">
+      {providerNoticeState === "visible" && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 p-4"
+          onKeyDown={handleProviderNoticeKeyDown}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="provider-notice-title"
+            aria-describedby="provider-notice-description"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-sm overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-sm"
+          >
+            <span className="inline-flex rounded-full border border-periwinkle-200 bg-periwinkle-50 px-3 py-1 text-xs font-bold leading-none text-periwinkle-700">
+              계정 안내
+            </span>
+            <h2
+              id="provider-notice-title"
+              className="mt-4 text-xl font-extrabold tracking-tight text-gray-900"
+            >
+              로그인 방식을 기억해 주세요
+            </h2>
+            <p
+              id="provider-notice-description"
+              className="mt-3 text-sm font-medium leading-relaxed text-gray-600"
+            >
+              처음 로그인한 방식(Google 또는 Naver)을 계속 사용해 주세요. 같은 이메일이어도
+              다른 로그인 방식을 선택하면 별도 계정으로 인식되어 수강생 권한이 보이지 않을 수
+              있습니다.
+            </p>
+            <button
+              ref={providerNoticeConfirmRef}
+              type="button"
+              onClick={handleProviderNoticeConfirm}
+              className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-periwinkle-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-periwinkle-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-periwinkle-600"
+            >
+              확인했어요
+            </button>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes orbit {
           from { transform: rotate(0deg); }
@@ -125,7 +208,7 @@ const LoginForm = ({ callbackUrl }: LoginFormProps) => {
             id="login-google"
             type="button"
             onClick={() => handleSignIn("google")}
-            disabled={isLoading}
+            disabled={isLoginDisabled}
             className="relative flex w-full items-center justify-center gap-3 rounded-full bg-[#1A1A1A] px-4 py-4 text-[1.05rem] font-semibold tracking-tight text-white shadow-sm transition-transform hover:scale-[0.99] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading === "google" ? (
@@ -146,7 +229,7 @@ const LoginForm = ({ callbackUrl }: LoginFormProps) => {
             id="login-naver"
             type="button"
             onClick={() => handleSignIn("naver")}
-            disabled={isLoading}
+            disabled={isLoginDisabled}
             className="relative flex w-full items-center justify-center gap-3 rounded-full bg-[#F2F2F2] px-4 py-4 text-[1.05rem] font-semibold tracking-tight text-black transition-all hover:scale-[0.99] hover:bg-[#e8e8e8] active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading === "naver" ? (
