@@ -12,7 +12,11 @@ import { signIn } from "next-auth/react";
 
 type Provider = "google" | "naver";
 
-export default function LoginForm({ callbackUrl }: { callbackUrl: string }) {
+type LoginFormProps = {
+  callbackUrl: string;
+};
+
+const LoginForm = ({ callbackUrl }: LoginFormProps) => {
   const [loading, setLoading] = useState<Provider | null>(null);
 
   const handleSignIn = (provider: Provider) => {
@@ -53,7 +57,7 @@ export default function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         className="relative flex w-full flex-[1.4] flex-col items-center overflow-hidden pt-[12vh]"
         style={{
           background:
-            "radial-gradient(circle at 50% 38%, #d2e0fb 0%, #e5eefc 42%, #f8fafc 100%)",
+            "radial-gradient(circle at 50% 38%, var(--color-periwinkle-200) 0%, var(--color-periwinkle-50) 42%, var(--color-gray-50) 100%)",
         }}
       >
         {/* Logo and Title */}
@@ -173,7 +177,9 @@ export default function LoginForm({ callbackUrl }: { callbackUrl: string }) {
       </div>
     </main>
   );
-}
+};
+
+export default LoginForm;
 
 // ─── Helper: Orbital Item ───────────────────────────────────────────────────
 type OrbitalPos = "top-center" | "bottom-center" | "left-center" | "right-center" | "top-left" | "bottom-right";
@@ -202,7 +208,7 @@ function OrbitItem({
 }) {
   const counterAnim = dir === "cw" ? "orbit-reverse" : "orbit-reverse-ccw";
   return (
-    <div className={`absolute flex h-12 w-12 items-center justify-center rounded-full bg-white/40 p-[2px] shadow ${POS_CLASSES[pos]}`}>
+    <div className={`absolute flex h-12 w-12 items-center justify-center rounded-full bg-white/40 p-[2px] shadow-sm ${POS_CLASSES[pos]}`}>
       <div
         className="flex h-full w-full items-center justify-center rounded-full bg-white/90 shadow-sm"
         style={{ animation: `${counterAnim} ${duration} linear infinite` }}

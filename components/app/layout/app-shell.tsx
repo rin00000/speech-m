@@ -26,9 +26,15 @@ function shouldShowNavigationFeedback(event: MouseEvent<HTMLElement>) {
     return false;
   }
 
-  if (!(event.target instanceof Element)) return false;
+  const targetElement =
+    event.target instanceof Element
+      ? event.target
+      : event.target instanceof Node
+        ? event.target.parentElement
+        : null;
+  if (!targetElement) return false;
 
-  const anchor = event.target.closest<HTMLAnchorElement>("a[href]");
+  const anchor = targetElement.closest<HTMLAnchorElement>("a[href]");
   if (!anchor || !event.currentTarget.contains(anchor)) return false;
 
   const target = anchor.getAttribute("target");
