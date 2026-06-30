@@ -38,7 +38,11 @@ export function RelayStudyDetailView({
   role,
 }: RelayStudyDetailViewProps) {
   const router = useRouter();
-  const firstOpenQuest = detail.quests.find((quest) => quest.status === "open") ?? detail.quests[0] ?? null;
+  const firstOpenQuest =
+    detail.quests.find((quest) => quest.status === "open" && !quest.isOverdue) ??
+    detail.quests.find((quest) => quest.status === "open") ??
+    detail.quests[0] ??
+    null;
   const [activeQuestId, setActiveQuestId] = useState(firstOpenQuest?.id ?? "");
   const activeQuest = useMemo(
     () => detail.quests.find((quest) => quest.id === activeQuestId) ?? firstOpenQuest,
@@ -181,13 +185,10 @@ export function RelayStudyDetailView({
                   resetInputs();
                   setNotice(null);
                 }}
-                className={`shrink-0 rounded-full border px-4 py-2 text-xs font-extrabold transition-colors ${
-                  activeQuest?.id === quest.id
-                    ? "border-periwinkle-200 bg-periwinkle-100 text-periwinkle-700"
-                    : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                }`}
+                className={getQuestTabClassName(quest, activeQuest?.id === quest.id)}
               >
                 {quest.scriptTitle}
+                {quest.status === "open" && quest.isOverdue ? " · 마감 지남" : ""}
               </button>
             ))}
           </div>
@@ -237,4 +238,23 @@ export function RelayStudyDetailView({
       )}
     </div>
   );
+}
+
+function getQuestTabClassName(quest: StudyDetail["quests"][number], isActive: boolean) {
+  const baseClassName = "shrink-0 rounded-full border px-4 py-2 text-xs font-extrabold transition-colors";
+  const isExpiredOpenQuest = quest.status === "open" && quest.isOverdue;
+
+  if (isExpiredOpenQuest) {
+    return `${baseClassName} ${
+      isActive
+        ? "border-red-200 bg-red-100 text-red-700"
+        : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+    }`;
+  }
+
+  return `${baseClassName} ${
+    isActive
+      ? "border-periwinkle-200 bg-periwinkle-100 text-periwinkle-700"
+      : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+  }`;
 }

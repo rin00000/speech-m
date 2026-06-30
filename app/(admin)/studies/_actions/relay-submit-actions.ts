@@ -18,11 +18,11 @@ import {
 } from "./action-schemas";
 import {
   createAudioPath,
-  getQuestGroupId,
   getQuestRelayState,
   getRelayRpcErrorMessage,
   removeUploadedAudio,
   requireStudentActor,
+  requireOpenQuestBeforeDue,
   revalidateStudyPaths,
   validateUploadedAudioInput,
 } from "./relay-action-helpers";
@@ -38,6 +38,9 @@ export async function createStudyAudioUploadTarget(
 
   const fileValidation = validateStudyAudioFileMeta(parsed.data);
   if (!fileValidation.ok) return { success: false, error: fileValidation.error };
+
+  const questGuard = await requireOpenQuestBeforeDue(parsed.data.questId);
+  if (!questGuard.success) return questGuard;
 
   const state = await getQuestRelayState(parsed.data.questId, actor.data.userId);
   if (!state.success) return state;
@@ -82,8 +85,11 @@ export async function submitRelayFirstSubmission(
   const audio = validateUploadedAudioInput(parsed.data, actor.data.userId);
   if (!audio.success) return audio;
 
-  const groupId = await getQuestGroupId(parsed.data.questId);
-  if (!groupId) return { success: false, error: "퀘스트를 찾을 수 없습니다." };
+  const questGuard = await requireOpenQuestBeforeDue(parsed.data.questId);
+  if (!questGuard.success) {
+    await removeUploadedAudio(parsed.data.audioPath);
+    return questGuard;
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("submit_relay_first_submission", {
@@ -103,7 +109,7 @@ export async function submitRelayFirstSubmission(
     };
   }
 
-  revalidateStudyPaths(groupId);
+  revalidateStudyPaths(questGuard.data.groupId);
   return { success: true, data: undefined };
 }
 
@@ -121,8 +127,11 @@ export async function submitRelayFeedbackAndSubmission(
   const audio = validateUploadedAudioInput(parsed.data, actor.data.userId);
   if (!audio.success) return audio;
 
-  const groupId = await getQuestGroupId(parsed.data.questId);
-  if (!groupId) return { success: false, error: "퀘스트를 찾을 수 없습니다." };
+  const questGuard = await requireOpenQuestBeforeDue(parsed.data.questId);
+  if (!questGuard.success) {
+    await removeUploadedAudio(parsed.data.audioPath);
+    return questGuard;
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("submit_relay_feedback_and_submission", {
@@ -144,7 +153,7 @@ export async function submitRelayFeedbackAndSubmission(
     };
   }
 
-  revalidateStudyPaths(groupId);
+  revalidateStudyPaths(questGuard.data.groupId);
   return { success: true, data: undefined };
 }
 
@@ -159,8 +168,8 @@ export async function submitRelayFinalFeedback(
     return { success: false, error: parsed.error.issues[0]?.message ?? "피드백 정보를 확인하세요." };
   }
 
-  const groupId = await getQuestGroupId(parsed.data.questId);
-  if (!groupId) return { success: false, error: "퀘스트를 찾을 수 없습니다." };
+  const questGuard = await requireOpenQuestBeforeDue(parsed.data.questId);
+  if (!questGuard.success) return questGuard;
 
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("submit_relay_final_feedback", {
@@ -177,6 +186,6 @@ export async function submitRelayFinalFeedback(
     };
   }
 
-  revalidateStudyPaths(groupId);
+  revalidateStudyPaths(questGuard.data.groupId);
   return { success: true, data: undefined };
 }

@@ -70,6 +70,7 @@ export function PendingRelayCard({
 }) {
   const pendingSubmission = quest.relay.pendingSubmission;
   const isStudent = role === "student" && Boolean(currentUserId);
+  const isExpiredOpenQuest = quest.status === "open" && quest.isOverdue;
 
   return (
     <Card>
@@ -80,7 +81,14 @@ export function PendingRelayCard({
         </CardTitle>
       </CardHeader>
       <CardBody className="space-y-5">
-        {!pendingSubmission ? (
+        {isExpiredOpenQuest ? (
+          <>
+            {pendingSubmission && (
+              <AudioFeedbackCard submission={pendingSubmission} currentUserId={currentUserId} />
+            )}
+            <EmptyPanel text="마감이 지나 제출할 수 없습니다." />
+          </>
+        ) : !pendingSubmission ? (
           quest.relay.isComplete ? (
             <EmptyPanel text="이번 퀘스트 릴레이가 완료되었습니다." />
           ) : (

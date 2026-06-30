@@ -16,6 +16,7 @@ import type { Database, PracticeScriptCategory, PracticeScriptDifficulty } from 
 import {
   buildRelayQuestState,
   getDisplayName,
+  isStudyQuestOverdue,
   type RelayFeedback,
   type RelayQuestState,
   type RelaySubmission,
@@ -180,7 +181,11 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
   const groups = (groupRows ?? []).filter((group) => group.status === "active");
   const activeGroupIds = new Set(groups.map((group) => group.id));
   const quests = (questRows ?? []).filter((quest) => activeGroupIds.has(quest.group_id));
-  const questIds = quests.map((quest) => quest.id);
+  const now = Date.now();
+  const openQuests = quests.filter(
+    (quest) => quest.status === "open" && !isStudyQuestOverdue(quest.due_at, now),
+  );
+  const questIds = openQuests.map((quest) => quest.id);
   const { data: submissionRows } =
     questIds.length > 0
       ? await supabase
@@ -213,7 +218,7 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
     ]),
   ]);
   const groupById = new Map(groups.map((group) => [group.id, group]));
-  const questById = new Map(quests.map((quest) => [quest.id, quest]));
+  const questById = new Map(openQuests.map((quest) => [quest.id, quest]));
   const submissionsByQuestId = groupBy(submissions, (submission) => submission.quest_id);
   const submissionById = new Map(submissions.map((submission) => [submission.id, submission]));
   const feedbackBySubmissionId = new Map<string, RelayFeedback>();
@@ -244,7 +249,6 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
       studyMembersByGroupId.set(member.group_id, members);
     });
 
-  const openQuests = quests.filter((quest) => quest.status === "open");
   const relayStateByQuestId = new Map(
     openQuests.map((quest) => [
       quest.id,
@@ -258,24 +262,25 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
       }),
     ]),
   );
-  const studies = groups.map((group) => {
-    const groupQuests = quests.filter((quest) => quest.group_id === group.id);
-    const groupOpenQuests = groupQuests.filter((quest) => quest.status === "open");
+  const studies = groups.flatMap((group) => {
+    const groupOpenQuests = openQuests.filter((quest) => quest.group_id === group.id);
+    if (groupOpenQuests.length === 0) return [];
+
     const groupRelayStates = groupOpenQuests
       .map((quest) => relayStateByQuestId.get(quest.id))
       .filter((state): state is RelayQuestState => Boolean(state));
     const feedbackSummary = buildStudyFeedbackSummary(groupRelayStates, userId);
 
-    return {
+    return [{
       id: group.id,
       title: group.title,
       description: group.description,
       memberCount: studyMembersByGroupId.get(group.id)?.length ?? 0,
-      questCount: groupQuests.length,
+      questCount: groupOpenQuests.length,
       openQuestCount: groupOpenQuests.length,
       nextDueAt: groupOpenQuests[0]?.due_at ?? null,
       ...feedbackSummary,
-    };
+    }];
   });
 
   const tasks = openQuests

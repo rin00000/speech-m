@@ -53,8 +53,14 @@ export function StudentStudiesView({
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700">
               <HugeiconsIcon icon={UserGroupIcon} size={18} color="currentColor" />
             </span>
-            <span className="inline-flex items-center rounded-full border border-periwinkle-200 bg-periwinkle-50 px-2.5 py-1 text-[11px] font-bold leading-none text-periwinkle-700">
-              릴레이
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold leading-none ${
+                study.overdueOpenQuestCount > 0
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : "border-periwinkle-200 bg-periwinkle-50 text-periwinkle-700"
+              }`}
+            >
+              {study.overdueOpenQuestCount > 0 ? "마감 지남" : "릴레이"}
             </span>
           </div>
 
@@ -67,13 +73,17 @@ export function StudentStudiesView({
 
           <div className="mt-5 grid grid-cols-3 gap-2 text-center">
             <Metric label="멤버" value={`${study.memberCount}`} />
-            <Metric label="진행" value={`${study.openQuestCount}`} />
-            <Metric label="전체" value={`${study.questCount}`} />
+            <Metric label="진행" value={`${study.activeOpenQuestCount}`} />
+            <Metric label="마감" value={`${study.overdueOpenQuestCount}`} />
           </div>
 
           <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4 text-xs font-bold text-gray-500">
             <span>
-              {study.nextDueAt ? `${formatDate(study.nextDueAt)} 마감` : "열린 퀘스트 없음"}
+              {study.nextDueAt
+                ? `${formatDate(study.nextDueAt)} 마감`
+                : study.overdueOpenQuestCount > 0
+                  ? `마감 지난 퀘스트 ${study.overdueOpenQuestCount}개`
+                  : "열린 퀘스트 없음"}
             </span>
             <span className="inline-flex items-center gap-1 text-periwinkle-700">
               입장

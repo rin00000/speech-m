@@ -30,7 +30,9 @@ const USER_B = "user-b";
 const USER_C = "user-c";
 const GROUP_ID = "group-1";
 const QUEST_ID = "quest-1";
+const EXPIRED_QUEST_ID = "quest-expired";
 const DUE_AT = "2026-07-01T09:00:00.000Z";
+const EXPIRED_DUE_AT = "2026-06-29T09:00:00.000Z";
 
 type DashboardRows = Record<string, unknown[]>;
 
@@ -59,6 +61,68 @@ afterEach(() => {
 });
 
 describe("getStudentDashboardData relay feedback tasks", () => {
+  it("hides expired open quests from dashboard studies, tasks, and feedback", async () => {
+    mockDashboardRows({
+      study_quests: [
+        {
+          id: EXPIRED_QUEST_ID,
+          group_id: GROUP_ID,
+          script_title: "지난 뉴스",
+          due_at: EXPIRED_DUE_AT,
+          status: "open",
+        },
+      ],
+      study_relay_submissions: [submission(1, USER_A, EXPIRED_QUEST_ID)],
+      study_relay_feedback: [feedback("submission-1", USER_B)],
+    });
+
+    const data = await getStudentDashboardData(USER_A);
+
+    expect(data.studies).toEqual([]);
+    expect(data.studyCount).toBe(0);
+    expect(data.openQuestCount).toBe(0);
+    expect(data.tasks).toEqual([]);
+    expect(data.recentFeedback).toEqual([]);
+    expect(data.nextDueAt).toBeNull();
+    expect(data.nextStudyId).toBeNull();
+  });
+
+  it("uses only non-expired open quests when a study has mixed quest deadlines", async () => {
+    mockDashboardRows({
+      study_quests: [
+        {
+          id: EXPIRED_QUEST_ID,
+          group_id: GROUP_ID,
+          script_title: "지난 뉴스",
+          due_at: EXPIRED_DUE_AT,
+          status: "open",
+        },
+        {
+          id: QUEST_ID,
+          group_id: GROUP_ID,
+          script_title: "아침 뉴스",
+          due_at: DUE_AT,
+          status: "open",
+        },
+      ],
+    });
+
+    const data = await getStudentDashboardData(USER_A);
+
+    expect(data.studyCount).toBe(1);
+    expect(data.openQuestCount).toBe(1);
+    expect(data.nextDueAt).toBe(DUE_AT);
+    expect(data.studies[0]).toMatchObject({
+      openQuestCount: 1,
+      nextDueAt: DUE_AT,
+    });
+    expect(data.tasks).toHaveLength(1);
+    expect(data.tasks[0]).toMatchObject({
+      questId: QUEST_ID,
+      type: "first_submission",
+    });
+  });
+
   it("creates a final feedback task for the first uploader after everyone submits", async () => {
     mockDashboardRows({
       study_relay_submissions: [
@@ -197,12 +261,12 @@ function createQueryMock(table: string, rows: DashboardRows) {
   return query;
 }
 
-function submission(sequenceNumber: number, studentUserId: string) {
+function submission(sequenceNumber: number, studentUserId: string, questId = QUEST_ID) {
   return {
     id: `submission-${sequenceNumber}`,
-    quest_id: QUEST_ID,
+    quest_id: questId,
     student_user_id: studentUserId,
-    audio_path: `relay/${QUEST_ID}/${studentUserId}/audio-${sequenceNumber}.mp3`,
+    audio_path: `relay/${questId}/${studentUserId}/audio-${sequenceNumber}.mp3`,
     audio_file_name: `audio-${sequenceNumber}.mp3`,
     audio_content_type: "audio/mpeg",
     audio_size_bytes: 1024,
