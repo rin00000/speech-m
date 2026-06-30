@@ -12,6 +12,7 @@ export type UserRole = "admin" | "student" | "guest";
 export type UserStatus = "active" | "suspended";
 export type AuthProvider = "google" | "naver" | "credentials";
 export type StudentUpgradeRequestStatus = "pending" | "approved" | "rejected";
+export type StudyApplicationStatus = "pending" | "approved" | "rejected";
 export type ManagementClassStatus = "open" | "closed" | "canceled";
 export type ManagementClassCouponStatus = "available" | "used";
 export type ManagementClassApplicationStatus = "active" | "canceled";
@@ -236,6 +237,36 @@ export interface Database {
         };
         Relationships: [];
       },
+      user_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body?: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: string;
+          title?: string;
+          body?: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      },
       student_upgrade_requests: {
         Row: {
           id: string;
@@ -263,6 +294,39 @@ export interface Database {
           display_name?: string | null;
           message?: string;
           status?: StudentUpgradeRequestStatus;
+          requested_at?: string;
+          resolved_at?: string | null;
+          resolved_by_user_id?: string | null;
+        };
+        Relationships: [];
+      },
+      study_applications: {
+        Row: {
+          id: string;
+          student_user_id: string;
+          group_id: string | null;
+          message: string;
+          status: StudyApplicationStatus;
+          requested_at: string;
+          resolved_at: string | null;
+          resolved_by_user_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          student_user_id: string;
+          group_id?: string | null;
+          message?: string;
+          status?: StudyApplicationStatus;
+          requested_at?: string;
+          resolved_at?: string | null;
+          resolved_by_user_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          student_user_id?: string;
+          group_id?: string | null;
+          message?: string;
+          status?: StudyApplicationStatus;
           requested_at?: string;
           resolved_at?: string | null;
           resolved_by_user_id?: string | null;
@@ -564,6 +628,14 @@ export interface Database {
         Args: { p_request_id: string; p_resolved_by_user_id: string };
         Returns: undefined;
       },
+      approve_study_application: {
+        Args: {
+          p_application_id: string;
+          p_group_id: string;
+          p_resolved_by_user_id: string;
+        };
+        Returns: undefined;
+      },
       apply_management_class: {
         Args: { p_class_id: string; p_student_user_id: string };
         Returns: string;
@@ -604,6 +676,10 @@ export interface Database {
           p_note?: string;
         };
         Returns: string;
+      },
+      reject_study_application: {
+        Args: { p_application_id: string; p_resolved_by_user_id: string };
+        Returns: undefined;
       },
         purge_stale_job_listings: {
           Args: { p_cutoff_iso: string; p_include_published?: boolean };

@@ -9,11 +9,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowRight01Icon,
   Briefcase01Icon,
+  CheckmarkCircle01Icon,
   LinkSquare01Icon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
 import { InfoHint } from "@/components/ui/info-hint";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import { GuestUpgradeRequestCard } from "./guest-upgrade-request-card";
 import { relativeTime } from "@/lib/jobs/utils";
 import type { GuestDashboardData } from "@/lib/dashboard/guest-dashboard";
@@ -32,15 +34,16 @@ export function GuestDashboardView({
   const jobs = data.recentJobs;
   const jobCount = data.totalCount;
   const weeklyJobCount = data.recentWeekCount;
+  const hasPendingUpgradeRequest = Boolean(data.pendingUpgradeRequest);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden md:h-full">
       <Header
         title="취업 준비 허브"
         description="방송·미디어 분야 채용 공고와 준비 현황을 한눈에 확인합니다."
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:p-6 md:pb-6">
         {/* 환영 히어로 */}
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -159,18 +162,57 @@ export function GuestDashboardView({
         {/* 하단: 등업 안내 (축소형) */}
         {isLoggedIn ? (
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="min-w-0 text-sm font-extrabold text-gray-900">
-                    🎓 수강생 전용 기능 안내
-                  </h3>
-                  <InfoHint align="left">
-                    수강생 권한을 받으면 릴레이 스터디, 1:1 코칭 피드백, 고급 연습 원고실 등
-                    전용 학습 기능을 이용할 수 있습니다. 아래에서 등업을 요청해 보세요.
-                  </InfoHint>
+            <div className="flex flex-col gap-5">
+              <div className="min-w-0">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700">
+                    <HugeiconsIcon icon={SparklesIcon} size={16} color="currentColor" strokeWidth={1.8} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="min-w-0 text-sm font-extrabold text-gray-900">
+                        수강생 전용 기능 안내
+                      </h3>
+                      <InfoHint align="left">
+                        수강생 권한을 받으면 릴레이 스터디, 연습 원고실 등
+                        수강생 전용 학습 기능을 이용할 수 있습니다. 등업 문의 보내기 버튼을 눌러 등업을 요청해 보세요.
+                      </InfoHint>
+                    </div>
+                    <p className="mt-2 max-w-3xl text-sm font-medium leading-snug text-gray-500">
+                      무료 가입 상태에서도 공고는 볼 수 있고, 수강생 승인 후에는 스터디와 연습 흐름까지 한곳에서 이어집니다.
+                    </p>
+                  </div>
                 </div>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                  <div className="min-w-0 border-l border-periwinkle-200 pl-3">
+                    <p className="text-xs font-extrabold text-gray-900">릴레이 스터디</p>
+                    <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
+                      제출 순서와 피드백을 확인합니다.
+                    </p>
+                  </div>
+                  <div className="min-w-0 border-l border-periwinkle-200 pl-3">
+                    <p className="text-xs font-extrabold text-gray-900">연습 원고실</p>
+                    <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
+                      방송 원고를 모아 연습합니다.
+                    </p>
+                  </div>
+                  <div className="min-w-0 border-l border-periwinkle-200 pl-3">
+                    <p className="text-xs font-extrabold text-gray-900">준비 현황</p>
+                    <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
+                      공고와 학습 기록을 함께 봅니다.
+                    </p>
+                  </div>
+                </div>
+
+                {hasPendingUpgradeRequest && (
+                  <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600">
+                    <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color="currentColor" strokeWidth={2} />
+                    <span className="min-w-0 truncate">등업 문의 승인 대기 중</span>
+                  </div>
+                )}
               </div>
+
               <GuestUpgradeRequestCard pendingRequest={data.pendingUpgradeRequest} />
             </div>
           </section>
@@ -196,7 +238,7 @@ export function GuestDashboardView({
             </div>
           </section>
         )}
-      </div>
+      </PullToRefreshContainer>
     </div>
   );
 }

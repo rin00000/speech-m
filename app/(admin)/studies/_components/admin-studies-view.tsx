@@ -4,7 +4,7 @@
  * 릴레이 스터디 그룹, 멤버, 퀘스트를 관리하는 관리자 전용 화면입니다.
  */
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -13,16 +13,21 @@ import {
   ArrowRight01Icon,
   Calendar01Icon,
   Cancel01Icon,
+  CheckmarkCircle01Icon,
+  Mail01Icon,
   Search01Icon,
   UserGroupIcon,
   BookOpen01Icon,
   Settings01Icon,
-  FolderLibraryIcon
+  FolderLibraryIcon,
 } from "@hugeicons/core-free-icons";
+import type { AdminStudyApplicationItem } from "@/lib/studies/applications";
 import type { StudyAdminProfile, StudyListItem } from "@/lib/studies/data";
 import {
+  approveStudyApplication,
   createStudyGroup,
   createStudyQuest,
+  rejectStudyApplication,
   saveStudyGroupMembers,
   updateStudyGroup,
 } from "../actions";
@@ -34,9 +39,11 @@ import { TextInput } from "./studies-index-common";
 type AdminStudiesViewProps = {
   studies: StudyListItem[];
   studentProfiles: StudyAdminProfile[];
+  pendingStudyApplications: AdminStudyApplicationItem[];
+  initialTab?: string;
 };
 
-type Tab = "groups" | "members" | "quests";
+type Tab = "applications" | "groups" | "members" | "quests";
 
 type ActionResult = {
   success: boolean;
@@ -71,9 +78,25 @@ type QuestsTabProps = {
   isPending: boolean;
 };
 
-export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewProps) {
+type ApplicationsTabProps = {
+  pendingStudyApplications: AdminStudyApplicationItem[];
+  studies: StudyListItem[];
+  setActiveTab: (tab: Tab) => void;
+  setSelectedStudyId: (studyId: string) => void;
+  run: ActionRunner;
+  isPending: boolean;
+};
+
+export function AdminStudiesView({
+  studies,
+  studentProfiles,
+  pendingStudyApplications,
+  initialTab,
+}: AdminStudiesViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("groups");
+  const [activeTab, setActiveTab] = useState<Tab>(
+    initialTab === "applications" ? "applications" : "groups"
+  );
   const [selectedStudyId, setSelectedStudyId] = useState(studies[0]?.id ?? "");
 
   const selectedStudy = useMemo(
@@ -129,6 +152,22 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
           스터디 그룹 관리
         </button>
         <button
+          onClick={() => setActiveTab("applications")}
+          className={`pb-3 text-sm font-extrabold transition-colors border-b-2 flex items-center gap-1.5 ${
+            activeTab === "applications"
+              ? "border-periwinkle-600 text-periwinkle-600"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <HugeiconsIcon icon={Mail01Icon} size={16} />
+          신청 관리
+          {pendingStudyApplications.length > 0 && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-extrabold leading-none text-amber-700">
+              {pendingStudyApplications.length}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setActiveTab("members")}
           className={`pb-3 text-sm font-extrabold transition-colors border-b-2 flex items-center gap-1.5 ${
             activeTab === "members"
@@ -153,7 +192,7 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
       </div>
 
       {/* Global Study Selector for Members and Quests Tab */}
-      {activeTab !== "groups" && (
+      {(activeTab === "members" || activeTab === "quests") && (
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 mb-2">
           <label className="block text-sm font-extrabold text-gray-700 mb-2">관리할 스터디 선택</label>
           {studies.length === 0 ? (
@@ -184,6 +223,17 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
         />
       )}
 
+      {activeTab === "applications" && (
+        <ApplicationsTab
+          pendingStudyApplications={pendingStudyApplications}
+          studies={studies}
+          setActiveTab={setActiveTab}
+          setSelectedStudyId={setSelectedStudyId}
+          run={run}
+          isPending={isPending}
+        />
+      )}
+
       {activeTab === "members" && selectedStudy && (
         <MembersTab 
           selectedStudy={selectedStudy} 
@@ -202,6 +252,163 @@ export function AdminStudiesView({ studies, studentProfiles }: AdminStudiesViewP
         />
       )}
     </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Tab 0: Study Applications
+// ------------------------------------------------------------------
+function ApplicationsTab({
+  pendingStudyApplications,
+  studies,
+  setActiveTab,
+  setSelectedStudyId,
+  run,
+  isPending,
+}: ApplicationsTabProps) {
+  const activeStudies = studies.filter((study) => study.status === "active");
+  const fallbackStudyId = activeStudies[0]?.id ?? "";
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Record<string, string>>({});
+
+  const getSelectedGroupId = (applicationId: string) =>
+    selectedGroupIds[applicationId] ?? fallbackStudyId;
+
+  if (pendingStudyApplications.length === 0) {
+    return (
+      <EmptyState
+        icon="SM"
+        title="대기 중인 스터디 신청이 없습니다"
+        description="수강생이 릴레이 스터디 참여를 신청하면 이곳에서 확인하고 멤버로 배정할 수 있습니다."
+      />
+    );
+  }
+
+  return (
+    <Card className="max-w-4xl">
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <HugeiconsIcon icon={Mail01Icon} size={18} color="currentColor" />
+              스터디 신청 대기
+            </CardTitle>
+            <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
+              승인할 스터디를 선택하면 즉시 해당 그룹의 멤버로 배정됩니다.
+            </p>
+          </div>
+          <span className="inline-flex self-start rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-extrabold leading-none text-amber-700">
+            대기 {pendingStudyApplications.length}건
+          </span>
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-3">
+        {activeStudies.length === 0 && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
+            운영 중인 릴레이 스터디가 없어 신청을 승인할 수 없습니다. 먼저 스터디 그룹을 개설하거나 상태를 운영으로 바꿔주세요.
+          </div>
+        )}
+
+        <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-100">
+          {pendingStudyApplications.map((application) => {
+            const selectedGroupId = getSelectedGroupId(application.id);
+
+            return (
+              <article key={application.id} className="bg-white p-4">
+                <div className="grid gap-4 lg:grid-cols-[1fr_260px_auto] lg:items-start">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-extrabold text-gray-900">
+                        {application.studentName}
+                      </h3>
+                      <span className="break-all text-xs font-semibold text-gray-400">
+                        {application.studentEmail ?? application.studentUserId}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] font-medium text-gray-400">
+                      신청 {formatApplicationDateTime(application.requestedAt)}
+                    </p>
+                    {application.message ? (
+                      <p className="mt-3 whitespace-pre-wrap rounded-2xl bg-gray-50 px-3 py-2 text-xs font-medium leading-relaxed text-gray-700">
+                        {application.message}
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-xs font-medium text-gray-400">신청 메모 없음</p>
+                    )}
+                  </div>
+
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-extrabold text-gray-500">
+                      배정할 스터디
+                    </span>
+                    <select
+                      value={selectedGroupId}
+                      onChange={(event) =>
+                        setSelectedGroupIds((previous) => ({
+                          ...previous,
+                          [application.id]: event.target.value,
+                        }))
+                      }
+                      disabled={activeStudies.length === 0 || isPending}
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      {activeStudies.length === 0 ? (
+                        <option value="">운영 중인 스터디 없음</option>
+                      ) : (
+                        activeStudies.map((study) => (
+                          <option key={study.id} value={study.id}>
+                            {study.title} ({study.memberCount}명)
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </label>
+
+                  <div className="flex gap-2 lg:justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={isPending}
+                      onClick={() =>
+                        run(
+                          async () => rejectStudyApplication(application.id),
+                          "스터디 신청을 거절했습니다."
+                        )
+                      }
+                      className="flex-1 text-red-600 hover:bg-red-50 lg:flex-none"
+                    >
+                      <HugeiconsIcon icon={Cancel01Icon} size={14} color="currentColor" />
+                      거절
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={isPending || !selectedGroupId}
+                      onClick={() =>
+                        run(
+                          async () => approveStudyApplication(application.id, selectedGroupId),
+                          "스터디 신청을 승인하고 멤버로 배정했습니다.",
+                          () => {
+                            setSelectedStudyId(selectedGroupId);
+                            setActiveTab("members");
+                          }
+                        )
+                      }
+                      className="flex-1 lg:flex-none"
+                    >
+                      <HugeiconsIcon
+                        icon={CheckmarkCircle01Icon}
+                        size={14}
+                        color="currentColor"
+                      />
+                      승인
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </CardBody>
+    </Card>
   );
 }
 
@@ -332,6 +539,23 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
   const selectedUserIds = useMemo(() => {
     return selectedUserIdsByStudyId[selectedStudy.id] ?? selectedStudy.memberUserIds;
   }, [selectedStudy, selectedUserIdsByStudyId]);
+
+  useEffect(() => {
+    if (isEditingMembers) return;
+
+    const frame = requestAnimationFrame(() => {
+      setSelectedUserIdsByStudyId((previous) => {
+        const currentUserIds = previous[selectedStudy.id] ?? [];
+        if (areStringArraysEqual(currentUserIds, selectedStudy.memberUserIds)) return previous;
+        return {
+          ...previous,
+          [selectedStudy.id]: selectedStudy.memberUserIds,
+        };
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isEditingMembers, selectedStudy.id, selectedStudy.memberUserIds]);
 
   const profilesByUserId = useMemo(
     () => new Map<string, StudyAdminProfile>(studentProfiles.map((student) => [student.userId, student] as const)),
@@ -548,6 +772,8 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
 // Tab 3: Quests Management
 // ------------------------------------------------------------------
 function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
+  const [minDueAt, setMinDueAt] = useState("");
+
   return (
     <Card className="max-w-3xl">
       <CardHeader>
@@ -588,6 +814,8 @@ function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
               type="datetime-local"
               name="dueAt"
               required
+              min={minDueAt}
+              onFocus={() => setMinDueAt(formatNextDateTimeLocalMinute(new Date()))}
               aria-label="퀘스트 마감일과 시간"
               className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 focus:border-periwinkle-300"
             />
@@ -601,4 +829,39 @@ function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
       </CardBody>
     </Card>
   );
+}
+
+const applicationDateFormatter = new Intl.DateTimeFormat("ko-KR", {
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function formatApplicationDateTime(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "미정";
+  return applicationDateFormatter.format(date);
+}
+
+function areStringArraysEqual(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+}
+
+function formatNextDateTimeLocalMinute(date: Date) {
+  const nextMinute = new Date(date);
+  nextMinute.setMinutes(nextMinute.getMinutes() + 1, 0, 0);
+
+  const year = nextMinute.getFullYear();
+  const month = padDatePart(nextMinute.getMonth() + 1);
+  const day = padDatePart(nextMinute.getDate());
+  const hour = padDatePart(nextMinute.getHours());
+  const minute = padDatePart(nextMinute.getMinutes());
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, "0");
 }

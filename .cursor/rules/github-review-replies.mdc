@@ -1,0 +1,16 @@
+---
+description: GitHub PR/issue/review 댓글 작성 언어와 UTF-8 안전 전송 규칙
+alwaysApply: false
+---
+
+# GitHub Reply Rules
+
+- GitHub PR, issue, review thread에 직접 남기는 답글은 기본적으로 **한국어**로 작성한다.
+- 사용자가 영어 답글을 명시적으로 요청한 경우에만 영어를 사용한다.
+- Windows/PowerShell 환경에서 `gh api -f body=...` 또는 shell 인자로 한국어 본문을 직접 넘기지 않는다. 인코딩이 깨질 수 있다.
+- 한국어 본문을 GitHub에 쓸 때는 UTF-8 JSON payload를 `--input -` 또는 UTF-8 임시 파일로 전달한다.
+  - 예: Python/Node에서 `json.dumps({ "body": message }).encode("utf-8")`를 stdin으로 전달한다.
+  - PowerShell here-string을 직접 CLI 인자로 넘기는 방식은 피한다.
+- 댓글 작성/수정 후에는 GitHub API로 다시 읽어 `????`, mojibake, 깨진 한글이 없는지 확인한다.
+- 깨진 답글을 발견하면 같은 comment/reply를 삭제하지 말고 UTF-8 안전 방식으로 업데이트한다.
+- CodeRabbit 등 자동 리뷰 답글에는 반영 여부, 커밋 SHA, 보류 사유를 짧게 남기되 한국어로 명확히 작성한다.

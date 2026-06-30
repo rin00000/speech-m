@@ -14,6 +14,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
 import { ManagementClassNoticesPanel } from "@/components/admin/dashboard/management-class-notices-panel";
+import { StudyApplicationCard } from "@/components/admin/studies/study-application-card";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import type {
   StudentDashboardData,
   StudentDashboardDueState,
@@ -71,13 +73,13 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
         : "/studies";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden md:h-full">
       <Header
         title="나의 학습 대시보드"
         description="오늘 해야 할 스터디 흐름과 연습 진입점을 확인합니다."
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:p-6 md:pb-6">
         <ManagementClassNoticesPanel notices={data.managementClassNotices} />
 
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
@@ -108,7 +110,7 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
 
         {hasNoStudies ? (
           <div className="space-y-4 md:space-y-6">
-            <StudyPromotionCard />
+            <StudyPromotionCard application={data.studyApplication} />
             <PracticeHighlightsPanel highlights={data.practiceHighlights} />
           </div>
         ) : (
@@ -124,7 +126,7 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
             </div>
           </>
         )}
-      </div>
+      </PullToRefreshContainer>
     </div>
   );
 }
@@ -355,7 +357,13 @@ function PracticeHighlightsPanel({ highlights }: { highlights: StudentPracticeHi
       )}
     </section>
   );
-}function StudyPromotionCard() {
+}
+
+function StudyPromotionCard({
+  application,
+}: {
+  application: StudentDashboardData["studyApplication"];
+}) {
   return (
     <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
       <div className="max-w-3xl">
@@ -405,13 +413,7 @@ function PracticeHighlightsPanel({ highlights }: { highlights: StudentPracticeHi
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
-          <p className="text-xs font-extrabold text-gray-700">📌 스터디 참여 안내</p>
-          <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
-            정규 교육 과정 수강생분들은 담당 코치가 직접 학습 그룹을 개설하고 멤버로 배정해 드립니다. 
-            만약 스터디 그룹 매칭을 원하시거나 배정 요청이 필요한 경우, Speech-M 고객센터로 연락해 주세요.
-          </p>
-        </div>
+        <StudyApplicationCard application={application} className="mt-6" />
       </div>
     </section>
   );

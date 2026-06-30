@@ -13,6 +13,7 @@ import {
   CheckmarkCircle01Icon,
   Task01Icon,
   UserIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { parseAiFitSnapshot } from "@/lib/ai/job-fit/domain/ai-fit-snapshot";
 import { SOURCE_LABEL } from "@/lib/jobs/constants";
@@ -28,6 +29,8 @@ export type TodayTaskAiPendingJob = Pick<
 type TodayTasksPanelProps = {
   pendingUpgradeRequests: StudentUpgradeRequestItem[];
   hasUpgradeRequestsError: boolean;
+  pendingStudyApplicationCount: number;
+  hasStudyApplicationsError: boolean;
   aiPendingJobs: TodayTaskAiPendingJob[];
   aiPendingJobCount: number;
   hasAiPendingJobsError: boolean;
@@ -36,14 +39,17 @@ type TodayTasksPanelProps = {
 export function TodayTasksPanel({
   pendingUpgradeRequests,
   hasUpgradeRequestsError,
+  pendingStudyApplicationCount,
+  hasStudyApplicationsError,
   aiPendingJobs,
   aiPendingJobCount,
   hasAiPendingJobsError,
 }: TodayTasksPanelProps) {
   const totalTaskCount =
     (hasUpgradeRequestsError ? 0 : pendingUpgradeRequests.length) +
+    (hasStudyApplicationsError ? 0 : pendingStudyApplicationCount) +
     (hasAiPendingJobsError ? 0 : aiPendingJobCount);
-  const hasErrors = hasUpgradeRequestsError || hasAiPendingJobsError;
+  const hasErrors = hasUpgradeRequestsError || hasStudyApplicationsError || hasAiPendingJobsError;
 
   return (
     <section className="min-w-0 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-5">
@@ -72,7 +78,7 @@ export function TodayTasksPanel({
         </span>
       </div>
 
-      <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3">
         <TaskSummaryCard
           icon={UserIcon}
           title="등업 요청 대기"
@@ -82,6 +88,17 @@ export function TodayTasksPanel({
           description={buildUpgradeDescription(pendingUpgradeRequests)}
           href={pendingUpgradeRequests.length > 0 ? "#student-upgrade-requests" : undefined}
           hrefLabel="요청 처리"
+        />
+
+        <TaskSummaryCard
+          icon={UserGroupIcon}
+          title="스터디 신청 대기"
+          count={pendingStudyApplicationCount}
+          hasError={hasStudyApplicationsError}
+          emptyText="대기 중인 스터디 신청이 없습니다."
+          description={buildStudyApplicationDescription(pendingStudyApplicationCount)}
+          href="/studies?tab=applications"
+          hrefLabel="신청 처리"
         />
 
         <TaskSummaryCard
@@ -225,4 +242,9 @@ function buildUpgradeDescription(requests: StudentUpgradeRequestItem[]) {
   const name = first.displayName ?? first.email ?? first.userId;
   const restCount = requests.length - 1;
   return restCount > 0 ? `${name} 외 ${restCount}명 승인 대기` : `${name} 승인 대기`;
+}
+
+function buildStudyApplicationDescription(count: number) {
+  if (count <= 0) return "대기 중인 스터디 신청이 없습니다.";
+  return count > 1 ? `릴레이 스터디 신청 ${count}건 배정 대기` : "릴레이 스터디 신청 1건 배정 대기";
 }

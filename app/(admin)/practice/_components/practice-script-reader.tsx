@@ -11,6 +11,8 @@ import {
   Cancel01Icon,
   Delete01Icon,
   FileEditIcon,
+  FullscreenIcon,
+  MinimizeScreenIcon,
 } from "@hugeicons/core-free-icons";
 import { PracticeScriptEditForm } from "./practice-script-edit-form";
 import type { ScriptItem } from "./practice-list-types";
@@ -25,6 +27,8 @@ export const PracticeScriptReader = ({
   onSaved,
   onDelete,
   onClose,
+  isFullscreen = false,
+  onToggleFullscreen,
 }: {
   script: ScriptItem | undefined;
   isAdmin?: boolean;
@@ -35,6 +39,8 @@ export const PracticeScriptReader = ({
   onSaved: () => void;
   onDelete: () => void;
   onClose?: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }) => {
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -46,7 +52,7 @@ export const PracticeScriptReader = ({
             </div>
           ) : (
             <>
-              <div className="shrink-0 border-b border-gray-100 p-4 md:p-6">
+              <div className={`shrink-0 border-b border-gray-100 p-4 md:p-6 ${isFullscreen ? "lg:px-8" : ""}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 text-xs font-bold leading-none text-gray-500">
@@ -64,6 +70,22 @@ export const PracticeScriptReader = ({
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    {onToggleFullscreen && (
+                      <button
+                        type="button"
+                        onClick={onToggleFullscreen}
+                        aria-label={isFullscreen ? "원고 전체화면 종료" : "원고 전체화면"}
+                        aria-pressed={isFullscreen}
+                        title={isFullscreen ? "원고 전체화면 종료" : "원고 전체화면"}
+                        className="hidden h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 lg:inline-flex"
+                      >
+                        <HugeiconsIcon
+                          icon={isFullscreen ? MinimizeScreenIcon : FullscreenIcon}
+                          size={16}
+                          color="currentColor"
+                        />
+                      </button>
+                    )}
                     {isAdmin && (
                       <>
                         <button
@@ -102,8 +124,16 @@ export const PracticeScriptReader = ({
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
-                <pre className="min-h-[300px] whitespace-pre-wrap break-words rounded-2xl border border-gray-100 bg-gray-50/80 p-4 font-sans text-sm font-medium leading-[1.8] text-gray-800 select-all md:p-6 md:text-base">
+              <div
+                className={`min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 ${
+                  isFullscreen ? "lg:px-8 lg:py-7" : ""
+                }`}
+              >
+                <pre
+                  className={`min-h-[300px] whitespace-pre-wrap break-words rounded-2xl border border-gray-100 bg-gray-50/80 p-4 font-sans text-sm font-medium leading-[1.8] text-gray-800 select-all md:p-6 md:text-base ${
+                    isFullscreen ? "lg:mx-auto lg:max-w-6xl lg:p-8 lg:text-lg lg:leading-[2]" : ""
+                  }`}
+                >
                   {script.content}
                 </pre>
               </div>

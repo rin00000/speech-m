@@ -16,6 +16,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import type { Database } from "@/types/database.types";
 import { InfoHint } from "@/components/ui/info-hint";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import { relativeTime } from "@/lib/jobs/utils";
 
 type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
@@ -53,7 +54,7 @@ export function PublicJobsView({
   const resetPaging = () => setPage(1);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-bg p-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(7rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
+    <PullToRefreshContainer className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-bg p-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(7rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8">
       <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:mb-6 md:rounded-3xl md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:gap-6">
           <div className="space-y-2">
@@ -82,7 +83,7 @@ export function PublicJobsView({
                   className="text-periwinkle-700"
                   align="right"
                 >
-                  수강생 권한을 받으면 우선순위 1:1 연습 자료와 포트폴리오용 원고 라이브러리에 접근할 수 있습니다.
+                  수강생 권한을 받으면 연습 원고 라이브러리에 접근할 수 있습니다.
                 </InfoHint>
               </div>
               <Link
@@ -216,6 +217,6 @@ export function PublicJobsView({
           )}
         </>
       )}
-    </div>
+    </PullToRefreshContainer>
   );
 }

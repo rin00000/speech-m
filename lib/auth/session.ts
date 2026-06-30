@@ -85,7 +85,7 @@ async function getCurrentUserById(
 
 async function ensureDevPersona(persona: DevPersona) {
   const supabase = createAdminClient();
-  await supabase.from("users").upsert(
+  const { error: userError } = await supabase.from("users").upsert(
     {
       id: persona.userId,
       role: persona.role,
@@ -93,18 +93,29 @@ async function ensureDevPersona(persona: DevPersona) {
     },
     { onConflict: "id" }
   );
+  if (userError) throw userError;
 
-  await supabase.from("user_profiles").upsert(
-    {
-      user_id: persona.userId,
-      email: persona.email,
-      display_name: persona.name,
-      real_name: persona.realName,
-    },
-    { onConflict: "user_id" }
-  );
+  const profilePayload: {
+    user_id: string;
+    email: string;
+    display_name: string;
+    real_name?: string | null;
+  } = {
+    user_id: persona.userId,
+    email: persona.email,
+    display_name: persona.name,
+  };
 
-  await supabase.from("user_auth_identities").upsert(
+  if (persona.realName !== null) {
+    profilePayload.real_name = persona.realName;
+  }
+
+  const { error: profileError } = await supabase
+    .from("user_profiles")
+    .upsert(profilePayload, { onConflict: "user_id" });
+  if (profileError) throw profileError;
+
+  const { error: identityError } = await supabase.from("user_auth_identities").upsert(
     {
       user_id: persona.userId,
       provider: "credentials",
@@ -114,6 +125,7 @@ async function ensureDevPersona(persona: DevPersona) {
     },
     { onConflict: "provider,provider_account_id" }
   );
+  if (identityError) throw identityError;
 }
 
 export function getAuthCheckHttpStatus(result: AuthCheckResult): 200 | 401 | 403 | 503 {

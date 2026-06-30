@@ -6,6 +6,7 @@
 import { Header } from "@/components/admin/layout/header";
 import { activeDeadlineOrExpression, isExpiredDeadline } from "@/lib/jobs/deadline";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
+import { getPendingStudyApplicationCount } from "@/lib/studies/applications";
 import { getAdminStudyProgress } from "@/lib/studies/admin-progress";
 import { createAdminClient } from "@/lib/supabase/server";
 import { CrawlerControlHub } from "./crawler-control-hub";
@@ -22,6 +23,7 @@ import {
   TodayTasksPanel,
   type TodayTaskAiPendingJob,
 } from "./today-tasks-panel";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 
 export async function AdminDashboardView() {
   const supabase = createAdminClient();
@@ -30,6 +32,7 @@ export async function AdminDashboardView() {
   const [
     recentPublishedJobsResult,
     pendingUpgradeRequestsResult,
+    pendingStudyApplicationsResult,
     aiPendingJobsResult,
     studyProgressResult,
   ] = await Promise.all([
@@ -56,6 +59,7 @@ export async function AdminDashboardView() {
           requested_at: string;
         }[]
       >(),
+    getPendingStudyApplicationCount(),
     supabase
       .from("job_postings")
       .select("id,title,company,source,created_at,ai_fit_snapshot,source_url", { count: "exact" })
@@ -70,6 +74,7 @@ export async function AdminDashboardView() {
 
   const hasJobsError = Boolean(recentPublishedJobsResult.error);
   const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
+  const hasStudyApplicationsError = pendingStudyApplicationsResult.hasError;
   const hasAiPendingJobsError = Boolean(aiPendingJobsResult.error);
   const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
     (job) => !isExpiredDeadline(job.deadline),
@@ -104,16 +109,18 @@ export async function AdminDashboardView() {
   const siteOrigin = getPublicSiteOrigin();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden md:h-full">
       <Header
         title="대시보드"
         description="Speech-M 아카데미 현황을 한눈에 확인하세요."
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:p-6 md:pb-6">
         <TodayTasksPanel
           pendingUpgradeRequests={pendingUpgradeRequests}
           hasUpgradeRequestsError={hasUpgradeRequestsError}
+          pendingStudyApplicationCount={pendingStudyApplicationsResult.count}
+          hasStudyApplicationsError={hasStudyApplicationsError}
           aiPendingJobs={aiPendingJobs}
           aiPendingJobCount={aiPendingJobCount}
           hasAiPendingJobsError={hasAiPendingJobsError}
@@ -140,7 +147,7 @@ export async function AdminDashboardView() {
           hasError={hasJobsError}
           siteOrigin={siteOrigin}
         />
-      </div>
+      </PullToRefreshContainer>
     </div>
   );
 }

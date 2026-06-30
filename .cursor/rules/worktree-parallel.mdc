@@ -1,9 +1,10 @@
 ---
-description: Recover and continue parallel git worktree execution context
-alwaysApply: true
+description: 병렬 git worktree 흐름을 명시적으로 재개할 때만 참고하는 복구 규칙
+globs: docs/worktree-parallel-status.md
+alwaysApply: false
 ---
 
 # Parallel Worktree Continuity
-- If parallel worktree workflow is active, read `docs/worktree-parallel-status.md` before planning.
-- Treat that file as the source of truth for branch ownership, task scope, and next actions.
-- Keep updates concise: status, latest commit, blockers, next step per worktree.
+- 사용자가 병렬 worktree 작업 재개, 상태 점검, 병합 정리를 명시적으로 요청할 때만 적용한다.
+- 그 경우 `docs/worktree-parallel-status.md`를 먼저 읽고 브랜치 소유, 작업 범위, 다음 단계를 확인한다.
+- 일반 코드 수정, 리뷰 반영, UI 작업에서는 이 규칙을 적용하지 않는다.

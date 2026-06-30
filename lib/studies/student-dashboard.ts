@@ -8,6 +8,10 @@ import {
   getStudentManagementClassDashboard,
   type StudentManagementClassNotice,
 } from "@/lib/management-classes/data";
+import {
+  getStudentStudyApplication,
+  type StudentStudyApplication,
+} from "@/lib/studies/applications";
 import type { Database, PracticeScriptCategory, PracticeScriptDifficulty } from "@/types/database.types";
 import {
   buildRelayQuestState,
@@ -82,6 +86,7 @@ export type StudentPracticeHighlight = {
 
 export type StudentDashboardData = {
   managementClassNotices: StudentManagementClassNotice[];
+  studyApplication: StudentStudyApplication;
   studies: StudentDashboardStudySummary[];
   studyCount: number;
   openQuestCount: number;
@@ -95,6 +100,7 @@ export type StudentDashboardData = {
 
 const EMPTY_DATA: StudentDashboardData = {
   managementClassNotices: [],
+  studyApplication: null,
   studies: [],
   studyCount: 0,
   openQuestCount: 0,
@@ -119,6 +125,7 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
     .limit(3)
     .returns<PracticeScriptSummaryRow[]>();
   const managementClassNoticesPromise = getStudentManagementClassDashboard(userId);
+  const studyApplicationPromise = getStudentStudyApplication(userId);
 
   const { data: membershipRows } = await supabase
     .from("study_group_members")
@@ -127,14 +134,15 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
     .returns<StudyMemberSummaryRow[]>();
 
   const practiceHighlightsResult = await practiceHighlightsPromise;
-  const [managementClassNotices, practiceHighlights] = [
+  const [managementClassNotices, studyApplication, practiceHighlights] = [
     await managementClassNoticesPromise,
+    await studyApplicationPromise,
     practiceHighlightsResult.data ?? [],
   ];
   const groupIds = [...new Set((membershipRows ?? []).map((member) => member.group_id))];
 
   if (groupIds.length === 0) {
-    return { ...EMPTY_DATA, managementClassNotices, practiceHighlights };
+    return { ...EMPTY_DATA, managementClassNotices, studyApplication, practiceHighlights };
   }
 
   const [{ data: groupRows }, { data: memberRows }, { data: questRows }] = await Promise.all([
@@ -310,6 +318,7 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
 
   return {
     managementClassNotices,
+    studyApplication,
     studies,
     studyCount: studies.length,
     openQuestCount: openQuests.length,

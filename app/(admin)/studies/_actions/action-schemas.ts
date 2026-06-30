@@ -26,6 +26,31 @@ export const questSchema = z.object({
   dueAt: z.string().trim().min(1, "마감일을 입력하세요."),
 });
 
+export const studyApplicationMessageSchema = z
+  .string()
+  .trim()
+  .max(500, "신청 메모는 500자 이하로 입력하세요.")
+  .optional();
+
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+const KOREA_TIME_ZONE_OFFSET = "+09:00";
+
+export function parseFutureQuestDueAt(value: string, now = new Date()): ActionResult<Date> {
+  const normalizedValue = DATETIME_LOCAL_PATTERN.test(value)
+    ? `${value}${KOREA_TIME_ZONE_OFFSET}`
+    : value;
+  const dueAt = new Date(normalizedValue);
+  if (Number.isNaN(dueAt.getTime())) {
+    return { success: false, error: "마감일 형식이 올바르지 않습니다." };
+  }
+
+  if (dueAt.getTime() <= now.getTime()) {
+    return { success: false, error: "마감일은 현재 시간 이후로 설정하세요." };
+  }
+
+  return { success: true, data: dueAt };
+}
+
 export const realNameSchema = z.object({
   realName: z.string().trim().min(2, "실명은 2자 이상 입력하세요.").max(40, "실명은 40자 이하로 입력하세요."),
 });
@@ -63,4 +88,11 @@ export const relayRpcErrorMessages: Record<string, string> = {
   relay_self_feedback_not_allowed: "자신의 음성에는 릴레이 피드백을 남길 수 없습니다.",
   relay_not_all_submitted: "아직 모든 멤버가 제출하지 않았습니다.",
   relay_first_uploader_required: "첫 업로더만 마지막 원형 피드백을 남길 수 있습니다.",
+};
+
+export const studyApplicationRpcErrorMessages: Record<string, string> = {
+  study_application_admin_required: "관리자 권한이 필요합니다.",
+  study_application_group_required: "운영 중인 릴레이 스터디를 선택하세요.",
+  study_application_not_pending: "이미 처리되었거나 존재하지 않는 스터디 신청입니다.",
+  study_application_student_required: "활성 정회원 수강생만 스터디 멤버로 배정할 수 있습니다.",
 };

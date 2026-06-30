@@ -49,7 +49,7 @@ export function GuestUpgradeRequestCard({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 border-t border-gray-150 pt-6 text-left">
+    <form onSubmit={handleSubmit} className="border-t border-gray-100 pt-5 text-left">
       <div className="flex items-start gap-3">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700">
           <HugeiconsIcon icon={UserIcon} size={18} color="currentColor" strokeWidth={1.8} />

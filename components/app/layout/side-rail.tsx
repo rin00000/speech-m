@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings01Icon } from "@hugeicons/core-free-icons";
 import type { UserRole } from "@/lib/auth/session";
+import type { UserNotification } from "@/lib/notifications/data";
 import { cn } from "@/lib/ui/cn";
 import { getNavItemsForRole, isNavActive } from "./nav-items";
 import { LogoutButton } from "./logout-button";
+import { NotificationBell } from "./notification-bell";
 
 export function SideRail({
   userRole,
@@ -16,12 +18,14 @@ export function SideRail({
   userEmail,
   isAuthenticated,
   previewPathname,
+  notifications = [],
 }: {
   userRole: UserRole;
   userName?: string | null;
   userEmail?: string | null;
   isAuthenticated?: boolean;
   previewPathname?: string;
+  notifications?: UserNotification[];
 }) {
   const pathname = usePathname();
   const activePath = previewPathname ?? pathname;
@@ -68,16 +72,21 @@ export function SideRail({
 
   return (
     <aside className="hidden h-full w-[88px] shrink-0 flex-col rounded-3xl border border-gray-200 bg-white shadow-sm md:flex lg:w-[240px]">
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-200 px-4 lg:px-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-periwinkle-600 text-xs font-bold text-white">
-          SM
+      <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 lg:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-periwinkle-600 text-xs font-bold text-white">
+            SM
+          </div>
+          <div className="hidden min-w-0 flex-col leading-none lg:flex">
+            <span className="truncate text-sm font-extrabold text-gray-900">Speech-M</span>
+            <span className="truncate text-[11px] font-medium text-gray-500">
+              {roleLabel}
+            </span>
+          </div>
         </div>
-        <div className="hidden min-w-0 flex-col leading-none lg:flex">
-          <span className="truncate text-sm font-extrabold text-gray-900">Speech-M</span>
-          <span className="truncate text-[11px] font-medium text-gray-500">
-            {roleLabel}
-          </span>
-        </div>
+        {isAuthenticated && (
+          <NotificationBell initialNotifications={notifications} />
+        )}
       </div>
 
       <nav className="flex flex-1 flex-col gap-4 overflow-y-auto p-3">
