@@ -82,7 +82,7 @@ export function PublicJobsView({
                   className="text-periwinkle-700"
                   align="right"
                 >
-                  수강생 권한을 받으면 우선순위 1:1 연습 자료와 포트폴리오용 원고 라이브러리에 접근할 수 있습니다.
+                  수강생 권한을 받으면 연습 원고 라이브러리에 접근할 수 있습니다.
                 </InfoHint>
               </div>
               <Link
