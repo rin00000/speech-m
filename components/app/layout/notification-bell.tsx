@@ -28,28 +28,40 @@ function formatRelativeTime(isoString: string): string {
 }
 
 export function NotificationBell({ initialNotifications }: NotificationBellProps) {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [readNotificationMarks, setReadNotificationMarks] = useState<Record<string, string>>({});
   const [isOpen, setIsOpen] = useState(false);
-  const [hasMarkedRead, setHasMarkedRead] = useState(false);
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.length;
+  const notifications = initialNotifications.map((notification) => {
+    const readAt = readNotificationMarks[notification.id];
+    return readAt ? { ...notification, readAt } : notification;
+  });
+  const unreadCount = notifications.filter((notification) => !notification.readAt).length;
 
-  // 드롭다운 열릴 때 읽음 처리
+  // Mark notifications as read when the dropdown opens.
   const handleOpen = () => {
     setIsOpen(true);
-    if (unreadCount > 0 && !hasMarkedRead) {
-      setHasMarkedRead(true);
+    const unreadNotifications = notifications.filter((notification) => !notification.readAt);
+    if (unreadNotifications.length > 0) {
+      const previousMarks = readNotificationMarks;
+      const readAt = new Date().toISOString();
+      setReadNotificationMarks({
+        ...previousMarks,
+        ...Object.fromEntries(unreadNotifications.map((notification) => [notification.id, readAt])),
+      });
       startTransition(async () => {
-        await markNotificationsAsRead();
-        // 낙관적 업데이트: 즉시 뱃지 제거
-        setNotifications([]);
+        try {
+          await markNotificationsAsRead();
+        } catch (error) {
+          console.error("[notifications] failed to mark notifications as read", error);
+          setReadNotificationMarks(previousMarks);
+        }
       });
     }
   };
 
-  // 외부 클릭 시 닫기
+  // Close on outside pointer down.
   useEffect(() => {
     if (!isOpen) return;
     function handlePointerDown(event: PointerEvent) {
@@ -89,7 +101,7 @@ export function NotificationBell({ initialNotifications }: NotificationBellProps
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
+          className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
           role="dialog"
           aria-label="알림 목록"
         >
@@ -97,13 +109,13 @@ export function NotificationBell({ initialNotifications }: NotificationBellProps
             <p className="text-sm font-extrabold text-gray-900">알림</p>
           </div>
 
-          {initialNotifications.length === 0 ? (
+          {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm font-medium text-gray-400">
               새 알림이 없습니다.
             </div>
           ) : (
             <ul className="max-h-96 divide-y divide-gray-100 overflow-y-auto">
-              {initialNotifications.map((n) => (
+              {notifications.map((n) => (
                 <li key={n.id} className="px-4 py-3">
                   <p className="text-xs font-extrabold text-gray-900">{n.title}</p>
                   <p className="mt-1 text-xs font-medium leading-snug text-gray-600">{n.body}</p>

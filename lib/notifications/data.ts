@@ -1,3 +1,9 @@
+/**
+ * 현재 사용자에게 표시할 인앱 알림을 조회하고 읽음 상태를 갱신하는 데이터 모듈입니다.
+ * 레이아웃과 알림 서버 액션에서 공통으로 사용되는 알림 row 매핑을 담당합니다.
+ */
+
+import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export type UserNotification = {
@@ -18,17 +24,16 @@ type NotificationRow = {
   created_at: string;
 };
 
-/**
- * 미읽 알림 목록을 최신순으로 최대 30개 조회합니다.
- */
-export async function getMyUnreadNotifications(
-  userId: string
-): Promise<UserNotification[]> {
+// Fetch up to 30 unread notifications for the current authenticated user.
+export async function getMyUnreadNotifications(): Promise<UserNotification[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("user_notifications")
     .select("id, type, title, body, read_at, created_at")
-    .eq("user_id", userId)
+    .eq("user_id", user.userId)
     .is("read_at", null)
     .order("created_at", { ascending: false })
     .limit(30)
@@ -36,7 +41,7 @@ export async function getMyUnreadNotifications(
 
   if (error) {
     console.error("[notifications] getMyUnreadNotifications error", error);
-    return [];
+    throw error;
   }
 
   return (data ?? []).map((row) => ({
@@ -49,15 +54,21 @@ export async function getMyUnreadNotifications(
   }));
 }
 
-/**
- * 해당 유저의 모든 미읽 알림을 읽음 처리합니다.
- */
-export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+// Mark every unread notification for the current authenticated user as read.
+export async function markAllNotificationsAsRead(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+
   const supabase = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from("user_notifications") as any)
+  const { error } = await supabase
+    .from("user_notifications")
     .update({ read_at: new Date().toISOString() })
-    .eq("user_id", userId)
+    .eq("user_id", user.userId)
     .is("read_at", null);
+
+  if (error) {
+    console.error("[notifications] markAllNotificationsAsRead error", error);
+    throw error;
+  }
 }
 

@@ -35,6 +35,18 @@ describe("parseFutureQuestDueAt", () => {
       expect(result.data.toISOString()).toBe("2026-06-30T10:01:00.000Z");
     }
   });
+
+  it("interprets datetime-local values as Korea time", () => {
+    const result = parseFutureQuestDueAt(
+      "2026-06-30T10:01",
+      new Date("2026-06-30T00:00:00.000Z")
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.toISOString()).toBe("2026-06-30T01:01:00.000Z");
+    }
+  });
 });
 
 describe("studyApplicationMessageSchema", () => {

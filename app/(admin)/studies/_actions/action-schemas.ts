@@ -32,8 +32,14 @@ export const studyApplicationMessageSchema = z
   .max(500, "신청 메모는 500자 이하로 입력하세요.")
   .optional();
 
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+const KOREA_TIME_ZONE_OFFSET = "+09:00";
+
 export function parseFutureQuestDueAt(value: string, now = new Date()): ActionResult<Date> {
-  const dueAt = new Date(value);
+  const normalizedValue = DATETIME_LOCAL_PATTERN.test(value)
+    ? `${value}${KOREA_TIME_ZONE_OFFSET}`
+    : value;
+  const dueAt = new Date(normalizedValue);
   if (Number.isNaN(dueAt.getTime())) {
     return { success: false, error: "마감일 형식이 올바르지 않습니다." };
   }

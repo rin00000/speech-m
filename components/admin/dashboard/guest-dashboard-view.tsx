@@ -205,12 +205,12 @@ export function GuestDashboardView({
                   </div>
                 </div>
 
-                <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600">
-                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color="currentColor" strokeWidth={2} />
-                  <span className="min-w-0 truncate">
-                    {hasPendingUpgradeRequest ? "등업 문의 승인 대기 중" : "문의 후 원장님 확인을 기다려주세요"}
-                  </span>
-                </div>
+                {hasPendingUpgradeRequest && (
+                  <div className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600">
+                    <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color="currentColor" strokeWidth={2} />
+                    <span className="min-w-0 truncate">등업 문의 승인 대기 중</span>
+                  </div>
+                )}
               </div>
 
               <GuestUpgradeRequestCard pendingRequest={data.pendingUpgradeRequest} />

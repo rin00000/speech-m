@@ -21,12 +21,19 @@ CREATE POLICY "user_notifications_select_own"
   FOR SELECT
   TO authenticated
   USING (
-    user_id IN (
-      SELECT u.id
+    EXISTS (
+      SELECT 1
       FROM public.users u
-      JOIN public.user_auth_identities i ON i.user_id = u.id
-      WHERE i.provider_email = auth.jwt() ->> 'email'
-         OR u.id::text = (auth.uid())::text
+      WHERE u.id = user_notifications.user_id
+        AND (
+          u.id = auth.uid()
+          OR EXISTS (
+            SELECT 1
+            FROM public.user_auth_identities i
+            WHERE i.user_id = u.id
+              AND i.provider_email = auth.jwt() ->> 'email'
+          )
+        )
     )
   );
 
@@ -36,12 +43,19 @@ CREATE POLICY "user_notifications_update_own"
   FOR UPDATE
   TO authenticated
   USING (
-    user_id IN (
-      SELECT u.id
+    EXISTS (
+      SELECT 1
       FROM public.users u
-      JOIN public.user_auth_identities i ON i.user_id = u.id
-      WHERE i.provider_email = auth.jwt() ->> 'email'
-         OR u.id::text = (auth.uid())::text
+      WHERE u.id = user_notifications.user_id
+        AND (
+          u.id = auth.uid()
+          OR EXISTS (
+            SELECT 1
+            FROM public.user_auth_identities i
+            WHERE i.user_id = u.id
+              AND i.provider_email = auth.jwt() ->> 'email'
+          )
+        )
     )
   );
 

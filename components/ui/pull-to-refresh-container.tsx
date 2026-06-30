@@ -20,12 +20,24 @@ export interface PullToRefreshContainerProps extends HTMLAttributes<HTMLDivEleme
   disabled?: boolean;
 }
 
-export function PullToRefreshContainer({
+const isInteractiveTarget = (target: EventTarget | null) =>
+  target instanceof Element &&
+  Boolean(
+    target.closest(
+      "a, button, input, textarea, select, summary, [contenteditable='true'], [tabindex]:not([tabindex='-1'])"
+    )
+  );
+
+export const PullToRefreshContainer = ({
   children,
   className,
   disabled = false,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+  onTouchCancel,
   ...props
-}: PullToRefreshContainerProps) {
+}: PullToRefreshContainerProps) => {
   const router = useRouter();
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshLocked, setIsRefreshLocked] = useState(false);
@@ -73,6 +85,11 @@ export function PullToRefreshContainer({
 
   const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     if (disabled || isRefreshing || !window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
+      gestureStateRef.current = "ignored";
+      return;
+    }
+
+    if (isInteractiveTarget(event.target)) {
       gestureStateRef.current = "ignored";
       return;
     }
@@ -147,10 +164,22 @@ export function PullToRefreshContainer({
     <div
       {...props}
       className={cn("relative overscroll-y-contain", className)}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={resetPull}
+      onTouchStart={(event) => {
+        onTouchStart?.(event);
+        handleTouchStart(event);
+      }}
+      onTouchMove={(event) => {
+        onTouchMove?.(event);
+        handleTouchMove(event);
+      }}
+      onTouchEnd={(event) => {
+        onTouchEnd?.(event);
+        handleTouchEnd();
+      }}
+      onTouchCancel={(event) => {
+        onTouchCancel?.(event);
+        resetPull();
+      }}
     >
       {children}
       <div
@@ -177,4 +206,4 @@ export function PullToRefreshContainer({
       </div>
     </div>
   );
-}
+};

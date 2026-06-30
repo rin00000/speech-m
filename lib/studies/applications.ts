@@ -51,13 +51,15 @@ export async function getStudentStudyApplication(
   if (!userId) return null;
 
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("study_applications")
     .select("id,group_id,message,status,requested_at,resolved_at")
     .eq("student_user_id", userId)
     .order("requested_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  if (error) throw error;
 
   const application = data as StudentStudyApplicationRow | null;
   if (!application) return null;
@@ -115,11 +117,13 @@ export async function getPendingStudyApplicationCount() {
 
 async function getStudyGroupTitle(groupId: string) {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("study_groups")
     .select("id,title")
     .eq("id", groupId)
     .maybeSingle();
+
+  if (error) throw error;
 
   const group = data as Pick<StudyGroupRow, "id" | "title"> | null;
   return group?.title ?? null;
@@ -130,10 +134,12 @@ async function getProfilesByUserId(userIds: string[]) {
   if (uniqueUserIds.length === 0) return new Map<string, UserProfileRow>();
 
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("user_profiles")
     .select("user_id, email, display_name, real_name")
     .in("user_id", uniqueUserIds);
+
+  if (error) throw error;
 
   return new Map(((data ?? []) as UserProfileRow[]).map((profile) => [profile.user_id, profile]));
 }

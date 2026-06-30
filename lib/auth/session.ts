@@ -85,7 +85,7 @@ async function getCurrentUserById(
 
 async function ensureDevPersona(persona: DevPersona) {
   const supabase = createAdminClient();
-  await supabase.from("users").upsert(
+  const { error: userError } = await supabase.from("users").upsert(
     {
       id: persona.userId,
       role: persona.role,
@@ -93,6 +93,7 @@ async function ensureDevPersona(persona: DevPersona) {
     },
     { onConflict: "id" }
   );
+  if (userError) throw userError;
 
   const profilePayload: {
     user_id: string;
@@ -109,9 +110,12 @@ async function ensureDevPersona(persona: DevPersona) {
     profilePayload.real_name = persona.realName;
   }
 
-  await supabase.from("user_profiles").upsert(profilePayload, { onConflict: "user_id" });
+  const { error: profileError } = await supabase
+    .from("user_profiles")
+    .upsert(profilePayload, { onConflict: "user_id" });
+  if (profileError) throw profileError;
 
-  await supabase.from("user_auth_identities").upsert(
+  const { error: identityError } = await supabase.from("user_auth_identities").upsert(
     {
       user_id: persona.userId,
       provider: "credentials",
@@ -121,6 +125,7 @@ async function ensureDevPersona(persona: DevPersona) {
     },
     { onConflict: "provider,provider_account_id" }
   );
+  if (identityError) throw identityError;
 }
 
 export function getAuthCheckHttpStatus(result: AuthCheckResult): 200 | 401 | 403 | 503 {

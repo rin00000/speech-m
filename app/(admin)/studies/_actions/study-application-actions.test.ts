@@ -103,6 +103,44 @@ describe("submitStudyApplication", () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
     expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
   });
+
+  it("retries with update when insert hits a pending-application conflict", async () => {
+    mockGetCurrentUser.mockResolvedValue(STUDENT_USER);
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const secondEq = vi.fn(() => ({ maybeSingle }));
+    const firstEq = vi.fn(() => ({ eq: secondEq }));
+    const select = vi.fn(() => ({ eq: firstEq }));
+    const insert = vi.fn().mockResolvedValue({ error: { code: "23505" } });
+    const retryStatusEq = vi.fn().mockResolvedValue({ error: null });
+    const retryStudentEq = vi.fn(() => ({ eq: retryStatusEq }));
+    const update = vi.fn(() => ({ eq: retryStudentEq }));
+    mockCreateAdminClient.mockReturnValue({
+      from: vi.fn(() => ({ select, insert, update })),
+    });
+
+    const result = await submitStudyApplication("동시 제출 메모");
+
+    expect(result.success).toBe(true);
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        student_user_id: STUDENT_USER.userId,
+        message: "동시 제출 메모",
+        status: "pending",
+      })
+    );
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        group_id: null,
+        message: "동시 제출 메모",
+        resolved_at: null,
+        resolved_by_user_id: null,
+      })
+    );
+    expect(retryStudentEq).toHaveBeenCalledWith("student_user_id", STUDENT_USER.userId);
+    expect(retryStatusEq).toHaveBeenCalledWith("status", "pending");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
+  });
 });
 
 describe("study application admin actions", () => {
@@ -152,5 +190,23 @@ describe("study application admin actions", () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
     expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
     expect(mockRevalidatePath).toHaveBeenCalledWith(`/studies/${GROUP_ID}`);
+  });
+
+  it("calls reject RPC and revalidates study paths", async () => {
+    mockGetCurrentUser.mockResolvedValue(ADMIN_USER);
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    mockCreateAdminClient.mockReturnValue({ rpc });
+
+    await expect(rejectStudyApplication(APPLICATION_ID)).resolves.toEqual({
+      success: true,
+      data: undefined,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("reject_study_application", {
+      p_application_id: APPLICATION_ID,
+      p_resolved_by_user_id: ADMIN_USER.userId,
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
   });
 });

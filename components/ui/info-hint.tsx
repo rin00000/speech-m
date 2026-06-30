@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 작은 도움말 버튼과 툴팁 표시 상태를 관리하는 공용 UI 컴포넌트입니다.
+ * 버튼 클릭, hover, 외부 클릭 닫힘을 한곳에서 처리해 카드와 헤더 설명에 재사용합니다.
+ */
+
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { HelpCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -56,7 +61,7 @@ export function InfoHint({
         aria-label={label}
         onClick={(e) => {
           e.preventDefault();
-          setIsOpen(!isOpen);
+          setIsOpen((current) => !current);
         }}
         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-periwinkle-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-periwinkle-300/70"
       >
@@ -67,7 +72,7 @@ export function InfoHint({
         className={cn(
           "absolute top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-200 bg-white px-3 py-2 text-left text-xs font-medium leading-snug text-gray-600 shadow-sm transition-opacity duration-150",
           isOpen ? "visible opacity-100" : "invisible opacity-0",
-          "group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100",
+          "group-hover:visible group-hover:opacity-100",
           tooltipAlignClassName[align],
           tooltipClassName,
         )}
