@@ -109,13 +109,13 @@ export async function AdminDashboardView() {
   const siteOrigin = getPublicSiteOrigin();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden md:h-full">
       <Header
         title="대시보드"
         description="Speech-M 아카데미 현황을 한눈에 확인하세요."
       />
 
-      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:space-y-6 md:p-6 md:pb-6">
         <TodayTasksPanel
           pendingUpgradeRequests={pendingUpgradeRequests}
           hasUpgradeRequestsError={hasUpgradeRequestsError}
