@@ -19,13 +19,13 @@ export function CompletedStackCard({
 }) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4 md:pb-5">
         <CardTitle className="flex items-center gap-2 text-base">
           <HugeiconsIcon icon={CheckmarkCircle01Icon} size={18} color="currentColor" />
           완료 스택
         </CardTitle>
       </CardHeader>
-      <CardBody className="space-y-3">
+      <CardBody className="space-y-5">
         {quest.relay.completedSubmissions.length === 0 ? (
           <EmptyPanel text="아직 피드백 완료된 음성이 없습니다." />
         ) : (
@@ -73,13 +73,13 @@ export function PendingRelayCard({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4 md:pb-5">
         <CardTitle className="flex items-center gap-2 text-base">
           <HugeiconsIcon icon={Comment01Icon} size={18} color="currentColor" />
           현재 릴레이
         </CardTitle>
       </CardHeader>
-      <CardBody className="space-y-4">
+      <CardBody className="space-y-5">
         {!pendingSubmission ? (
           quest.relay.isComplete ? (
             <EmptyPanel text="이번 퀘스트 릴레이가 완료되었습니다." />
@@ -102,7 +102,7 @@ export function PendingRelayCard({
             <AudioFeedbackCard submission={pendingSubmission} currentUserId={currentUserId} />
 
             {quest.relay.canFeedbackAndUpload && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <FeedbackTextarea value={comment} onChange={onCommentChange} />
                 <UploadControl
                   file={file}
@@ -115,7 +115,7 @@ export function PendingRelayCard({
             )}
 
             {quest.relay.canFinalFeedback && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <FeedbackTextarea value={comment} onChange={onCommentChange} />
                 <Button
                   type="button"
@@ -151,13 +151,13 @@ export function PendingRelayCard({
 export function UnsubmittedMembersCard({ quest }: { quest: StudyQuestDetail }) {
   return (
     <Card className="xl:sticky xl:top-4">
-      <CardHeader>
+      <CardHeader className="pb-4 md:pb-5">
         <CardTitle className="flex items-center gap-2 text-base">
           <HugeiconsIcon icon={UserGroupIcon} size={18} color="currentColor" />
           미제출 명단
         </CardTitle>
       </CardHeader>
-      <CardBody className="space-y-2">
+      <CardBody className="space-y-5">
         {quest.relay.unsubmittedMembers.length === 0 ? (
           <EmptyPanel text="모든 멤버가 음성을 제출했습니다." />
         ) : (

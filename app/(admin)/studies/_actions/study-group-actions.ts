@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   groupSchema,
+  parseFutureQuestDueAt,
   questSchema,
   updateGroupSchema,
   uuidSchema,
@@ -147,10 +148,8 @@ export async function createStudyQuest(
     return { success: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인해주세요." };
   }
 
-  const dueAt = new Date(parsed.data.dueAt);
-  if (Number.isNaN(dueAt.getTime())) {
-    return { success: false, error: "마감일 형식이 올바르지 않습니다." };
-  }
+  const dueAt = parseFutureQuestDueAt(parsed.data.dueAt);
+  if (!dueAt.success) return dueAt;
 
   const supabase = createAdminClient();
   const { count } = await supabase
@@ -168,7 +167,7 @@ export async function createStudyQuest(
       group_id: groupIdParsed.data,
       script_title: parsed.data.scriptTitle,
       script_content: parsed.data.scriptContent,
-      due_at: dueAt.toISOString(),
+      due_at: dueAt.data.toISOString(),
       created_by_user_id: actor.data.userId,
     })
     .select("id")

@@ -26,6 +26,19 @@ export const questSchema = z.object({
   dueAt: z.string().trim().min(1, "마감일을 입력하세요."),
 });
 
+export function parseFutureQuestDueAt(value: string, now = new Date()): ActionResult<Date> {
+  const dueAt = new Date(value);
+  if (Number.isNaN(dueAt.getTime())) {
+    return { success: false, error: "마감일 형식이 올바르지 않습니다." };
+  }
+
+  if (dueAt.getTime() <= now.getTime()) {
+    return { success: false, error: "마감일은 현재 시간 이후로 설정하세요." };
+  }
+
+  return { success: true, data: dueAt };
+}
+
 export const realNameSchema = z.object({
   realName: z.string().trim().min(2, "실명은 2자 이상 입력하세요.").max(40, "실명은 40자 이하로 입력하세요."),
 });

@@ -548,6 +548,8 @@ function MembersTab({ selectedStudy, studies, studentProfiles, run, isPending }:
 // Tab 3: Quests Management
 // ------------------------------------------------------------------
 function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
+  const [minDueAt, setMinDueAt] = useState("");
+
   return (
     <Card className="max-w-3xl">
       <CardHeader>
@@ -588,6 +590,8 @@ function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
               type="datetime-local"
               name="dueAt"
               required
+              min={minDueAt}
+              onFocus={() => setMinDueAt(formatNextDateTimeLocalMinute(new Date()))}
               aria-label="퀘스트 마감일과 시간"
               className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 focus:border-periwinkle-300"
             />
@@ -601,4 +605,21 @@ function QuestsTab({ selectedStudy, run, isPending }: QuestsTabProps) {
       </CardBody>
     </Card>
   );
+}
+
+function formatNextDateTimeLocalMinute(date: Date) {
+  const nextMinute = new Date(date);
+  nextMinute.setMinutes(nextMinute.getMinutes() + 1, 0, 0);
+
+  const year = nextMinute.getFullYear();
+  const month = padDatePart(nextMinute.getMonth() + 1);
+  const day = padDatePart(nextMinute.getDate());
+  const hour = padDatePart(nextMinute.getHours());
+  const minute = padDatePart(nextMinute.getMinutes());
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, "0");
 }
