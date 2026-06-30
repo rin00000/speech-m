@@ -94,15 +94,22 @@ async function ensureDevPersona(persona: DevPersona) {
     { onConflict: "id" }
   );
 
-  await supabase.from("user_profiles").upsert(
-    {
-      user_id: persona.userId,
-      email: persona.email,
-      display_name: persona.name,
-      real_name: persona.realName,
-    },
-    { onConflict: "user_id" }
-  );
+  const profilePayload: {
+    user_id: string;
+    email: string;
+    display_name: string;
+    real_name?: string | null;
+  } = {
+    user_id: persona.userId,
+    email: persona.email,
+    display_name: persona.name,
+  };
+
+  if (persona.realName !== null) {
+    profilePayload.real_name = persona.realName;
+  }
+
+  await supabase.from("user_profiles").upsert(profilePayload, { onConflict: "user_id" });
 
   await supabase.from("user_auth_identities").upsert(
     {

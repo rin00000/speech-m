@@ -46,7 +46,7 @@ export function StudyRealNameGate({
           스터디 참여 실명이 필요합니다
         </h2>
         <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500">
-          {studyTitle}에 참여하려면 운영 확인용 실명을 먼저 저장해야 합니다. 닉네임은 커뮤니티용 표시명으로 따로 유지됩니다.
+          {studyTitle}에 참여하려면 운영 확인용 실명을 먼저 저장해야 합니다.
         </p>
         {displayName && (
           <p className="mt-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
