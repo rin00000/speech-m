@@ -12,6 +12,11 @@ import {
   updateStudyGroup as updateStudyGroupAction,
 } from "./_actions/study-group-actions";
 import {
+  approveStudyApplication as approveStudyApplicationAction,
+  rejectStudyApplication as rejectStudyApplicationAction,
+  submitStudyApplication as submitStudyApplicationAction,
+} from "./_actions/study-application-actions";
+import {
   createStudyAudioUploadTarget as createStudyAudioUploadTargetAction,
   submitRelayFeedbackAndSubmission as submitRelayFeedbackAndSubmissionAction,
   submitRelayFinalFeedback as submitRelayFinalFeedbackAction,
@@ -35,6 +40,18 @@ export async function saveStudyGroupMembers(groupId: string, studentUserIds: str
 
 export async function createStudyQuest(groupId: string, formData: FormData) {
   return createStudyQuestAction(groupId, formData);
+}
+
+export async function submitStudyApplication(message?: string) {
+  return submitStudyApplicationAction(message);
+}
+
+export async function approveStudyApplication(applicationId: string, groupId: string) {
+  return approveStudyApplicationAction(applicationId, groupId);
+}
+
+export async function rejectStudyApplication(applicationId: string) {
+  return rejectStudyApplicationAction(applicationId);
 }
 
 export async function saveStudyRealName(

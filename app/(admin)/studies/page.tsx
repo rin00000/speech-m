@@ -9,21 +9,32 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { LockIcon } from "@hugeicons/core-free-icons";
 import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import { getCurrentUser } from "@/lib/auth/session";
+import {
+  getPendingStudyApplications,
+  getStudentStudyApplication,
+} from "@/lib/studies/applications";
 import { getStudentProfiles, getStudiesForViewer } from "@/lib/studies/data";
 import { StudiesIndexView } from "./_components/studies-index-view";
 
-export default async function StudiesPage() {
+export default async function StudiesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
+  const params = await searchParams;
   const user = await getCurrentUser();
   const role = user?.role ?? "guest";
   const userId = user?.userId ?? null;
   const isAuthorized = userId !== null && (role === "admin" || role === "student");
 
-  const [studies, studentProfiles] = isAuthorized
+  const [studies, studentProfiles, pendingStudyApplications, studyApplication] = isAuthorized
     ? await Promise.all([
         getStudiesForViewer({ role, userId }),
         role === "admin" ? getStudentProfiles() : Promise.resolve([]),
+        role === "admin" ? getPendingStudyApplications() : Promise.resolve([]),
+        role === "student" ? getStudentStudyApplication(userId) : Promise.resolve(null),
       ])
-    : [[], []];
+    : [[], [], [], null];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -38,7 +49,14 @@ export default async function StudiesPage() {
 
       {isAuthorized ? (
         <PullToRefreshContainer className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
-          <StudiesIndexView role={role} studies={studies} studentProfiles={studentProfiles} />
+          <StudiesIndexView
+            role={role}
+            studies={studies}
+            studentProfiles={studentProfiles}
+            pendingStudyApplications={pendingStudyApplications}
+            studyApplication={studyApplication}
+            initialTab={params?.tab}
+          />
         </PullToRefreshContainer>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">

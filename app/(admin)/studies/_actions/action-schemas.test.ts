@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { parseFutureQuestDueAt } from "./action-schemas";
+import { parseFutureQuestDueAt, studyApplicationMessageSchema } from "./action-schemas";
 
 describe("parseFutureQuestDueAt", () => {
   const now = new Date("2026-06-30T10:00:00.000Z");
@@ -33,6 +33,22 @@ describe("parseFutureQuestDueAt", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.toISOString()).toBe("2026-06-30T10:01:00.000Z");
+    }
+  });
+});
+
+describe("studyApplicationMessageSchema", () => {
+  it("accepts an empty optional message", () => {
+    expect(studyApplicationMessageSchema.safeParse(undefined).success).toBe(true);
+    expect(studyApplicationMessageSchema.safeParse("").success).toBe(true);
+  });
+
+  it("rejects messages over 500 characters", () => {
+    const result = studyApplicationMessageSchema.safeParse("a".repeat(501));
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("신청 메모는 500자 이하로 입력하세요.");
     }
   });
 });

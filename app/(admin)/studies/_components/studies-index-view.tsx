@@ -6,6 +6,10 @@
  */
 
 import type { UserRole } from "@/lib/auth/session";
+import type {
+  AdminStudyApplicationItem,
+  StudentStudyApplication,
+} from "@/lib/studies/applications";
 import type { StudyAdminProfile, StudyListItem } from "@/lib/studies/data";
 import { AdminStudiesView } from "./admin-studies-view";
 import { StudentStudiesView } from "./student-studies-view";
@@ -14,16 +18,29 @@ type StudiesIndexViewProps = {
   role: UserRole;
   studies: StudyListItem[];
   studentProfiles: StudyAdminProfile[];
+  pendingStudyApplications: AdminStudyApplicationItem[];
+  studyApplication: StudentStudyApplication;
+  initialTab?: string;
 };
 
 export function StudiesIndexView({
   role,
   studies,
   studentProfiles,
+  pendingStudyApplications,
+  studyApplication,
+  initialTab,
 }: StudiesIndexViewProps) {
   if (role === "admin") {
-    return <AdminStudiesView studies={studies} studentProfiles={studentProfiles} />;
+    return (
+      <AdminStudiesView
+        studies={studies}
+        studentProfiles={studentProfiles}
+        pendingStudyApplications={pendingStudyApplications}
+        initialTab={initialTab}
+      />
+    );
   }
 
-  return <StudentStudiesView studies={studies} />;
+  return <StudentStudiesView studies={studies} studyApplication={studyApplication} />;
 }

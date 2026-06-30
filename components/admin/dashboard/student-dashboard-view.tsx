@@ -14,6 +14,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
 import { ManagementClassNoticesPanel } from "@/components/admin/dashboard/management-class-notices-panel";
+import { StudyApplicationCard } from "@/components/admin/studies/study-application-card";
 import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import type {
   StudentDashboardData,
@@ -109,7 +110,7 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
 
         {hasNoStudies ? (
           <div className="space-y-4 md:space-y-6">
-            <StudyPromotionCard />
+            <StudyPromotionCard application={data.studyApplication} />
             <PracticeHighlightsPanel highlights={data.practiceHighlights} />
           </div>
         ) : (
@@ -356,7 +357,13 @@ function PracticeHighlightsPanel({ highlights }: { highlights: StudentPracticeHi
       )}
     </section>
   );
-}function StudyPromotionCard() {
+}
+
+function StudyPromotionCard({
+  application,
+}: {
+  application: StudentDashboardData["studyApplication"];
+}) {
   return (
     <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm md:p-8">
       <div className="max-w-3xl">
@@ -406,13 +413,7 @@ function PracticeHighlightsPanel({ highlights }: { highlights: StudentPracticeHi
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
-          <p className="text-xs font-extrabold text-gray-700">📌 스터디 참여 안내</p>
-          <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
-            정규 교육 과정 수강생분들은 담당 코치가 직접 학습 그룹을 개설하고 멤버로 배정해 드립니다. 
-            만약 스터디 그룹 매칭을 원하는 경우, Speech-M 카톡 채널로 연락해 주세요.
-          </p>
-        </div>
+        <StudyApplicationCard application={application} className="mt-6" />
       </div>
     </section>
   );

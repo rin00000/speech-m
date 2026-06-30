@@ -6,25 +6,36 @@
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { StudyApplicationCard } from "@/components/admin/studies/study-application-card";
+import type { StudentStudyApplication } from "@/lib/studies/applications";
 import type { StudyListItem } from "@/lib/studies/data";
 import { Metric, formatDate } from "./studies-index-common";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TransitionLink } from "@/components/ui/transition-link";
 
-export function StudentStudiesView({ studies }: { studies: StudyListItem[] }) {
+export function StudentStudiesView({
+  studies,
+  studyApplication,
+}: {
+  studies: StudyListItem[];
+  studyApplication: StudentStudyApplication;
+}) {
   if (studies.length === 0) {
     return (
       <EmptyState
         icon="📚"
         title="참여 중인 스터디가 없습니다"
-        description="아직 배정된 스터디가 없습니다. 담당자가 스터디를 매칭 중입니다."
+        description="스터디 참여를 신청하면 관리자가 확인 후 릴레이 그룹에 배정합니다."
         action={
-          <TransitionLink
-            href="/practice"
-            className="mt-2 inline-flex items-center justify-center gap-2 rounded-full border border-periwinkle-200 bg-periwinkle-100 px-5 py-2.5 text-sm font-semibold leading-none text-periwinkle-700 transition-colors hover:bg-periwinkle-200"
-          >
-            연습 원고 보러가기
-          </TransitionLink>
+          <div className="mt-2 flex w-full max-w-xl flex-col items-center gap-3 text-left">
+            <StudyApplicationCard application={studyApplication} className="w-full" />
+            <TransitionLink
+              href="/practice"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-periwinkle-200 bg-periwinkle-100 px-5 py-2.5 text-sm font-semibold leading-none text-periwinkle-700 transition-colors hover:bg-periwinkle-200"
+            >
+              연습 원고 보러가기
+            </TransitionLink>
+          </div>
         }
       />
     );

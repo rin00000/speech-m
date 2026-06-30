@@ -6,6 +6,7 @@
 import { Header } from "@/components/admin/layout/header";
 import { activeDeadlineOrExpression, isExpiredDeadline } from "@/lib/jobs/deadline";
 import { getPublicSiteOrigin } from "@/lib/jobs/site-url";
+import { getPendingStudyApplicationCount } from "@/lib/studies/applications";
 import { getAdminStudyProgress } from "@/lib/studies/admin-progress";
 import { createAdminClient } from "@/lib/supabase/server";
 import { CrawlerControlHub } from "./crawler-control-hub";
@@ -31,6 +32,7 @@ export async function AdminDashboardView() {
   const [
     recentPublishedJobsResult,
     pendingUpgradeRequestsResult,
+    pendingStudyApplicationsResult,
     aiPendingJobsResult,
     studyProgressResult,
   ] = await Promise.all([
@@ -57,6 +59,7 @@ export async function AdminDashboardView() {
           requested_at: string;
         }[]
       >(),
+    getPendingStudyApplicationCount(),
     supabase
       .from("job_postings")
       .select("id,title,company,source,created_at,ai_fit_snapshot,source_url", { count: "exact" })
@@ -71,6 +74,7 @@ export async function AdminDashboardView() {
 
   const hasJobsError = Boolean(recentPublishedJobsResult.error);
   const hasUpgradeRequestsError = Boolean(pendingUpgradeRequestsResult.error);
+  const hasStudyApplicationsError = pendingStudyApplicationsResult.hasError;
   const hasAiPendingJobsError = Boolean(aiPendingJobsResult.error);
   const recentPublishedJobs = (recentPublishedJobsResult.data ?? []).filter(
     (job) => !isExpiredDeadline(job.deadline),
@@ -115,6 +119,8 @@ export async function AdminDashboardView() {
         <TodayTasksPanel
           pendingUpgradeRequests={pendingUpgradeRequests}
           hasUpgradeRequestsError={hasUpgradeRequestsError}
+          pendingStudyApplicationCount={pendingStudyApplicationsResult.count}
+          hasStudyApplicationsError={hasStudyApplicationsError}
           aiPendingJobs={aiPendingJobs}
           aiPendingJobCount={aiPendingJobCount}
           hasAiPendingJobsError={hasAiPendingJobsError}
