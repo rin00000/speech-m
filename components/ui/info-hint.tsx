@@ -58,7 +58,7 @@ export function InfoHint({
           e.preventDefault();
           setIsOpen(!isOpen);
         }}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 transition-colors hover:border-periwinkle-200 hover:text-periwinkle-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-periwinkle-300/70"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-periwinkle-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-periwinkle-300/70"
       >
         <HugeiconsIcon icon={HelpCircleIcon} size={14} color="currentColor" strokeWidth={2} />
       </button>
