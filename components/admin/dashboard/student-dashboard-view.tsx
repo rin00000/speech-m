@@ -409,7 +409,7 @@ function PracticeHighlightsPanel({ highlights }: { highlights: StudentPracticeHi
           <p className="text-xs font-extrabold text-gray-700">📌 스터디 참여 안내</p>
           <p className="mt-1 text-xs font-medium leading-snug text-gray-500">
             정규 교육 과정 수강생분들은 담당 코치가 직접 학습 그룹을 개설하고 멤버로 배정해 드립니다. 
-            만약 스터디 그룹 매칭을 원하시거나 배정 요청이 필요한 경우, Speech-M 고객센터로 연락해 주세요.
+            만약 스터디 그룹 매칭을 원하는 경우, Speech-M 카톡 채널로 연락해 주세요.
           </p>
         </div>
       </div>

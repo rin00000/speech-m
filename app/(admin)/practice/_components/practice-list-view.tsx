@@ -32,6 +32,7 @@ export function PracticeListView({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReaderFullscreen, setIsReaderFullscreen] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   const hasScripts = scripts.length > 0;
@@ -43,6 +44,7 @@ export function PracticeListView({
   const selectScript = (id: string | null) => {
     setSelectedScriptId(id);
     setIsEditing(false);
+    setIsReaderFullscreen(false);
   };
 
   const handleCategoryChange = (category: PracticeCategory) => {
@@ -134,7 +136,9 @@ export function PracticeListView({
         <div
           className={`fixed inset-0 z-[60] transition-opacity duration-200 ${
             selectedScript
-              ? "pointer-events-auto bg-gray-900/20 opacity-100"
+              ? isReaderFullscreen
+                ? "pointer-events-auto bg-gray-900/0 opacity-100"
+                : "pointer-events-auto bg-gray-900/20 opacity-100"
               : "pointer-events-none bg-gray-900/0 opacity-0"
           }`}
         >
@@ -148,9 +152,11 @@ export function PracticeListView({
             role="dialog"
             aria-modal="true"
             aria-label="원고 내용"
-            className={`absolute inset-y-0 right-0 flex h-dvh w-full max-w-3xl transform flex-col overflow-hidden bg-white shadow-sm transition-transform duration-200 ease-out md:w-[min(720px,calc(100vw-96px))] ${
-              selectedScript ? "translate-x-0" : "translate-x-full"
-            }`}
+            className={`absolute flex h-dvh transform flex-col overflow-hidden bg-white shadow-sm transition-all duration-200 ease-out ${
+              isReaderFullscreen
+                ? "inset-0 w-full max-w-none"
+                : "inset-y-0 right-0 w-full max-w-3xl md:w-[min(720px,calc(100vw-96px))]"
+            } ${selectedScript ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}`}
           >
             {selectedScript && (
               <PracticeScriptReader
@@ -163,6 +169,8 @@ export function PracticeListView({
                 onSaved={() => setIsEditing(false)}
                 onDelete={() => void handleDeleteSelected()}
                 onClose={() => selectScript(null)}
+                isFullscreen={isReaderFullscreen}
+                onToggleFullscreen={() => setIsReaderFullscreen((value) => !value)}
               />
             )}
           </aside>

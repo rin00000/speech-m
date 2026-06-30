@@ -242,7 +242,7 @@ function CouponForm({ data, run, isPending }: ManagementClassViewProps) {
         </select>
       </FieldLabel>
       <FieldLabel label="발급 개수">
-        <TextInput name="totalCount" type="number" min={1} max={100} defaultValue={5} required />
+        <TextInput name="totalCount" type="number" min={1} max={100} defaultValue={3} required />
       </FieldLabel>
       <FieldLabel label="메모">
         <TextInput name="note" placeholder="오프라인 결제 확인 등" />

@@ -49,7 +49,7 @@ export default async function PracticePage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <Header
         title="수강생 연습실"
-        description="원장님이 직접 선별한 엄선된 고품질 방송 연습 원고 무제한 이용"
+        description="원장님이 선별한 고품질 방송 연습 원고 무제한 이용"
       />
 
       {isAuthorized ? (
@@ -90,7 +90,7 @@ export default async function PracticePage() {
                 <span className="text-emerald-500 shrink-0">
                   <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color="currentColor" />
                 </span>
-                <span className="font-semibold">현직 강사진의 1:1 디테일 릴레이 피드백 수령</span>
+                <span className="font-semibold">릴레이 피드백 수령</span>
               </div>
             </div>
 
