@@ -151,7 +151,12 @@ export function RelayStudyDetailView({
             {detail.group.description || "릴레이 스터디"}
           </p>
         </div>
-        <Button type="button" variant="ghost" onClick={() => router.refresh()}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => router.refresh()}
+          className="hidden md:inline-flex"
+        >
           <HugeiconsIcon icon={RefreshIcon} size={15} color="currentColor" />
           새로고침
         </Button>

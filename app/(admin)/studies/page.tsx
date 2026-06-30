@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Header } from "@/components/admin/layout/header";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { LockIcon } from "@hugeicons/core-free-icons";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getStudentProfiles, getStudiesForViewer } from "@/lib/studies/data";
 import { StudiesIndexView } from "./_components/studies-index-view";
@@ -36,9 +37,9 @@ export default async function StudiesPage() {
       />
 
       {isAuthorized ? (
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
+        <PullToRefreshContainer className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <StudiesIndexView role={role} studies={studies} studentProfiles={studentProfiles} />
-        </div>
+        </PullToRefreshContainer>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto bg-gray-50/50 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6">
           <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm md:rounded-3xl md:p-8">

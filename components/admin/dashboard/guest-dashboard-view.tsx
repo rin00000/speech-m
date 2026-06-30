@@ -14,6 +14,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
 import { InfoHint } from "@/components/ui/info-hint";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import { GuestUpgradeRequestCard } from "./guest-upgrade-request-card";
 import { relativeTime } from "@/lib/jobs/utils";
 import type { GuestDashboardData } from "@/lib/dashboard/guest-dashboard";
@@ -40,7 +41,7 @@ export function GuestDashboardView({
         description="방송·미디어 분야 채용 공고와 준비 현황을 한눈에 확인합니다."
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
         {/* 환영 히어로 */}
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -196,7 +197,7 @@ export function GuestDashboardView({
             </div>
           </section>
         )}
-      </div>
+      </PullToRefreshContainer>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
   TodayTasksPanel,
   type TodayTaskAiPendingJob,
 } from "./today-tasks-panel";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 
 export async function AdminDashboardView() {
   const supabase = createAdminClient();
@@ -110,7 +111,7 @@ export async function AdminDashboardView() {
         description="Speech-M 아카데미 현황을 한눈에 확인하세요."
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
         <TodayTasksPanel
           pendingUpgradeRequests={pendingUpgradeRequests}
           hasUpgradeRequestsError={hasUpgradeRequestsError}
@@ -140,7 +141,7 @@ export async function AdminDashboardView() {
           hasError={hasJobsError}
           siteOrigin={siteOrigin}
         />
-      </div>
+      </PullToRefreshContainer>
     </div>
   );
 }

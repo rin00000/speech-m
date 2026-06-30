@@ -14,6 +14,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Header } from "@/components/admin/layout/header";
 import { ManagementClassNoticesPanel } from "@/components/admin/dashboard/management-class-notices-panel";
+import { PullToRefreshContainer } from "@/components/ui/pull-to-refresh-container";
 import type {
   StudentDashboardData,
   StudentDashboardDueState,
@@ -77,7 +78,7 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
         description="오늘 해야 할 스터디 흐름과 연습 진입점을 확인합니다."
       />
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
+      <PullToRefreshContainer className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:space-y-6 md:p-6">
         <ManagementClassNoticesPanel notices={data.managementClassNotices} />
 
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-6">
@@ -124,7 +125,7 @@ export function StudentDashboardView({ userName, data }: StudentDashboardViewPro
             </div>
           </>
         )}
-      </div>
+      </PullToRefreshContainer>
     </div>
   );
 }
