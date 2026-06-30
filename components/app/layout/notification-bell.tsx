@@ -89,7 +89,7 @@ export function NotificationBell({ initialNotifications }: NotificationBellProps
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
+          className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
           role="dialog"
           aria-label="알림 목록"
         >
