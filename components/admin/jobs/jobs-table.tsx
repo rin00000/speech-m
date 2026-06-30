@@ -12,7 +12,9 @@ import {
   deleteRejectedJobPostings,
   markJobsPublished,
 } from "@/app/(admin)/jobs/actions";
+import { SkeletonTable } from "@/components/ui/skeleton";
 import { useAsyncAction } from "@/lib/ui/use-async-action";
+import { useLoading } from "@/lib/ui/loading-context";
 import { isExpiredDeadline } from "@/lib/jobs/deadline";
 import type { JobStatus } from "@/types/database.types";
 import { DesktopJobsTable } from "./desktop-jobs-table";
@@ -32,6 +34,7 @@ export const JobsTable = ({
   emptyState,
 }: JobsTableProps) => {
   const router = useRouter();
+  const { isNavigating } = useLoading();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { isPending: isBulkPending, runAction: runBulkAction } = useAsyncAction();
   const [query, setQuery] = useState("");
@@ -132,6 +135,15 @@ export const JobsTable = ({
       router.refresh();
     });
   };
+
+  if (isNavigating) {
+    return (
+      <div role="status" aria-live="polite" aria-busy="true">
+        <span className="sr-only">공고 목록을 불러오는 중입니다.</span>
+        <SkeletonTable rows={10} cols={11} />
+      </div>
+    );
+  }
 
   if (activeJobs.length === 0 && !sourceHeader && !emptyState) return null;
 

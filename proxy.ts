@@ -52,7 +52,7 @@ function isApiPath(pathname: string) {
 function getDevProxyAuth(
   request: NextRequest
 ): Exclude<ProxyAuthResult, { status: "check_failed" }> | null {
-  if (process.env.NODE_ENV === "production") return null;
+  if (process.env.NODE_ENV !== "development") return null;
 
   const devPersona = getDevPersonaFromCookieValue(request.cookies.get("mock_role")?.value);
   if (devPersona === undefined) return null;

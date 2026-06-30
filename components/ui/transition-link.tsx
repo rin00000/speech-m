@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 내부 라우팅 링크에 전역 네비게이션 진행 표시를 연결하는 Link 래퍼입니다.
+ * TransitionLink가 클릭 조건을 판별하고 LoadingProvider의 진행 상태와 Next router 이동을 함께 처리합니다.
+ */
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ComponentPropsWithoutRef, MouseEvent } from "react";
