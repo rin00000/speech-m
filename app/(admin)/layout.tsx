@@ -1,5 +1,6 @@
 import { AdminLayoutGate } from "@/components/admin/layout/admin-layout-gate";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getMyUnreadNotifications } from "@/lib/notifications/data";
 
 export default async function AdminLayout({
   children,
@@ -11,12 +12,15 @@ export default async function AdminLayout({
   const name = user?.name ?? null;
   const email = user?.email ?? null;
 
+  const notifications = user ? await getMyUnreadNotifications(user.userId) : [];
+
   return (
     <AdminLayoutGate
       isAuthenticated={!!user}
       userEmail={email}
       userName={name}
       userRole={role}
+      notifications={notifications}
     >
       {children}
     </AdminLayoutGate>

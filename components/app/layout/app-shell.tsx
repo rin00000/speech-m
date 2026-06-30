@@ -8,6 +8,7 @@
 
 import type { MouseEvent, ReactNode } from "react";
 import type { UserRole } from "@/lib/auth/session";
+import type { UserNotification } from "@/lib/notifications/data";
 import { LoadingProvider, useLoading } from "@/lib/ui/loading-context";
 import { BottomTab } from "./bottom-tab";
 import { DevRoleSimulator } from "./dev-role-simulator";
@@ -59,6 +60,7 @@ function AppShellContent({
   isAuthenticated,
   previewPathname,
   hideNav,
+  notifications,
 }: {
   children: ReactNode;
   userRole: UserRole;
@@ -67,6 +69,7 @@ function AppShellContent({
   isAuthenticated?: boolean;
   previewPathname?: string;
   hideNav: boolean;
+  notifications?: UserNotification[];
 }) {
   const { isNavigating, startNavigation } = useLoading();
 
@@ -87,6 +90,7 @@ function AppShellContent({
           userEmail={userEmail}
           isAuthenticated={isAuthenticated}
           previewPathname={previewPathname}
+          notifications={notifications}
         />
       )}
 
@@ -121,6 +125,7 @@ export function AppShell({
   isAuthenticated,
   previewPathname,
   hideNav = false,
+  notifications,
 }: {
   children: ReactNode;
   userRole: UserRole;
@@ -129,6 +134,7 @@ export function AppShell({
   isAuthenticated?: boolean;
   previewPathname?: string;
   hideNav?: boolean;
+  notifications?: UserNotification[];
 }) {
   return (
     <LoadingProvider>
@@ -139,6 +145,7 @@ export function AppShell({
         isAuthenticated={isAuthenticated}
         previewPathname={previewPathname}
         hideNav={hideNav}
+        notifications={notifications}
       >
         {children}
       </AppShellContent>
