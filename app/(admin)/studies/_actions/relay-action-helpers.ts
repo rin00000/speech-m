@@ -198,6 +198,7 @@ export async function removeUploadedAudio(audioPath: string) {
 }
 
 export function revalidateStudyPaths(groupId: string) {
+  revalidatePath("/dashboard");
   revalidatePath("/studies");
   revalidatePath(`/studies/${groupId}`);
 }
