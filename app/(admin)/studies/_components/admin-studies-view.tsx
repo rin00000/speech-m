@@ -48,6 +48,7 @@ type Tab = "applications" | "groups" | "members" | "quests";
 type ActionResult = {
   success: boolean;
   error?: string;
+  code?: "already_resolved";
 };
 
 type ActionRunner = (
@@ -108,7 +109,7 @@ export function AdminStudiesView({
   const [isPending, startTransition] = useTransition();
 
   const run = (
-    fn: () => Promise<{ success: boolean; error?: string }>,
+    fn: () => Promise<ActionResult>,
     successText: string,
     onSuccess?: () => void
   ) => {
@@ -118,6 +119,14 @@ export function AdminStudiesView({
       if (result.success) {
         setNotice({ tone: "success", text: successText });
         onSuccess?.();
+        router.refresh();
+        return;
+      }
+      if (result.code === "already_resolved") {
+        setNotice({
+          tone: "success",
+          text: result.error ?? "이미 처리된 신청이라 목록을 새로고침합니다.",
+        });
         router.refresh();
         return;
       }

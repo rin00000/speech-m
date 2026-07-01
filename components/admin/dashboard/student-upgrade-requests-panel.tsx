@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+/**
+ * 관리자 대시보드의 수강생 등업 문의 대기열을 표시하고 승인/반려 액션을 실행합니다.
+ * 서버 새로고침으로 들어온 최신 대기열과 로컬 처리 상태를 동기화합니다.
+ */
+
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, CheckmarkCircle01Icon, UserIcon } from "@hugeicons/core-free-icons";
@@ -35,6 +40,14 @@ export function StudentUpgradeRequestsPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setRequests(initialRequests);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [initialRequests]);
+
   const handleResolve = (requestId: string, type: "approve" | "reject") => {
     setPendingAction({ id: requestId, type });
     setNotice(null);
@@ -47,6 +60,14 @@ export function StudentUpgradeRequestsPanel({
           : await rejectStudentUpgradeRequest(requestId);
 
       if (!result.success) {
+        if (result.code === "already_resolved") {
+          setRequests((current) => current.filter((request) => request.id !== requestId));
+          setNotice(result.error ?? "이미 다른 관리자가 처리한 등업 문의입니다.");
+          setPendingAction(null);
+          router.refresh();
+          return;
+        }
+
         setErrorMessage(result.error ?? "등업 문의 처리 중 오류가 발생했습니다.");
         setPendingAction(null);
         return;

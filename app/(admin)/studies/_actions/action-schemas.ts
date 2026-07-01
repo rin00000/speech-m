@@ -5,9 +5,11 @@
 
 import { z } from "zod";
 
+export type ActionErrorCode = "already_resolved";
+
 export type ActionResult<T = undefined> =
   | { success: true; data: T }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: ActionErrorCode };
 
 export const uuidSchema = z.string().uuid();
 

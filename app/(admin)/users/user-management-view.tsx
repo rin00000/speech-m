@@ -5,7 +5,7 @@
  * 검색 결과 기준 다중 선택과 updateUserRole/updateMultipleUsersRoles 호출 흐름을 담당합니다.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon, CheckmarkCircle01Icon, Search01Icon } from "@hugeicons/core-free-icons";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -88,6 +88,20 @@ export function UserManagementView({ initialUsers }: { initialUsers: UserManagem
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [adminConfirmText, setAdminConfirmText] = useState("");
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const nextUserIds = new Set(initialUsers.map((user) => user.userId));
+      setUsers(initialUsers);
+      setSelectedUserIds((current) => current.filter((id) => nextUserIds.has(id)));
+      setOpenDropdownId((current) => (current && nextUserIds.has(current) ? current : null));
+      setPendingChange((current) =>
+        current && current.userIds.every((id) => nextUserIds.has(id)) ? current : null
+      );
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [initialUsers]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredUsers = useMemo(() => {

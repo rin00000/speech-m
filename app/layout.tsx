@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Speech-M 관리자",
-  description: "Speech-M 아나운서 아카데미 원장 대시보드",
+  title: "Speech-M",
+  description: "Speech-M 아나운서 아카데미 ",
 };
 
 export default function RootLayout({
