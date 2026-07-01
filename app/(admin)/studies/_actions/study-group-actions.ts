@@ -7,6 +7,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
+import { STUDY_AUDIO_BUCKET } from "@/lib/studies/constants";
+import type { Database } from "@/types/database.types";
 import {
   groupSchema,
   parseFutureQuestDueAt,
@@ -18,6 +20,12 @@ import {
 import { requireAdminActor } from "./relay-action-helpers";
 
 const studentUserIdsSchema = uuidSchema.array();
+type StudyGroupDeleteRow = Pick<Database["public"]["Tables"]["study_groups"]["Row"], "id" | "status">;
+type StudyQuestDeleteRow = Pick<Database["public"]["Tables"]["study_quests"]["Row"], "id">;
+type RelaySubmissionAudioRow = Pick<
+  Database["public"]["Tables"]["study_relay_submissions"]["Row"],
+  "audio_path"
+>;
 
 export async function createStudyGroup(formData: FormData): Promise<ActionResult<{ id: string }>> {
   const actor = await requireAdminActor();
@@ -80,6 +88,73 @@ export async function updateStudyGroup(
 
   if (error) return { success: false, error: "스터디 그룹을 저장하지 못했습니다." };
 
+  revalidatePath("/studies");
+  revalidatePath(`/studies/${groupIdParsed.data}`);
+  return { success: true, data: undefined };
+}
+
+export async function deleteStudyGroup(groupId: string): Promise<ActionResult> {
+  const actor = await requireAdminActor();
+  if (!actor.success) return actor;
+
+  const groupIdParsed = uuidSchema.safeParse(groupId);
+  if (!groupIdParsed.success) return { success: false, error: "스터디 ID가 올바르지 않습니다." };
+
+  const supabase = createAdminClient();
+  const { data: group, error: groupError } = await supabase
+    .from("study_groups")
+    .select("id, status")
+    .eq("id", groupIdParsed.data)
+    .eq("type", "relay")
+    .maybeSingle();
+
+  if (groupError) return { success: false, error: "스터디 정보를 확인하지 못했습니다." };
+
+  const targetGroup = group as StudyGroupDeleteRow | null;
+  if (!targetGroup) return { success: false, error: "삭제할 스터디를 찾을 수 없습니다." };
+  if (targetGroup.status !== "archived") {
+    return { success: false, error: "보관 상태인 스터디만 영구 삭제할 수 있습니다." };
+  }
+
+  const { data: questRows, error: questError } = await supabase
+    .from("study_quests")
+    .select("id")
+    .eq("group_id", groupIdParsed.data);
+
+  if (questError) return { success: false, error: "스터디 퀘스트를 확인하지 못했습니다." };
+
+  const questIds = ((questRows ?? []) as StudyQuestDeleteRow[]).map((quest) => quest.id);
+  const audioPaths =
+    questIds.length === 0
+      ? []
+      : await getStudyAudioPathsForDeletion(supabase, questIds);
+
+  if (!Array.isArray(audioPaths)) return audioPaths;
+
+  if (audioPaths.length > 0) {
+    const { error: removeError } = await supabase.storage
+      .from(STUDY_AUDIO_BUCKET)
+      .remove(audioPaths);
+
+    if (removeError) {
+      return { success: false, error: "스터디 음성 파일을 삭제하지 못했습니다." };
+    }
+  }
+
+  const { data: deletedGroup, error: deleteError } = await supabase
+    .from("study_groups")
+    .delete()
+    .eq("id", groupIdParsed.data)
+    .eq("status", "archived")
+    .select("id")
+    .maybeSingle();
+
+  if (deleteError) return { success: false, error: "스터디를 삭제하지 못했습니다." };
+  if (!deletedGroup) {
+    return { success: false, error: "삭제 조건이 변경되었습니다. 목록을 새로고침한 뒤 다시 시도해주세요." };
+  }
+
+  revalidatePath("/dashboard");
   revalidatePath("/studies");
   revalidatePath(`/studies/${groupIdParsed.data}`);
   return { success: true, data: undefined };
@@ -178,4 +253,26 @@ export async function createStudyQuest(
   revalidatePath("/studies");
   revalidatePath(`/studies/${groupIdParsed.data}`);
   return { success: true, data: { id: data.id } };
+}
+
+async function getStudyAudioPathsForDeletion(
+  supabase: ReturnType<typeof createAdminClient>,
+  questIds: string[]
+): Promise<string[] | ActionResult> {
+  const { data: submissionRows, error: submissionError } = await supabase
+    .from("study_relay_submissions")
+    .select("audio_path")
+    .in("quest_id", questIds);
+
+  if (submissionError) {
+    return { success: false, error: "스터디 음성 파일 목록을 확인하지 못했습니다." };
+  }
+
+  return [
+    ...new Set(
+      ((submissionRows ?? []) as RelaySubmissionAudioRow[])
+        .map((submission) => submission.audio_path)
+        .filter(Boolean)
+    ),
+  ];
 }

@@ -8,6 +8,7 @@
 import {
   createStudyGroup as createStudyGroupAction,
   createStudyQuest as createStudyQuestAction,
+  deleteStudyGroup as deleteStudyGroupAction,
   saveStudyGroupMembers as saveStudyGroupMembersAction,
   updateStudyGroup as updateStudyGroupAction,
 } from "./_actions/study-group-actions";
@@ -32,6 +33,10 @@ export async function createStudyGroup(formData: FormData) {
 
 export async function updateStudyGroup(groupId: string, formData: FormData) {
   return updateStudyGroupAction(groupId, formData);
+}
+
+export async function deleteStudyGroup(groupId: string) {
+  return deleteStudyGroupAction(groupId);
 }
 
 export async function saveStudyGroupMembers(groupId: string, studentUserIds: string[]) {
