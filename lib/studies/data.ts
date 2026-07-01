@@ -12,6 +12,7 @@ import {
   buildRelayQuestState,
   canViewStudy,
   getDisplayName,
+  isStudyQuestOverdue,
   type RelayFeedback,
   type RelayQuestState,
   type RelaySubmission,
@@ -40,6 +41,8 @@ export type StudyListItem = {
   memberUserIds: string[];
   questCount: number;
   openQuestCount: number;
+  activeOpenQuestCount: number;
+  overdueOpenQuestCount: number;
   nextDueAt: string | null;
   createdAt: string;
 };
@@ -50,6 +53,7 @@ export type StudyQuestDetail = {
   scriptTitle: string;
   scriptContent: string;
   dueAt: string;
+  isOverdue: boolean;
   status: StudyQuestStatus;
   createdAt: string;
   relay: RelayQuestState;
@@ -88,6 +92,7 @@ export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyLis
 
   const memberRows = (members ?? []) as Pick<StudyGroupMemberRow, "group_id" | "student_user_id">[];
   const questRows = (quests ?? []) as Pick<StudyQuestRow, "id" | "group_id" | "status" | "due_at">[];
+  const now = Date.now();
   const visibleGroupIds =
     viewer.role === "admin"
       ? null
@@ -103,6 +108,12 @@ export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyLis
       const groupMembers = memberRows.filter((member) => member.group_id === group.id);
       const groupQuests = questRows.filter((quest) => quest.group_id === group.id);
       const openQuests = groupQuests.filter((quest) => quest.status === "open");
+      const activeOpenQuests = openQuests.filter(
+        (quest) => !isStudyQuestOverdue(quest.due_at, now),
+      );
+      const overdueOpenQuests = openQuests.filter((quest) =>
+        isStudyQuestOverdue(quest.due_at, now),
+      );
       return {
         id: group.id,
         title: group.title,
@@ -112,7 +123,9 @@ export async function getStudiesForViewer(viewer: StudyViewer): Promise<StudyLis
         memberUserIds: groupMembers.map((member) => member.student_user_id),
         questCount: groupQuests.length,
         openQuestCount: openQuests.length,
-        nextDueAt: openQuests[0]?.due_at ?? null,
+        activeOpenQuestCount: activeOpenQuests.length,
+        overdueOpenQuestCount: overdueOpenQuests.length,
+        nextDueAt: activeOpenQuests[0]?.due_at ?? null,
         createdAt: group.created_at,
       };
     });
@@ -218,7 +231,9 @@ export async function getStudyDetail({
 
   const signedAudioUrls = await createSignedAudioUrlMap(submissions);
 
+  const now = Date.now();
   const questDetails = quests.map((quest) => {
+    const isOverdue = quest.status === "open" && isStudyQuestOverdue(quest.due_at, now);
     const questSubmissions = submissions
       .filter((submission) => submission.quest_id === quest.id)
       .map<RelaySubmission>((submission) => ({
@@ -251,6 +266,7 @@ export async function getStudyDetail({
       scriptTitle: quest.script_title,
       scriptContent: quest.script_content,
       dueAt: quest.due_at,
+      isOverdue,
       status: quest.status,
       createdAt: quest.created_at,
       relay: buildRelayQuestState({

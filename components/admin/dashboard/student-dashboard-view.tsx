@@ -20,6 +20,7 @@ import type {
   StudentDashboardData,
   StudentDashboardDueState,
   StudentDashboardFeedback,
+  StudentDashboardFeedbackTone,
   StudentDashboardTask,
   StudentPracticeHighlight,
 } from "@/lib/studies/student-dashboard";
@@ -40,6 +41,13 @@ const dueStateClassNames: Record<StudentDashboardDueState, string> = {
   steady: "border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700",
   due_soon: "border-amber-100 bg-amber-50 text-amber-700",
   overdue: "border-red-100 bg-red-50 text-red-700",
+};
+
+const feedbackToneClassNames: Record<StudentDashboardFeedbackTone, string> = {
+  action: "border-amber-200 bg-amber-50 text-amber-700",
+  waiting: "border-periwinkle-100 bg-periwinkle-50 text-periwinkle-700",
+  complete: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  neutral: "border-gray-200 bg-white text-gray-500",
 };
 
 const difficultyClassNames: Record<PracticeScriptDifficulty, string> = {
@@ -165,6 +173,16 @@ function StudyStatusPanel({ data }: { data: StudentDashboardData }) {
                   <p className="mt-1 truncate text-xs font-medium text-gray-500">
                     멤버 {study.memberCount}명 · 열린 퀘스트 {study.openQuestCount}개
                   </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none ${feedbackToneClassNames[study.feedbackTone]}`}
+                    >
+                      {study.feedbackLabel}
+                    </span>
+                    <span className="min-w-0 text-xs font-medium leading-snug text-gray-500">
+                      {study.feedbackDescription}
+                    </span>
+                  </div>
                 </div>
                 <span className="shrink-0 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold leading-none text-gray-500">
                   {study.nextDueAt ? `${formatShortDate(study.nextDueAt)} 마감` : "대기"}

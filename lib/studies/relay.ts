@@ -93,6 +93,12 @@ export function getDisplayName({
   return trimmed || fallback;
 }
 
+export function isStudyQuestOverdue(dueAt: string, now = Date.now()) {
+  const dueTime = new Date(dueAt).getTime();
+  if (!Number.isFinite(dueTime)) return false;
+  return dueTime < now;
+}
+
 export function buildRelayQuestState({
   members,
   submissions,

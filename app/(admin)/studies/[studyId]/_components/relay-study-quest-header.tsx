@@ -10,18 +10,31 @@ import type { StudyQuestDetail } from "@/lib/studies/data";
 import { formatDateTime, getStatusLabel, Metric } from "./relay-study-detail-common";
 
 export function QuestHeader({ quest }: { quest: StudyQuestDetail }) {
+  const isExpiredOpenQuest = quest.status === "open" && quest.isOverdue;
+
   return (
     <Card>
       <CardBody className="space-y-4 py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-periwinkle-200 bg-periwinkle-50 px-2.5 py-1 text-[11px] font-extrabold leading-none text-periwinkle-700">
-                {getStatusLabel(quest.relay.status)}
+              <span
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-extrabold leading-none ${
+                  isExpiredOpenQuest
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-periwinkle-200 bg-periwinkle-50 text-periwinkle-700"
+                }`}
+              >
+                {isExpiredOpenQuest ? "마감 지남" : getStatusLabel(quest.relay.status)}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-400">
+              <span
+                className={`inline-flex items-center gap-1 text-xs font-bold ${
+                  isExpiredOpenQuest ? "text-red-600" : "text-gray-400"
+                }`}
+              >
                 <HugeiconsIcon icon={Calendar01Icon} size={13} color="currentColor" />
                 {formatDateTime(quest.dueAt)}
+                {isExpiredOpenQuest ? " 마감" : ""}
               </span>
             </div>
             <h3 className="mt-3 text-lg font-extrabold leading-tight text-gray-900 md:text-xl">

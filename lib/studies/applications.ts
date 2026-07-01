@@ -25,6 +25,12 @@ type PendingStudyApplicationRow = Pick<
 >;
 
 const UNKNOWN_USER_DISPLAY_NAME = "이름 미설정";
+const MISSING_STUDY_APPLICATIONS_TABLE_ERROR_CODES = new Set(["PGRST205", "42P01"]);
+
+type SupabaseLikeError = {
+  code?: string;
+  message?: string;
+};
 
 export type StudentStudyApplication = {
   id: string;
@@ -59,7 +65,14 @@ export async function getStudentStudyApplication(
     .limit(1)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    if (shouldUseMissingStudyApplicationsFallback(error)) {
+      warnMissingStudyApplicationsTable(error);
+      return null;
+    }
+
+    throw error;
+  }
 
   const application = data as StudentStudyApplicationRow | null;
   if (!application) return null;
@@ -88,7 +101,14 @@ export async function getPendingStudyApplications(): Promise<AdminStudyApplicati
     .order("requested_at", { ascending: true })
     .returns<PendingStudyApplicationRow[]>();
 
-  if (error) throw error;
+  if (error) {
+    if (shouldUseMissingStudyApplicationsFallback(error)) {
+      warnMissingStudyApplicationsTable(error);
+      return [];
+    }
+
+    throw error;
+  }
 
   const applications = data ?? [];
   const profiles = await getProfilesByUserId(
@@ -150,4 +170,26 @@ function displayName(userId: string, profiles: Map<string, UserProfileRow>) {
     fallback: profile?.email ?? UNKNOWN_USER_DISPLAY_NAME,
     displayName: profile?.real_name ?? profile?.display_name ?? userId,
   });
+}
+
+function shouldUseMissingStudyApplicationsFallback(error: unknown) {
+  return process.env.NODE_ENV !== "production" && isMissingStudyApplicationsTableError(error);
+}
+
+function isMissingStudyApplicationsTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const supabaseError = error as SupabaseLikeError;
+  const message = supabaseError.message ?? "";
+  return (
+    MISSING_STUDY_APPLICATIONS_TABLE_ERROR_CODES.has(supabaseError.code ?? "") &&
+    message.includes("study_applications")
+  );
+}
+
+function warnMissingStudyApplicationsTable(error: unknown) {
+  console.warn(
+    "[studies] study_applications table is unavailable in local schema; rendering application state as empty.",
+    error
+  );
 }

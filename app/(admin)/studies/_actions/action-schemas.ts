@@ -79,6 +79,7 @@ export const finalFeedbackSchema = z.object({
 
 export const relayRpcErrorMessages: Record<string, string> = {
   relay_quest_not_open: "열려 있는 퀘스트를 찾을 수 없습니다.",
+  relay_quest_overdue: "마감이 지나 제출할 수 없습니다.",
   relay_member_required: "스터디 멤버만 제출할 수 있습니다.",
   relay_already_started: "이미 릴레이가 시작된 퀘스트입니다.",
   relay_first_submission_required: "첫 제출은 피드백 없이 시작해야 합니다.",

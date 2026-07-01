@@ -91,6 +91,22 @@ describe("buildRelayQuestState", () => {
     expect(state.canFeedbackAndUpload).toBe(false);
   });
 
+  it("prevents non-first uploaders from closing the circular final feedback", () => {
+    const state = buildRelayQuestState({
+      members,
+      submissions: [
+        submission(1, "user-a", { authorUserId: "user-b", comment: "좋아요" }),
+        submission(2, "user-b", { authorUserId: "user-c", comment: "좋아요" }),
+        submission(3, "user-c"),
+      ],
+      currentUserId: "user-b",
+      questStatus: "open",
+    });
+
+    expect(state.status).toBe("waiting_final_feedback");
+    expect(state.canFinalFeedback).toBe(false);
+  });
+
   it("marks the relay completed after every submission has feedback", () => {
     const state = buildRelayQuestState({
       members,

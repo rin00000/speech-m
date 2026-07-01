@@ -1,6 +1,6 @@
 /**
  * 정회원 수강생 대시보드에 필요한 스터디/연습 요약 데이터를 계산한다.
- * 상세 화면과 같은 릴레이 상태 규칙을 사용하되 마지막 원형 피드백은 대시보드 할 일에서 제외한다.
+ * 상세 화면과 같은 릴레이 상태 규칙으로 오늘 할 일과 스터디별 피드백 상태를 계산한다.
  */
 
 import { createAdminClient } from "@/lib/supabase/server";
@@ -16,7 +16,9 @@ import type { Database, PracticeScriptCategory, PracticeScriptDifficulty } from 
 import {
   buildRelayQuestState,
   getDisplayName,
+  isStudyQuestOverdue,
   type RelayFeedback,
+  type RelayQuestState,
   type RelaySubmission,
   type StudyMember,
 } from "./relay";
@@ -41,6 +43,13 @@ type PracticeScriptSummaryRow = Pick<
 >;
 
 export type StudentDashboardDueState = "steady" | "due_soon" | "overdue";
+export type StudentDashboardFeedbackStatus =
+  | "not_started"
+  | "needs_feedback"
+  | "waiting_final_turn"
+  | "waiting_peer_feedback"
+  | "completed";
+export type StudentDashboardFeedbackTone = "action" | "waiting" | "complete" | "neutral";
 
 export type StudentDashboardStudySummary = {
   id: string;
@@ -50,6 +59,10 @@ export type StudentDashboardStudySummary = {
   questCount: number;
   openQuestCount: number;
   nextDueAt: string | null;
+  feedbackStatus: StudentDashboardFeedbackStatus;
+  feedbackLabel: string;
+  feedbackDescription: string;
+  feedbackTone: StudentDashboardFeedbackTone;
 };
 
 export type StudentDashboardTask = {
@@ -59,7 +72,7 @@ export type StudentDashboardTask = {
   questId: string;
   questTitle: string;
   dueAt: string;
-  type: "first_submission" | "feedback_and_upload";
+  type: "first_submission" | "feedback_and_upload" | "final_feedback";
   title: string;
   description: string;
   dueState: StudentDashboardDueState;
@@ -168,7 +181,11 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
   const groups = (groupRows ?? []).filter((group) => group.status === "active");
   const activeGroupIds = new Set(groups.map((group) => group.id));
   const quests = (questRows ?? []).filter((quest) => activeGroupIds.has(quest.group_id));
-  const questIds = quests.map((quest) => quest.id);
+  const now = Date.now();
+  const openQuests = quests.filter(
+    (quest) => quest.status === "open" && !isStudyQuestOverdue(quest.due_at, now),
+  );
+  const questIds = openQuests.map((quest) => quest.id);
   const { data: submissionRows } =
     questIds.length > 0
       ? await supabase
@@ -201,7 +218,7 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
     ]),
   ]);
   const groupById = new Map(groups.map((group) => [group.id, group]));
-  const questById = new Map(quests.map((quest) => [quest.id, quest]));
+  const questById = new Map(openQuests.map((quest) => [quest.id, quest]));
   const submissionsByQuestId = groupBy(submissions, (submission) => submission.quest_id);
   const submissionById = new Map(submissions.map((submission) => [submission.id, submission]));
   const feedbackBySubmissionId = new Map<string, RelayFeedback>();
@@ -232,20 +249,38 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
       studyMembersByGroupId.set(member.group_id, members);
     });
 
-  const openQuests = quests.filter((quest) => quest.status === "open");
-  const studies = groups.map((group) => {
-    const groupQuests = quests.filter((quest) => quest.group_id === group.id);
-    const groupOpenQuests = groupQuests.filter((quest) => quest.status === "open");
+  const relayStateByQuestId = new Map(
+    openQuests.map((quest) => [
+      quest.id,
+      buildRelayQuestState({
+        members: studyMembersByGroupId.get(quest.group_id) ?? [],
+        submissions: (submissionsByQuestId.get(quest.id) ?? []).map((submission) =>
+          toRelaySubmission(submission, profiles, feedbackBySubmissionId),
+        ),
+        currentUserId: userId,
+        questStatus: quest.status,
+      }),
+    ]),
+  );
+  const studies = groups.flatMap((group) => {
+    const groupOpenQuests = openQuests.filter((quest) => quest.group_id === group.id);
+    if (groupOpenQuests.length === 0) return [];
 
-    return {
+    const groupRelayStates = groupOpenQuests
+      .map((quest) => relayStateByQuestId.get(quest.id))
+      .filter((state): state is RelayQuestState => Boolean(state));
+    const feedbackSummary = buildStudyFeedbackSummary(groupRelayStates, userId);
+
+    return [{
       id: group.id,
       title: group.title,
       description: group.description,
       memberCount: studyMembersByGroupId.get(group.id)?.length ?? 0,
-      questCount: groupQuests.length,
+      questCount: groupOpenQuests.length,
       openQuestCount: groupOpenQuests.length,
       nextDueAt: groupOpenQuests[0]?.due_at ?? null,
-    };
+      ...feedbackSummary,
+    }];
   });
 
   const tasks = openQuests
@@ -253,14 +288,8 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
       const group = groupById.get(quest.group_id);
       if (!group) return [];
 
-      const state = buildRelayQuestState({
-        members: studyMembersByGroupId.get(quest.group_id) ?? [],
-        submissions: (submissionsByQuestId.get(quest.id) ?? []).map((submission) =>
-          toRelaySubmission(submission, profiles, feedbackBySubmissionId),
-        ),
-        currentUserId: userId,
-        questStatus: quest.status,
-      });
+      const state = relayStateByQuestId.get(quest.id);
+      if (!state) return [];
 
       if (state.canStart) {
         return [
@@ -270,6 +299,18 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
             type: "first_submission",
             title: "첫 음성 제출",
             description: "아직 릴레이가 시작되지 않았습니다. 첫 녹음으로 흐름을 열어 주세요.",
+          }),
+        ];
+      }
+
+      if (state.canFinalFeedback) {
+        return [
+          buildTask({
+            group,
+            quest,
+            type: "final_feedback",
+            title: "마지막 피드백 남기기",
+            description: `${state.pendingSubmission?.studentName ?? "마지막 제출자"}님의 음성에 피드백을 남기면 릴레이가 완료됩니다.`,
           }),
         ];
       }
@@ -328,6 +369,100 @@ export async function getStudentDashboardData(userId: string | null): Promise<St
     taskCount: tasks.length,
     recentFeedback,
     practiceHighlights,
+  };
+}
+
+function buildStudyFeedbackSummary(
+  states: RelayQuestState[],
+  userId: string,
+): Pick<
+  StudentDashboardStudySummary,
+  "feedbackStatus" | "feedbackLabel" | "feedbackDescription" | "feedbackTone"
+> {
+  const finalFeedbackState = states.find((state) => state.canFinalFeedback);
+  if (finalFeedbackState) {
+    return {
+      feedbackStatus: "needs_feedback",
+      feedbackLabel: "마지막 피드백 필요",
+      feedbackDescription: `${finalFeedbackState.pendingSubmission?.studentName ?? "마지막 제출자"}님의 음성에 피드백을 남기면 릴레이가 완료됩니다.`,
+      feedbackTone: "action",
+    };
+  }
+
+  const feedbackAndUploadState = states.find((state) => state.canFeedbackAndUpload);
+  if (feedbackAndUploadState) {
+    return {
+      feedbackStatus: "needs_feedback",
+      feedbackLabel: "피드백 필요",
+      feedbackDescription: `${feedbackAndUploadState.pendingSubmission?.studentName ?? "이전 제출자"}님의 음성에 피드백을 남기고 내 음성을 제출해야 합니다.`,
+      feedbackTone: "action",
+    };
+  }
+
+  const firstSubmissionState = states.find((state) => state.canStart);
+  if (firstSubmissionState) {
+    return {
+      feedbackStatus: "not_started",
+      feedbackLabel: "첫 제출 가능",
+      feedbackDescription: "아직 릴레이가 시작되지 않았습니다. 첫 음성을 제출할 수 있습니다.",
+      feedbackTone: "action",
+    };
+  }
+
+  const waitingFinalState = states.find(
+    (state) =>
+      state.firstSubmission?.studentUserId === userId &&
+      Boolean(state.userSubmission) &&
+      !state.isComplete &&
+      !state.canFinalFeedback,
+  );
+  if (waitingFinalState) {
+    return {
+      feedbackStatus: "waiting_final_turn",
+      feedbackLabel: "마지막 피드백 예정",
+      feedbackDescription: "모든 멤버가 제출하면 마지막 음성에 피드백을 남겨야 합니다.",
+      feedbackTone: "waiting",
+    };
+  }
+
+  const waitingPeerFeedbackState = states.find(
+    (state) => state.userSubmission && !state.userSubmission.feedback && !state.isComplete,
+  );
+  if (waitingPeerFeedbackState) {
+    return {
+      feedbackStatus: "waiting_peer_feedback",
+      feedbackLabel: "내 음성 피드백 대기",
+      feedbackDescription: "내 음성에 다른 멤버의 피드백이 달리기를 기다리고 있습니다.",
+      feedbackTone: "waiting",
+    };
+  }
+
+  const completedFeedbackState = states.find((state) =>
+    state.submissions.some((submission) => submission.feedback?.authorUserId === userId),
+  );
+  if (completedFeedbackState) {
+    return {
+      feedbackStatus: "completed",
+      feedbackLabel: "내 피드백 완료",
+      feedbackDescription: "이번 릴레이에서 내가 남길 피드백은 완료했습니다.",
+      feedbackTone: "complete",
+    };
+  }
+
+  if (states.some((state) => state.isComplete)) {
+    return {
+      feedbackStatus: "completed",
+      feedbackLabel: "릴레이 완료",
+      feedbackDescription: "열린 퀘스트의 릴레이 피드백이 완료되었습니다.",
+      feedbackTone: "complete",
+    };
+  }
+
+  return {
+    feedbackStatus: "completed",
+    feedbackLabel: "진행 대기",
+    feedbackDescription: "새 퀘스트가 열리면 피드백 상태가 표시됩니다.",
+    feedbackTone: "neutral",
   };
 }
 

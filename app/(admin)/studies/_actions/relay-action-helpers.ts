@@ -7,6 +7,7 @@ import { STUDY_AUDIO_BUCKET } from "@/lib/studies/constants";
 import {
   buildRelayQuestState,
   getDisplayName,
+  isStudyQuestOverdue,
   validateStudyAudioFileMeta,
   type RelaySubmission,
   type StudyMember,
@@ -19,12 +20,15 @@ import {
 } from "./action-schemas";
 
 type StudyGroupMemberRow = Database["public"]["Tables"]["study_group_members"]["Row"];
+type StudyQuestRow = Database["public"]["Tables"]["study_quests"]["Row"];
 type RelaySubmissionRow = Database["public"]["Tables"]["study_relay_submissions"]["Row"];
 type RelayFeedbackRow = Database["public"]["Tables"]["study_relay_feedback"]["Row"];
 type UserProfileRow = Pick<
   Database["public"]["Tables"]["user_profiles"]["Row"],
   "user_id" | "email" | "display_name" | "real_name"
 >;
+
+export const RELAY_QUEST_OVERDUE_ERROR_MESSAGE = "마감이 지나 제출할 수 없습니다.";
 
 export async function requireAdminActor(): Promise<ActionResult<{ userId: string }>> {
   const user = await getCurrentUser();
@@ -169,15 +173,26 @@ export function validateUploadedAudioInput(
   return { success: true, data: { contentType: fileValidation.contentType } };
 }
 
-export async function getQuestGroupId(questId: string) {
+export async function requireOpenQuestBeforeDue(
+  questId: string,
+): Promise<ActionResult<{ groupId: string }>> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("study_quests")
-    .select("group_id")
+    .select("group_id,status,due_at")
     .eq("id", questId)
     .maybeSingle();
 
-  return data?.group_id ?? null;
+  const quest = data as Pick<StudyQuestRow, "group_id" | "status" | "due_at"> | null;
+  if (!quest || quest.status !== "open") {
+    return { success: false, error: "열려 있는 퀘스트를 찾을 수 없습니다." };
+  }
+
+  if (isStudyQuestOverdue(quest.due_at)) {
+    return { success: false, error: RELAY_QUEST_OVERDUE_ERROR_MESSAGE };
+  }
+
+  return { success: true, data: { groupId: quest.group_id } };
 }
 
 export function createAudioPath({
@@ -198,6 +213,7 @@ export async function removeUploadedAudio(audioPath: string) {
 }
 
 export function revalidateStudyPaths(groupId: string) {
+  revalidatePath("/dashboard");
   revalidatePath("/studies");
   revalidatePath(`/studies/${groupId}`);
 }
