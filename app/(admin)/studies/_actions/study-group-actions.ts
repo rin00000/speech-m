@@ -131,20 +131,11 @@ export async function deleteStudyGroup(groupId: string): Promise<ActionResult> {
 
   if (!Array.isArray(audioPaths)) return audioPaths;
 
-  if (audioPaths.length > 0) {
-    const { error: removeError } = await supabase.storage
-      .from(STUDY_AUDIO_BUCKET)
-      .remove(audioPaths);
-
-    if (removeError) {
-      return { success: false, error: "스터디 음성 파일을 삭제하지 못했습니다." };
-    }
-  }
-
   const { data: deletedGroup, error: deleteError } = await supabase
     .from("study_groups")
     .delete()
     .eq("id", groupIdParsed.data)
+    .eq("type", "relay")
     .eq("status", "archived")
     .select("id")
     .maybeSingle();
@@ -152,6 +143,19 @@ export async function deleteStudyGroup(groupId: string): Promise<ActionResult> {
   if (deleteError) return { success: false, error: "스터디를 삭제하지 못했습니다." };
   if (!deletedGroup) {
     return { success: false, error: "삭제 조건이 변경되었습니다. 목록을 새로고침한 뒤 다시 시도해주세요." };
+  }
+
+  if (audioPaths.length > 0) {
+    const { error: removeError } = await supabase.storage
+      .from(STUDY_AUDIO_BUCKET)
+      .remove(audioPaths);
+
+    if (removeError) {
+      console.error("[studies] failed to delete study audio after group deletion", {
+        groupId: groupIdParsed.data,
+        error: removeError,
+      });
+    }
   }
 
   revalidatePath("/dashboard");

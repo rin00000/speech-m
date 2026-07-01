@@ -45,10 +45,13 @@ type QueryMock = {
 
 type SupabaseMockOptions = {
   groupStatus?: "active" | "archived";
+  deletedGroup?: { id: string } | null;
+  deleteError?: { message: string } | null;
   storageError?: { message: string } | null;
 };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
@@ -97,34 +100,70 @@ describe("deleteStudyGroup", () => {
     expect(remove).toHaveBeenCalledWith(["relay/a.mp3", "relay/b.wav"]);
     expect(deleteGroupQuery.delete).toHaveBeenCalled();
     expect(deleteGroupQuery.eq).toHaveBeenCalledWith("id", GROUP_ID);
+    expect(deleteGroupQuery.eq).toHaveBeenCalledWith("type", "relay");
     expect(deleteGroupQuery.eq).toHaveBeenCalledWith("status", "archived");
+    expect(deleteGroupQuery.maybeSingle.mock.invocationCallOrder[0]).toBeLessThan(
+      remove.mock.invocationCallOrder[0]
+    );
     expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
     expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
     expect(mockRevalidatePath).toHaveBeenCalledWith(`/studies/${GROUP_ID}`);
   });
 
-  it("does not delete the DB row when Storage deletion fails", async () => {
+  it("does not remove audio when the final DB delete condition no longer matches", async () => {
     mockGetCurrentUser.mockResolvedValue({
       role: "admin",
       userId: ADMIN_ID,
     });
-    const { client, deleteGroupQuery } = createSupabaseMock({
+    const { client, remove, deleteGroupQuery } = createSupabaseMock({
+      groupStatus: "archived",
+      deletedGroup: null,
+    });
+    mockCreateAdminClient.mockReturnValue(client);
+
+    await expect(deleteStudyGroup(GROUP_ID)).resolves.toMatchObject({
+      success: false,
+    });
+    expect(deleteGroupQuery.delete).toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("keeps the group deleted and revalidates when Storage cleanup fails", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      role: "admin",
+      userId: ADMIN_ID,
+    });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { client, remove, deleteGroupQuery } = createSupabaseMock({
       groupStatus: "archived",
       storageError: { message: "storage unavailable" },
     });
     mockCreateAdminClient.mockReturnValue(client);
 
     await expect(deleteStudyGroup(GROUP_ID)).resolves.toEqual({
-      success: false,
-      error: "스터디 음성 파일을 삭제하지 못했습니다.",
+      success: true,
+      data: undefined,
     });
-    expect(deleteGroupQuery.delete).not.toHaveBeenCalled();
-    expect(mockRevalidatePath).not.toHaveBeenCalled();
+    expect(deleteGroupQuery.delete).toHaveBeenCalled();
+    expect(remove).toHaveBeenCalledWith(["relay/a.mp3", "relay/b.wav"]);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[studies] failed to delete study audio after group deletion",
+      {
+        groupId: GROUP_ID,
+        error: { message: "storage unavailable" },
+      }
+    );
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
+    expect(mockRevalidatePath).toHaveBeenCalledWith(`/studies/${GROUP_ID}`);
   });
 });
 
 function createSupabaseMock({
   groupStatus = "archived",
+  deletedGroup = { id: GROUP_ID },
+  deleteError = null,
   storageError = null,
 }: SupabaseMockOptions = {}) {
   const groupLookupQuery = createQueryMock({
@@ -141,7 +180,8 @@ function createSupabaseMock({
     ],
   });
   const deleteGroupQuery = createQueryMock({
-    singleData: { id: GROUP_ID },
+    singleData: deletedGroup,
+    error: deleteError,
   });
   const queriesByTable = new Map<string, QueryMock[]>([
     ["study_groups", [groupLookupQuery, deleteGroupQuery]],
