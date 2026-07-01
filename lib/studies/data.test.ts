@@ -18,6 +18,7 @@ const USER_B = "user-b";
 const GROUP_ID = "group-1";
 const FUTURE_QUEST_ID = "quest-future";
 const EXPIRED_QUEST_ID = "quest-expired";
+const CLOSED_QUEST_ID = "quest-closed";
 const FUTURE_DUE_AT = "2026-07-01T09:00:00.000Z";
 const EXPIRED_DUE_AT = "2026-06-29T09:00:00.000Z";
 
@@ -65,6 +66,9 @@ describe("getStudyDetail", () => {
     });
     expect(detail?.quests.find((quest) => quest.id === EXPIRED_QUEST_ID)).toMatchObject({
       isOverdue: true,
+    });
+    expect(detail?.quests.find((quest) => quest.id === CLOSED_QUEST_ID)).toMatchObject({
+      isOverdue: false,
     });
   });
 });
@@ -115,6 +119,15 @@ function mockStudyRows(overrides: Partial<StudyRows> = {}) {
           due_at: FUTURE_DUE_AT,
           status: "open",
           created_at: "2026-06-02T00:00:00.000Z",
+        },
+        {
+          id: CLOSED_QUEST_ID,
+          group_id: GROUP_ID,
+          script_title: "마감 완료 뉴스",
+          script_content: "닫힌 원고",
+          due_at: EXPIRED_DUE_AT,
+          status: "closed",
+          created_at: "2026-06-03T00:00:00.000Z",
         },
       ],
       study_relay_submissions: [],

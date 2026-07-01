@@ -33,6 +33,7 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const QUEST_ID = "22222222-2222-4222-8222-222222222222";
 const GROUP_ID = "33333333-3333-4333-8333-333333333333";
 const SUBMISSION_ID = "44444444-4444-4444-8444-444444444444";
+const FUTURE_DUE_AT = "2026-07-01T09:00:00.000Z";
 const EXPIRED_DUE_AT = "2026-06-29T09:00:00.000Z";
 const AUDIO_PATH = `relay/${QUEST_ID}/${USER_ID}/audio.mp3`;
 
@@ -59,7 +60,7 @@ afterEach(() => {
 
 describe("relay submit deadline guard", () => {
   it("rejects upload target creation after the quest deadline", async () => {
-    const client = mockExpiredQuestClient();
+    const client = mockQuestClient({ dueAt: EXPIRED_DUE_AT });
 
     await expect(
       createStudyAudioUploadTarget({
@@ -78,7 +79,7 @@ describe("relay submit deadline guard", () => {
   });
 
   it("rejects first submission before RPC and removes uploaded audio", async () => {
-    const client = mockExpiredQuestClient();
+    const client = mockQuestClient({ dueAt: EXPIRED_DUE_AT });
 
     await expect(
       submitRelayFirstSubmission({
@@ -98,7 +99,7 @@ describe("relay submit deadline guard", () => {
   });
 
   it("rejects feedback and upload before RPC and removes uploaded audio", async () => {
-    const client = mockExpiredQuestClient();
+    const client = mockQuestClient({ dueAt: EXPIRED_DUE_AT });
 
     await expect(
       submitRelayFeedbackAndSubmission({
@@ -120,7 +121,7 @@ describe("relay submit deadline guard", () => {
   });
 
   it("rejects final feedback before RPC after the quest deadline", async () => {
-    const client = mockExpiredQuestClient();
+    const client = mockQuestClient({ dueAt: EXPIRED_DUE_AT });
 
     await expect(
       submitRelayFinalFeedback({
@@ -136,14 +137,71 @@ describe("relay submit deadline guard", () => {
     expect(client.rpc).not.toHaveBeenCalled();
     expect(client.remove).not.toHaveBeenCalled();
   });
+
+  it("maps an RPC deadline race error and removes uploaded audio", async () => {
+    const client = mockQuestClient({
+      rpcResult: { data: null, error: { message: "relay_quest_overdue" } },
+    });
+
+    await expect(
+      submitRelayFirstSubmission({
+        questId: QUEST_ID,
+        fileName: "audio.mp3",
+        sizeBytes: 1024,
+        contentType: "audio/mpeg",
+        audioPath: AUDIO_PATH,
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: RELAY_QUEST_OVERDUE_ERROR_MESSAGE,
+    });
+
+    expect(client.rpc).toHaveBeenCalledWith("submit_relay_first_submission", {
+      p_quest_id: QUEST_ID,
+      p_student_user_id: USER_ID,
+      p_audio_path: AUDIO_PATH,
+      p_audio_file_name: "audio.mp3",
+      p_audio_content_type: "audio/mpeg",
+      p_audio_size_bytes: 1024,
+    });
+    expect(client.remove).toHaveBeenCalledWith([AUDIO_PATH]);
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("revalidates dashboard, studies, and study detail after a successful submission", async () => {
+    const client = mockQuestClient();
+
+    await expect(
+      submitRelayFirstSubmission({
+        questId: QUEST_ID,
+        fileName: "audio.mp3",
+        sizeBytes: 1024,
+        contentType: "audio/mpeg",
+        audioPath: AUDIO_PATH,
+      }),
+    ).resolves.toEqual({ success: true, data: undefined });
+
+    expect(client.remove).not.toHaveBeenCalled();
+    expect(mockRevalidatePath).toHaveBeenNthCalledWith(1, "/dashboard");
+    expect(mockRevalidatePath).toHaveBeenNthCalledWith(2, "/studies");
+    expect(mockRevalidatePath).toHaveBeenNthCalledWith(3, `/studies/${GROUP_ID}`);
+  });
 });
 
-function mockExpiredQuestClient() {
+function mockQuestClient({
+  dueAt = FUTURE_DUE_AT,
+  status = "open",
+  rpcResult = { data: SUBMISSION_ID, error: null },
+}: {
+  dueAt?: string;
+  status?: "open" | "closed";
+  rpcResult?: { data: unknown; error: { message?: string } | null };
+} = {}) {
   const remove = vi.fn().mockResolvedValue({ data: null, error: null });
   const createSignedUploadUrl = vi.fn();
-  const rpc = vi.fn();
+  const rpc = vi.fn().mockResolvedValue(rpcResult);
   const client = {
-    from: vi.fn(() => createQuestQueryMock()),
+    from: vi.fn(() => createQuestQueryMock({ dueAt, status })),
     rpc,
     storage: {
       from: vi.fn(() => ({
@@ -157,7 +215,7 @@ function mockExpiredQuestClient() {
   return { ...client, createSignedUploadUrl, remove };
 }
 
-function createQuestQueryMock() {
+function createQuestQueryMock({ dueAt, status }: { dueAt: string; status: "open" | "closed" }) {
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -169,8 +227,8 @@ function createQuestQueryMock() {
   query.maybeSingle.mockResolvedValue({
     data: {
       group_id: GROUP_ID,
-      status: "open",
-      due_at: EXPIRED_DUE_AT,
+      status,
+      due_at: dueAt,
     },
     error: null,
   });

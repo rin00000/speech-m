@@ -183,10 +183,26 @@ describe("getStudentDashboardData relay feedback tasks", () => {
     });
   });
 
-  it("marks feedback complete after a student leaves feedback and uploads", async () => {
+  it("shows waiting peer feedback after a student leaves feedback and uploads", async () => {
     mockDashboardRows({
       study_relay_submissions: [submission(1, USER_A), submission(2, USER_B)],
       study_relay_feedback: [feedback("submission-1", USER_B)],
+    });
+
+    const data = await getStudentDashboardData(USER_B);
+
+    expect(data.taskCount).toBe(0);
+    expect(data.studies[0]).toMatchObject({
+      feedbackStatus: "waiting_peer_feedback",
+      feedbackLabel: "내 음성 피드백 대기",
+      feedbackTone: "waiting",
+    });
+  });
+
+  it("marks feedback complete after the student's upload receives peer feedback", async () => {
+    mockDashboardRows({
+      study_relay_submissions: [submission(1, USER_A), submission(2, USER_B)],
+      study_relay_feedback: [feedback("submission-1", USER_B), feedback("submission-2", USER_C)],
     });
 
     const data = await getStudentDashboardData(USER_B);

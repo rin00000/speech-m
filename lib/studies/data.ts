@@ -231,8 +231,9 @@ export async function getStudyDetail({
 
   const signedAudioUrls = await createSignedAudioUrlMap(submissions);
 
+  const now = Date.now();
   const questDetails = quests.map((quest) => {
-    const isOverdue = isStudyQuestOverdue(quest.due_at);
+    const isOverdue = quest.status === "open" && isStudyQuestOverdue(quest.due_at, now);
     const questSubmissions = submissions
       .filter((submission) => submission.quest_id === quest.id)
       .map<RelaySubmission>((submission) => ({

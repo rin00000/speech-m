@@ -14,6 +14,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
   vi.restoreAllMocks();
 });
@@ -29,22 +30,7 @@ const missingStudyApplicationsTableError = {
 describe("getStudentStudyApplication", () => {
   it("returns null in local development when the study_applications table is missing", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    mockCreateAdminClient.mockReturnValue({
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn(() => ({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: missingStudyApplicationsTableError,
-                }),
-              })),
-            })),
-          })),
-        })),
-      })),
-    });
+    mockStudentApplicationQueryError(missingStudyApplicationsTableError);
 
     await expect(getStudentStudyApplication(USER_ID)).resolves.toBeNull();
     expect(warnSpy).toHaveBeenCalledWith(
@@ -53,24 +39,20 @@ describe("getStudentStudyApplication", () => {
     );
   });
 
+  it("throws the missing table error in production", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.stubEnv("NODE_ENV", "production");
+    mockStudentApplicationQueryError(missingStudyApplicationsTableError);
+
+    await expect(getStudentStudyApplication(USER_ID)).rejects.toBe(
+      missingStudyApplicationsTableError
+    );
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it("keeps throwing non-schema errors", async () => {
     const permissionError = { code: "42501", message: "permission denied" };
-    mockCreateAdminClient.mockReturnValue({
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn(() => ({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: permissionError,
-                }),
-              })),
-            })),
-          })),
-        })),
-      })),
-    });
+    mockStudentApplicationQueryError(permissionError);
 
     await expect(getStudentStudyApplication(USER_ID)).rejects.toBe(permissionError);
   });
@@ -79,21 +61,53 @@ describe("getStudentStudyApplication", () => {
 describe("getPendingStudyApplications", () => {
   it("returns an empty list in local development when the study_applications table is missing", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    mockCreateAdminClient.mockReturnValue({
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              returns: vi.fn().mockResolvedValue({
+    mockPendingApplicationsQueryError(missingStudyApplicationsTableError);
+
+    await expect(getPendingStudyApplications()).resolves.toEqual([]);
+  });
+
+  it("throws the missing table error in production", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.stubEnv("NODE_ENV", "production");
+    mockPendingApplicationsQueryError(missingStudyApplicationsTableError);
+
+    await expect(getPendingStudyApplications()).rejects.toBe(missingStudyApplicationsTableError);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+});
+
+function mockStudentApplicationQueryError(error: unknown) {
+  mockCreateAdminClient.mockReturnValue({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            limit: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
                 data: null,
-                error: missingStudyApplicationsTableError,
+                error,
               }),
             })),
           })),
         })),
       })),
-    });
-
-    await expect(getPendingStudyApplications()).resolves.toEqual([]);
+    })),
   });
-});
+}
+
+function mockPendingApplicationsQueryError(error: unknown) {
+  mockCreateAdminClient.mockReturnValue({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            returns: vi.fn().mockResolvedValue({
+              data: null,
+              error,
+            }),
+          })),
+        })),
+      })),
+    })),
+  });
+}

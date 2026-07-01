@@ -425,18 +425,6 @@ function buildStudyFeedbackSummary(
     };
   }
 
-  const completedFeedbackState = states.find((state) =>
-    state.submissions.some((submission) => submission.feedback?.authorUserId === userId),
-  );
-  if (completedFeedbackState) {
-    return {
-      feedbackStatus: "completed",
-      feedbackLabel: "내 피드백 완료",
-      feedbackDescription: "이번 릴레이에서 내가 남길 피드백은 완료했습니다.",
-      feedbackTone: "complete",
-    };
-  }
-
   const waitingPeerFeedbackState = states.find(
     (state) => state.userSubmission && !state.userSubmission.feedback && !state.isComplete,
   );
@@ -446,6 +434,18 @@ function buildStudyFeedbackSummary(
       feedbackLabel: "내 음성 피드백 대기",
       feedbackDescription: "내 음성에 다른 멤버의 피드백이 달리기를 기다리고 있습니다.",
       feedbackTone: "waiting",
+    };
+  }
+
+  const completedFeedbackState = states.find((state) =>
+    state.submissions.some((submission) => submission.feedback?.authorUserId === userId),
+  );
+  if (completedFeedbackState) {
+    return {
+      feedbackStatus: "completed",
+      feedbackLabel: "내 피드백 완료",
+      feedbackDescription: "이번 릴레이에서 내가 남길 피드백은 완료했습니다.",
+      feedbackTone: "complete",
     };
   }
 
