@@ -1,13 +1,21 @@
 "use server";
 
+/**
+ * 게스트의 수강생 등업 문의 제출과 관리자 승인/반려 처리를 담당합니다.
+ * 처리 완료된 stale 요청은 클라이언트가 목록에서 제거할 수 있도록 코드화된 실패로 반환합니다.
+ */
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/server";
 
+type ActionErrorCode = "already_resolved";
+
 type ActionResult = {
   success: boolean;
   error?: string;
+  code?: ActionErrorCode;
   requestedAt?: string;
 };
 
@@ -18,6 +26,13 @@ const messageSchema = z
   .optional();
 
 const requestIdSchema = z.string().uuid("요청 ID가 올바르지 않습니다.");
+const alreadyResolvedMessage = "이미 처리되었거나 존재하지 않는 등업 문의입니다.";
+
+const studentUpgradeRequestRpcErrorMessages: Record<string, string> = {
+  student_upgrade_request_admin_required: "관리자만 등업 문의를 승인할 수 있습니다.",
+  student_upgrade_request_not_pending: alreadyResolvedMessage,
+  student_upgrade_request_user_not_found: "등업 대상 사용자를 찾을 수 없습니다.",
+};
 
 export async function submitStudentUpgradeRequest(message?: string): Promise<ActionResult> {
   const user = await getCurrentUser();
@@ -102,8 +117,7 @@ export async function submitStudentUpgradeRequest(message?: string): Promise<Act
     }
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/users");
+  revalidateStudentUpgradePaths();
   return { success: true, requestedAt };
 }
 
@@ -128,12 +142,28 @@ export async function approveStudentUpgradeRequest(requestId: string): Promise<A
   });
 
   if (error) {
+    const rpcMessage = error.message?.trim();
+    const code = getStudentUpgradeRequestErrorCode(rpcMessage);
+    if (code === "already_resolved") {
+      revalidateStudentUpgradePaths();
+      return {
+        success: false,
+        error: getStudentUpgradeRequestRpcErrorMessage(rpcMessage, alreadyResolvedMessage),
+        code,
+      };
+    }
+
     console.error("Failed to approve student upgrade request:", error);
-    return { success: false, error: "등업 문의를 승인하지 못했습니다." };
+    return {
+      success: false,
+      error: getStudentUpgradeRequestRpcErrorMessage(
+        rpcMessage,
+        "등업 문의를 승인하지 못했습니다."
+      ),
+    };
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/users");
+  revalidateStudentUpgradePaths();
   return { success: true };
 }
 
@@ -170,10 +200,25 @@ export async function rejectStudentUpgradeRequest(requestId: string): Promise<Ac
   }
 
   if (!data) {
-    return { success: false, error: "이미 처리되었거나 존재하지 않는 등업 문의입니다." };
+    revalidateStudentUpgradePaths();
+    return { success: false, error: alreadyResolvedMessage, code: "already_resolved" };
   }
 
+  revalidateStudentUpgradePaths();
+  return { success: true };
+}
+
+function revalidateStudentUpgradePaths() {
   revalidatePath("/dashboard");
   revalidatePath("/users");
-  return { success: true };
+}
+
+function getStudentUpgradeRequestRpcErrorMessage(message: string | undefined, fallback: string) {
+  if (!message) return fallback;
+  return studentUpgradeRequestRpcErrorMessages[message] ?? fallback;
+}
+
+function getStudentUpgradeRequestErrorCode(message: string | undefined): ActionErrorCode | undefined {
+  if (message === "student_upgrade_request_not_pending") return "already_resolved";
+  return undefined;
 }

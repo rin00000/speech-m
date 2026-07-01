@@ -1,13 +1,14 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkCircle01Icon, UserIcon } from "@hugeicons/core-free-icons";
 import { submitStudentUpgradeRequest } from "@/app/(admin)/dashboard/actions";
 
 /**
- * Handles guest self-service student upgrade requests from the dashboard.
+ * 게스트 대시보드에서 수강생 등업 문의 제출과 대기 상태 표시를 담당합니다.
+ * 서버 새로고침으로 바뀐 pending 요청을 로컬 입력 상태와 동기화합니다.
  */
 
 type PendingUpgradeRequest = {
@@ -28,6 +29,21 @@ export function GuestUpgradeRequestCard({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requestedAt, setRequestedAt] = useState(pendingRequest?.requested_at ?? null);
   const [isPending, startTransition] = useTransition();
+  const pendingMessage = pendingRequest?.message ?? "";
+  const pendingRequestedAt = pendingRequest?.requested_at ?? null;
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setMessage(pendingMessage);
+      setRequestedAt(pendingRequestedAt);
+      setStatusMessage(
+        pendingRequestedAt ? "등업 문의가 원장 대시보드에 전달되어 승인 대기 중입니다." : null
+      );
+      setErrorMessage(null);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [pendingMessage, pendingRequestedAt]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

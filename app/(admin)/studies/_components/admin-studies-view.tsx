@@ -14,6 +14,7 @@ import {
   Calendar01Icon,
   Cancel01Icon,
   CheckmarkCircle01Icon,
+  Delete01Icon,
   Mail01Icon,
   Search01Icon,
   UserGroupIcon,
@@ -27,6 +28,7 @@ import {
   approveStudyApplication,
   createStudyGroup,
   createStudyQuest,
+  deleteStudyGroup,
   rejectStudyApplication,
   saveStudyGroupMembers,
   updateStudyGroup,
@@ -48,6 +50,7 @@ type Tab = "applications" | "groups" | "members" | "quests";
 type ActionResult = {
   success: boolean;
   error?: string;
+  code?: "already_resolved";
 };
 
 type ActionRunner = (
@@ -108,7 +111,7 @@ export function AdminStudiesView({
   const [isPending, startTransition] = useTransition();
 
   const run = (
-    fn: () => Promise<{ success: boolean; error?: string }>,
+    fn: () => Promise<ActionResult>,
     successText: string,
     onSuccess?: () => void
   ) => {
@@ -118,6 +121,14 @@ export function AdminStudiesView({
       if (result.success) {
         setNotice({ tone: "success", text: successText });
         onSuccess?.();
+        router.refresh();
+        return;
+      }
+      if (result.code === "already_resolved") {
+        setNotice({
+          tone: "success",
+          text: result.error ?? "이미 처리된 신청이라 목록을 새로고침합니다.",
+        });
         router.refresh();
         return;
       }
@@ -416,6 +427,26 @@ function ApplicationsTab({
 // Tab 1: Groups Management
 // ------------------------------------------------------------------
 function GroupsTab({ studies, selectedStudy, setSelectedStudyId, run, isPending }: GroupsTabProps) {
+  const deleteSelectedStudy = () => {
+    if (!selectedStudy) return;
+
+    const nextStudyId = studies.find((study) => study.id !== selectedStudy.id)?.id ?? "";
+    const confirmed = window.confirm(
+      [
+        `"${selectedStudy.title}" 스터디를 영구 삭제할까요?`,
+        `멤버 ${selectedStudy.memberCount}명, 퀘스트 ${selectedStudy.questCount}개와 제출 음성 파일이 함께 삭제됩니다.`,
+        "이 작업은 복구할 수 없습니다.",
+      ].join("\n")
+    );
+    if (!confirmed) return;
+
+    run(
+      async () => deleteStudyGroup(selectedStudy.id),
+      "스터디를 영구 삭제했습니다.",
+      () => setSelectedStudyId(nextStudyId)
+    );
+  };
+
   return (
     <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr] items-start">
       <div className="space-y-4">
@@ -481,6 +512,27 @@ function GroupsTab({ studies, selectedStudy, setSelectedStudyId, run, isPending 
                   저장
                 </Button>
               </form>
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <div className="flex flex-col gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold text-red-700">스터디 영구 삭제</p>
+                    <p className="mt-1 text-[11px] font-semibold leading-snug text-red-600">
+                      보관 상태인 스터디만 삭제할 수 있으며, 퀘스트와 제출 음성 파일까지 함께 삭제됩니다.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isPending || selectedStudy.status !== "archived"}
+                    onClick={deleteSelectedStudy}
+                    className="border-red-200 text-red-600 hover:bg-red-100 disabled:bg-white"
+                  >
+                    <HugeiconsIcon icon={Delete01Icon} size={14} color="currentColor" />
+                    영구 삭제
+                  </Button>
+                </div>
+              </div>
             </CardBody>
           </Card>
         )}

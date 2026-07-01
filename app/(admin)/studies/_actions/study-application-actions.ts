@@ -124,10 +124,7 @@ export async function approveStudyApplication(
   });
 
   if (error) {
-    return {
-      success: false,
-      error: getStudyApplicationRpcErrorMessage(error.message, "스터디 신청을 승인하지 못했습니다."),
-    };
+    return getStudyApplicationErrorResult(error.message, "스터디 신청을 승인하지 못했습니다.");
   }
 
   revalidateStudyApplicationPaths();
@@ -151,10 +148,7 @@ export async function rejectStudyApplication(applicationId: string): Promise<Act
   });
 
   if (error) {
-    return {
-      success: false,
-      error: getStudyApplicationRpcErrorMessage(error.message, "스터디 신청을 거절하지 못했습니다."),
-    };
+    return getStudyApplicationErrorResult(error.message, "스터디 신청을 거절하지 못했습니다.");
   }
 
   revalidateStudyApplicationPaths();
@@ -169,4 +163,21 @@ function revalidateStudyApplicationPaths() {
 function getStudyApplicationRpcErrorMessage(message: string | undefined, fallback: string) {
   if (!message) return fallback;
   return studyApplicationRpcErrorMessages[message.trim()] ?? fallback;
+}
+
+function getStudyApplicationErrorResult(message: string | undefined, fallback: string): ActionResult {
+  const trimmedMessage = message?.trim();
+  if (trimmedMessage === "study_application_not_pending") {
+    revalidateStudyApplicationPaths();
+    return {
+      success: false,
+      error: getStudyApplicationRpcErrorMessage(trimmedMessage, fallback),
+      code: "already_resolved",
+    };
+  }
+
+  return {
+    success: false,
+    error: getStudyApplicationRpcErrorMessage(trimmedMessage, fallback),
+  };
 }

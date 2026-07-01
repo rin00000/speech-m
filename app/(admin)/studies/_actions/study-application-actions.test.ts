@@ -192,6 +192,28 @@ describe("study application admin actions", () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith(`/studies/${GROUP_ID}`);
   });
 
+  it("returns already_resolved when approve RPC sees a non-pending application", async () => {
+    mockGetCurrentUser.mockResolvedValue(ADMIN_USER);
+    const rpc = vi.fn().mockResolvedValue({
+      error: { message: "study_application_not_pending" },
+    });
+    mockCreateAdminClient.mockReturnValue({ rpc });
+
+    await expect(approveStudyApplication(APPLICATION_ID, GROUP_ID)).resolves.toEqual({
+      success: false,
+      error: "이미 처리되었거나 존재하지 않는 스터디 신청입니다.",
+      code: "already_resolved",
+    });
+
+    expect(rpc).toHaveBeenCalledWith("approve_study_application", {
+      p_application_id: APPLICATION_ID,
+      p_group_id: GROUP_ID,
+      p_resolved_by_user_id: ADMIN_USER.userId,
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
+  });
+
   it("calls reject RPC and revalidates study paths", async () => {
     mockGetCurrentUser.mockResolvedValue(ADMIN_USER);
     const rpc = vi.fn().mockResolvedValue({ error: null });
@@ -200,6 +222,27 @@ describe("study application admin actions", () => {
     await expect(rejectStudyApplication(APPLICATION_ID)).resolves.toEqual({
       success: true,
       data: undefined,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("reject_study_application", {
+      p_application_id: APPLICATION_ID,
+      p_resolved_by_user_id: ADMIN_USER.userId,
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/studies");
+  });
+
+  it("returns already_resolved when reject RPC sees a non-pending application", async () => {
+    mockGetCurrentUser.mockResolvedValue(ADMIN_USER);
+    const rpc = vi.fn().mockResolvedValue({
+      error: { message: "study_application_not_pending" },
+    });
+    mockCreateAdminClient.mockReturnValue({ rpc });
+
+    await expect(rejectStudyApplication(APPLICATION_ID)).resolves.toEqual({
+      success: false,
+      error: "이미 처리되었거나 존재하지 않는 스터디 신청입니다.",
+      code: "already_resolved",
     });
 
     expect(rpc).toHaveBeenCalledWith("reject_study_application", {
