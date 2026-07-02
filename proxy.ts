@@ -186,6 +186,20 @@ export async function proxy(request: NextRequest) {
     return unauthorizedResponse(request, token?.authInvalid === true);
   }
 
+  if (!isApiPath(pathname)) {
+    if (token.authCheckFailed === true) {
+      return authCheckFailedResponse(request);
+    }
+    if (token.status !== "active") {
+      return unauthorizedResponse(request, false);
+    }
+    if (requirement === "admin" && token.role !== "admin") {
+      return forbiddenResponse(request);
+    }
+
+    return NextResponse.next();
+  }
+
   const auth = await getCurrentProxyUser(token.userId);
   if (auth.status === "check_failed") {
     return authCheckFailedResponse(request);

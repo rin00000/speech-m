@@ -7,6 +7,7 @@ type JobsEmptyStateProps = {
   activeSource: JobSource | null;
   hideRejectedInList: boolean;
   rejectedCount: number;
+  query: string;
 };
 
 export function JobsEmptyState({
@@ -14,6 +15,7 @@ export function JobsEmptyState({
   activeSource,
   hideRejectedInList,
   rejectedCount,
+  query,
 }: JobsEmptyStateProps) {
   return (
     <EmptyState
@@ -31,14 +33,14 @@ export function JobsEmptyState({
             거절 {rejectedCount}건은 기본 목록에서 숨깁니다.<br />
             <a
               className="font-bold text-periwinkle-700 underline-offset-2 hover:underline"
-              href={buildJobsAdminHref({ source: activeSource, showRejected: true })}
+              href={buildJobsAdminHref({ source: activeSource, showRejected: true, q: query })}
             >
               거절 포함해 보기
             </a>
             {" · "}
             <a
               className="font-bold text-periwinkle-700 underline-offset-2 hover:underline"
-              href={buildJobsAdminHref({ status: "rejected", source: activeSource })}
+              href={buildJobsAdminHref({ status: "rejected", source: activeSource, q: query })}
             >
               거절됨만 보기
             </a>

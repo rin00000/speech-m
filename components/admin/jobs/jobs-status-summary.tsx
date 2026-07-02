@@ -17,6 +17,7 @@ import {
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import type { JobSource, JobStatus } from "@/types/database.types";
 import { cn } from "@/lib/ui/cn";
+import { useLoading } from "@/lib/ui/loading-context";
 
 type JobsStatusSummaryProps = {
   statusCounts: Record<"all" | JobStatus, number>;
@@ -25,6 +26,7 @@ type JobsStatusSummaryProps = {
   activeStatus: JobStatus | null;
   showRejected: boolean;
   rejectedRetentionDays: number;
+  query: string;
 };
 
 type OptimisticActiveState = {
@@ -48,6 +50,7 @@ export function JobsStatusSummary({
   activeStatus,
   showRejected,
   rejectedRetentionDays,
+  query,
 }: JobsStatusSummaryProps) {
   const serverActive = {
     activeSource,
@@ -62,6 +65,8 @@ export function JobsStatusSummary({
   const optimisticActive =
     optimisticSnapshot.serverKey === serverKey ? optimisticSnapshot.active : serverActive;
 
+  const { startNavigation } = useLoading();
+
   const handleOptimisticClick = (
     event: MouseEvent<HTMLAnchorElement>,
     nextActive: OptimisticActiveState,
@@ -71,6 +76,7 @@ export function JobsStatusSummary({
     }
 
     setOptimisticSnapshot({ active: nextActive, serverKey });
+    startNavigation();
   };
 
   const statCards: {
@@ -95,6 +101,7 @@ export function JobsStatusSummary({
       href: buildJobsAdminHref({
         source: optimisticActive.activeSource,
         showRejected: optimisticActive.showRejected ? true : undefined,
+        q: query,
       }),
       scope: optimisticActive.showRejected ? "all" : "work",
     },
@@ -106,7 +113,7 @@ export function JobsStatusSummary({
       activeText: "text-job-yellow-900",
       status: "pending",
       showRejected: false,
-      href: buildJobsAdminHref({ status: "pending", source: optimisticActive.activeSource }),
+      href: buildJobsAdminHref({ status: "pending", source: optimisticActive.activeSource, q: query }),
       scope: "work",
     },
     {
@@ -117,7 +124,7 @@ export function JobsStatusSummary({
       activeText: "text-emerald-900",
       status: "approved",
       showRejected: false,
-      href: buildJobsAdminHref({ status: "approved", source: optimisticActive.activeSource }),
+      href: buildJobsAdminHref({ status: "approved", source: optimisticActive.activeSource, q: query }),
       scope: "work",
     },
     {
@@ -128,7 +135,7 @@ export function JobsStatusSummary({
       activeText: "text-red-900",
       status: "rejected",
       showRejected: false,
-      href: buildJobsAdminHref({ status: "rejected", source: optimisticActive.activeSource }),
+      href: buildJobsAdminHref({ status: "rejected", source: optimisticActive.activeSource, q: query }),
       scope: "work",
     },
   ];
@@ -195,7 +202,7 @@ export function JobsStatusSummary({
           <p className="text-[11px] leading-tight text-gray-500">
             거절 {statusCounts.rejected}건은 기본에서 숨깁니다.{" "}
             <Link
-              href={buildJobsAdminHref({ source: optimisticActive.activeSource, showRejected: true })}
+              href={buildJobsAdminHref({ source: optimisticActive.activeSource, showRejected: true, q: query })}
               onClick={(event) =>
                 handleOptimisticClick(event, {
                   activeSource: optimisticActive.activeSource,
@@ -211,7 +218,7 @@ export function JobsStatusSummary({
         ) : optimisticActive.showRejected ? (
           <p className="text-[11px] leading-tight text-gray-500">
             <Link
-              href={buildJobsAdminHref({ source: optimisticActive.activeSource })}
+              href={buildJobsAdminHref({ source: optimisticActive.activeSource, q: query })}
               onClick={(event) =>
                 handleOptimisticClick(event, {
                   activeSource: optimisticActive.activeSource,

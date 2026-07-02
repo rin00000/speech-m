@@ -668,6 +668,20 @@ export interface Database {
           is_new: boolean;
         }[];
       },
+      get_job_posting_facets: {
+        Args: {
+          p_today_iso: string;
+          p_status?: JobStatus | null;
+          p_source?: JobSource | null;
+          p_show_rejected?: boolean;
+          p_query?: string | null;
+        };
+        Returns: {
+          kind: "status" | "source";
+          key: string;
+          count: number;
+        }[];
+      },
       grant_management_class_coupons: {
         Args: {
           p_student_user_id: string;

@@ -19,6 +19,7 @@ import {
 } from "./_actions/study-application-actions";
 import {
   createStudyAudioUploadTarget as createStudyAudioUploadTargetAction,
+  getRelaySubmissionAudioUrl as getRelaySubmissionAudioUrlAction,
   submitRelayFeedbackAndSubmission as submitRelayFeedbackAndSubmissionAction,
   submitRelayFinalFeedback as submitRelayFinalFeedbackAction,
   submitRelayFirstSubmission as submitRelayFirstSubmissionAction,
@@ -71,6 +72,12 @@ export async function createStudyAudioUploadTarget(
   input: Parameters<typeof createStudyAudioUploadTargetAction>[0],
 ) {
   return createStudyAudioUploadTargetAction(input);
+}
+
+export async function getRelaySubmissionAudioUrl(
+  submissionId: Parameters<typeof getRelaySubmissionAudioUrlAction>[0],
+) {
+  return getRelaySubmissionAudioUrlAction(submissionId);
 }
 
 export async function submitRelayFirstSubmission(

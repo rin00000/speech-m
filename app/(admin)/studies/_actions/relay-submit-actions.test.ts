@@ -5,10 +5,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createStudyAudioUploadTarget,
+  getRelaySubmissionAudioUrl,
   submitRelayFeedbackAndSubmission,
   submitRelayFinalFeedback,
   submitRelayFirstSubmission,
 } from "./relay-submit-actions";
+import { STUDY_AUDIO_SIGNED_URL_TTL_SECONDS } from "@/lib/studies/constants";
 import { RELAY_QUEST_OVERDUE_ERROR_MESSAGE } from "./relay-action-helpers";
 
 const { mockCreateAdminClient, mockGetCurrentUser, mockRevalidatePath } = vi.hoisted(() => ({
@@ -36,6 +38,7 @@ const SUBMISSION_ID = "44444444-4444-4444-8444-444444444444";
 const FUTURE_DUE_AT = "2026-07-01T09:00:00.000Z";
 const EXPIRED_DUE_AT = "2026-06-29T09:00:00.000Z";
 const AUDIO_PATH = `relay/${QUEST_ID}/${USER_ID}/audio.mp3`;
+const SIGNED_AUDIO_URL = "https://storage.speech-m.local/signed/audio.mp3";
 
 const STUDENT_USER = {
   email: "student@speech-m.local",
@@ -188,6 +191,51 @@ describe("relay submit deadline guard", () => {
   });
 });
 
+describe("getRelaySubmissionAudioUrl", () => {
+  it("issues a single signed URL for a study member", async () => {
+    const client = mockAudioUrlClient();
+
+    await expect(getRelaySubmissionAudioUrl(SUBMISSION_ID)).resolves.toEqual({
+      success: true,
+      data: { audioUrl: SIGNED_AUDIO_URL },
+    });
+
+    expect(client.createSignedUrl).toHaveBeenCalledWith(
+      AUDIO_PATH,
+      STUDY_AUDIO_SIGNED_URL_TTL_SECONDS,
+    );
+  });
+
+  it("allows admins without a study membership lookup", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      ...STUDENT_USER,
+      role: "admin",
+    });
+    const client = mockAudioUrlClient({ includeMemberQuery: false });
+
+    await expect(getRelaySubmissionAudioUrl(SUBMISSION_ID)).resolves.toMatchObject({
+      success: true,
+    });
+
+    expect(client.from).not.toHaveBeenCalledWith("study_group_members");
+    expect(client.createSignedUrl).toHaveBeenCalledWith(
+      AUDIO_PATH,
+      STUDY_AUDIO_SIGNED_URL_TTL_SECONDS,
+    );
+  });
+
+  it("rejects students who are not study members before issuing a signed URL", async () => {
+    const client = mockAudioUrlClient({ member: null });
+
+    await expect(getRelaySubmissionAudioUrl(SUBMISSION_ID)).resolves.toEqual({
+      success: false,
+      error: "스터디 오디오를 볼 권한이 없습니다.",
+    });
+
+    expect(client.createSignedUrl).not.toHaveBeenCalled();
+  });
+});
+
 function mockQuestClient({
   dueAt = FUTURE_DUE_AT,
   status = "open",
@@ -232,6 +280,62 @@ function createQuestQueryMock({ dueAt, status }: { dueAt: string; status: "open"
     },
     error: null,
   });
+
+  return query;
+}
+
+function mockAudioUrlClient({
+  member = { student_user_id: USER_ID },
+  includeMemberQuery = true,
+}: {
+  member?: { student_user_id: string } | null;
+  includeMemberQuery?: boolean;
+} = {}) {
+  const submissionQuery = createMaybeSingleQueryMock({
+    id: SUBMISSION_ID,
+    quest_id: QUEST_ID,
+    student_user_id: USER_ID,
+    audio_path: AUDIO_PATH,
+    audio_deleted_at: null,
+  });
+  const questQuery = createMaybeSingleQueryMock({ group_id: GROUP_ID });
+  const memberQuery = createMaybeSingleQueryMock(member);
+  const queriesByTable = new Map<string, ReturnType<typeof createMaybeSingleQueryMock>[]>([
+    ["study_relay_submissions", [submissionQuery]],
+    ["study_quests", [questQuery]],
+    ["study_group_members", includeMemberQuery ? [memberQuery] : []],
+  ]);
+  const createSignedUrl = vi.fn().mockResolvedValue({
+    data: { signedUrl: SIGNED_AUDIO_URL },
+    error: null,
+  });
+  const client = {
+    from: vi.fn((table: string) => {
+      const query = queriesByTable.get(table)?.shift();
+      if (!query) throw new Error(`Unexpected table query: ${table}`);
+      return query;
+    }),
+    storage: {
+      from: vi.fn(() => ({
+        createSignedUrl,
+      })),
+    },
+  };
+
+  mockCreateAdminClient.mockReturnValue(client);
+  return { ...client, createSignedUrl };
+}
+
+function createMaybeSingleQueryMock(data: unknown, error: { message?: string } | null = null) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    maybeSingle: vi.fn(),
+  };
+
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.maybeSingle.mockResolvedValue({ data, error });
 
   return query;
 }

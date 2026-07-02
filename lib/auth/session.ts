@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { authOptions } from "@/lib/auth/options";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getDevPersonaFromCookieValue, type DevPersona } from "./dev-personas";
@@ -149,7 +150,7 @@ export function getAuthCheckFailureCode(
   return "unauthorized";
 }
 
-export async function getCurrentUserAuthCheck(): Promise<AuthCheckResult> {
+async function getCurrentUserAuthCheckUncached(): Promise<AuthCheckResult> {
   try {
     const cookieStore = await cookies();
     const mockRole = cookieStore.get("mock_role")?.value;
@@ -174,13 +175,23 @@ export async function getCurrentUserAuthCheck(): Promise<AuthCheckResult> {
     return { status: "check_failed", reason: "users_lookup_failed" };
   }
   if (!session?.user?.userId) return { status: "invalid", reason: "missing_session" };
+  if (session.user.status !== "active") return { status: "invalid", reason: "inactive_user" };
 
-  return getCurrentUserById(session.user.userId, {
-    email: session.user.email ?? null,
-    name: session.user.name ?? null,
-    image: session.user.image ?? null,
-  });
+  return {
+    status: "authenticated",
+    user: {
+      userId: session.user.userId,
+      email: session.user.email ?? null,
+      name: session.user.name ?? null,
+      realName: session.user.realName ?? null,
+      image: session.user.image ?? null,
+      role: session.user.role,
+      status: session.user.status,
+    },
+  };
 }
+
+export const getCurrentUserAuthCheck = cache(getCurrentUserAuthCheckUncached);
 
 export async function getCurrentUser() {
   const result = await getCurrentUserAuthCheck();

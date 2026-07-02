@@ -5,10 +5,6 @@
 
 import { createAdminClient } from "@/lib/supabase/server";
 import {
-  STUDY_AUDIO_BUCKET,
-  STUDY_AUDIO_SIGNED_URL_TTL_SECONDS,
-} from "./constants";
-import {
   buildRelayQuestState,
   canViewStudy,
   getDisplayName,
@@ -229,8 +225,6 @@ export async function getStudyDetail({
     });
   });
 
-  const signedAudioUrls = await createSignedAudioUrlMap(submissions);
-
   const now = Date.now();
   const questDetails = quests.map((quest) => {
     const isOverdue = quest.status === "open" && isStudyQuestOverdue(quest.due_at, now);
@@ -250,7 +244,7 @@ export async function getStudyDetail({
             participantProfilesByUserId.get(submission.student_user_id)?.display_name,
         }),
         audioPath: submission.audio_path,
-        audioUrl: signedAudioUrls.get(submission.id) ?? null,
+        audioUrl: null,
         audioFileName: submission.audio_file_name,
         audioContentType: submission.audio_content_type,
         audioSizeBytes: submission.audio_size_bytes,
@@ -314,22 +308,4 @@ async function getProfilesByUserId(userIds: string[]) {
       profile,
     ]),
   );
-}
-
-async function createSignedAudioUrlMap(submissions: RelaySubmissionRow[]) {
-  const supabase = createAdminClient();
-  const pairs = await Promise.all(
-    submissions.map(async (submission) => {
-      if (submission.audio_deleted_at) return [submission.id, null] as const;
-
-      const { data, error } = await supabase.storage
-        .from(STUDY_AUDIO_BUCKET)
-        .createSignedUrl(submission.audio_path, STUDY_AUDIO_SIGNED_URL_TTL_SECONDS);
-
-      if (error) return [submission.id, null] as const;
-      return [submission.id, data.signedUrl] as const;
-    }),
-  );
-
-  return new Map<string, string | null>(pairs);
 }

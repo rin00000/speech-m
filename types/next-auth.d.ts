@@ -9,6 +9,7 @@ import type { UserRole, UserStatus } from "@/types/database.types";
 declare module "next-auth" {
   interface User {
     userId?: string;
+    realName?: string | null;
     role?: UserRole;
     status?: UserStatus;
   }
@@ -16,6 +17,7 @@ declare module "next-auth" {
   interface Session {
     user: DefaultSession["user"] & {
       userId?: string;
+      realName?: string | null;
       role: UserRole;
       status: UserStatus;
       authInvalid?: boolean;
@@ -28,6 +30,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     userId?: string;
+    realName?: string | null;
     role?: UserRole;
     status?: UserStatus;
     authInvalid?: boolean;

@@ -9,6 +9,8 @@ export type JobsAdminHrefParams = {
   source?: JobSource | null;
   /** true이면 쿼리에 `showRejected=1`을 넣어 거절 행도 목록에 포함한다. */
   showRejected?: boolean;
+  q?: string | null;
+  page?: number | null;
 };
 
 export function buildJobsAdminHref(params: JobsAdminHrefParams = {}): string {
@@ -16,6 +18,8 @@ export function buildJobsAdminHref(params: JobsAdminHrefParams = {}): string {
   if (params.status) q.set("status", params.status);
   if (params.source) q.set("source", params.source);
   if (params.showRejected) q.set("showRejected", "1");
+  if (params.q?.trim()) q.set("q", params.q.trim());
+  if (params.page && params.page > 1) q.set("page", String(params.page));
   const qs = q.toString();
   return qs ? `/jobs?${qs}` : "/jobs";
 }

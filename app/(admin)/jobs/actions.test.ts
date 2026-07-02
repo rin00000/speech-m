@@ -90,7 +90,7 @@ describe("/jobs admin mutations", () => {
       authStatus: "forbidden",
       error: "Forbidden.",
     });
-    await expect(runCrawl("mediajob_announcer")).resolves.toEqual({
+    await expect(runCrawl("mediajob")).resolves.toEqual({
       success: false,
       authStatus: "forbidden",
       error: "Forbidden.",
@@ -117,7 +117,7 @@ describe("/jobs admin mutations", () => {
       reason: "users_lookup_failed",
     });
 
-    await expect(runCrawl("mediajob_reporter")).resolves.toEqual({
+    await expect(runCrawl("mediajob")).resolves.toEqual({
       success: false,
       authStatus: "check_failed",
       error: "Authentication check failed.",
