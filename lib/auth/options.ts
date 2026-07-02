@@ -57,6 +57,7 @@ type UserRow = {
 type ProfileRow = {
   email: string | null;
   display_name: string | null;
+  real_name: string | null;
   avatar_url: string | null;
 };
 
@@ -102,6 +103,7 @@ function clearAuthFlags(token: JWT) {
 
 function markTokenInvalid(token: JWT, reason: AuthInvalidReason) {
   delete token.userId;
+  delete token.realName;
   token.role = "guest";
   token.status = "suspended";
   token.authInvalid = true;
@@ -164,6 +166,7 @@ export const authOptions: NextAuthOptions = {
         token.status = user.status ?? "active";
         token.email = user.email;
         token.name = user.name;
+        token.realName = user.realName ?? null;
         token.picture = user.image;
         clearAuthFlags(token);
       }
@@ -186,7 +189,7 @@ export const authOptions: NextAuthOptions = {
 
       const { data: profileRow, error: profileError } = await supabase
         .from("user_profiles")
-        .select("email, display_name, avatar_url")
+        .select("email, display_name, real_name, avatar_url")
         .eq("user_id", token.userId)
         .maybeSingle();
 
@@ -202,6 +205,7 @@ export const authOptions: NextAuthOptions = {
       token.status = userRecord.status;
       token.email = profile?.email ?? token.email;
       token.name = profile?.display_name ?? token.name;
+      token.realName = profile?.real_name ?? token.realName ?? null;
       token.picture = profile?.avatar_url ?? token.picture;
       return token;
     },
@@ -229,6 +233,7 @@ export const authOptions: NextAuthOptions = {
         }
         session.user.email = token.email ?? null;
         session.user.name = token.name ?? null;
+        session.user.realName = token.realName ?? null;
         session.user.image = token.picture ?? null;
       }
       return session;

@@ -1,7 +1,12 @@
-import { HugeiconsIcon } from "@hugeicons/react";
+"use client";
+
+import { useState, useTransition } from "react";
 import { FileAudioIcon } from "@hugeicons/core-free-icons";
-import { cn } from "@/lib/ui/cn";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Button } from "@/components/ui/button";
 import type { RelaySubmission } from "@/lib/studies/relay";
+import { cn } from "@/lib/ui/cn";
+import { getRelaySubmissionAudioUrl } from "../../actions";
 import { formatDateTime } from "./relay-study-detail-common";
 
 export function AudioFeedbackCard({
@@ -16,6 +21,23 @@ export function AudioFeedbackCard({
   const isOwnAudio = submission.studentUserId === currentUserId;
   const isOwnFeedback = submission.feedback?.authorUserId === currentUserId;
   const hasOwnMark = isOwnAudio || isOwnFeedback;
+  const [audioUrl, setAudioUrl] = useState(submission.audioUrl);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const [isAudioPending, startAudioTransition] = useTransition();
+
+  const handleLoadAudio = () => {
+    if (audioUrl || isAudioPending) return;
+
+    setAudioError(null);
+    startAudioTransition(async () => {
+      const result = await getRelaySubmissionAudioUrl(submission.id);
+      if (!result.success) {
+        setAudioError(result.error);
+        return;
+      }
+      setAudioUrl(result.data.audioUrl);
+    });
+  };
 
   return (
     <div
@@ -23,14 +45,14 @@ export function AudioFeedbackCard({
         "rounded-2xl border bg-white p-3 shadow-sm",
         hasOwnMark
           ? "border-periwinkle-200 bg-periwinkle-50/45 ring-1 ring-periwinkle-100"
-          : "border-gray-200"
+          : "border-gray-200",
       )}
     >
       <div className="flex items-start gap-3">
         <span
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-periwinkle-700",
-            hasOwnMark ? "bg-white" : "bg-periwinkle-50"
+            hasOwnMark ? "bg-white" : "bg-periwinkle-50",
           )}
         >
           <HugeiconsIcon icon={FileAudioIcon} size={17} color="currentColor" />
@@ -56,11 +78,24 @@ export function AudioFeedbackCard({
         <div className="mt-3 rounded-2xl bg-gray-50 px-3 py-2 text-xs font-bold text-gray-400">
           보관 기간이 지나 음성 파일이 삭제되었습니다.
         </div>
-      ) : submission.audioUrl ? (
-        <audio controls preload="none" src={submission.audioUrl} className="mt-3 w-full" />
+      ) : audioUrl ? (
+        <audio controls preload="none" src={audioUrl} className="mt-3 w-full" />
       ) : (
-        <div className="mt-3 rounded-2xl bg-gray-50 px-3 py-2 text-xs font-bold text-gray-400">
-          재생 URL을 발급하지 못했습니다.
+        <div className="mt-3 space-y-2 rounded-2xl bg-gray-50 px-3 py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isAudioPending}
+            onClick={handleLoadAudio}
+            className="w-full"
+          >
+            <HugeiconsIcon icon={FileAudioIcon} size={14} color="currentColor" />
+            {isAudioPending ? "오디오 불러오는 중" : "오디오 불러오기"}
+          </Button>
+          {audioError && (
+            <p className="text-xs font-bold leading-snug text-red-600">{audioError}</p>
+          )}
         </div>
       )}
 
@@ -69,7 +104,7 @@ export function AudioFeedbackCard({
           className={cn(
             "mt-3 rounded-2xl px-3 py-2",
             isOwnFeedback ? "border border-periwinkle-100 bg-white" : "bg-gray-50",
-            compact ? "" : "py-3"
+            compact ? "" : "py-3",
           )}
         >
           {isOwnFeedback && (

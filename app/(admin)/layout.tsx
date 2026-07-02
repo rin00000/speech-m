@@ -17,7 +17,12 @@ export default async function AdminLayout({
   const name = user?.name ?? null;
   const email = user?.email ?? null;
 
-  const notifications = user ? await getMyUnreadNotifications() : [];
+  const notifications = user
+    ? await getMyUnreadNotifications(user.userId).catch((error) => {
+        console.error("[layout] unread notifications lookup failed", error);
+        return [];
+      })
+    : [];
 
   return (
     <AdminLayoutGate

@@ -4,13 +4,15 @@
  */
 
 import type { ReactNode } from "react";
-import type { Database } from "@/types/database.types";
+import type { JobListItem, JobsPagination } from "@/lib/jobs/listing-data";
 
-export type JobPosting = Database["public"]["Tables"]["job_postings"]["Row"];
+export type JobPosting = JobListItem;
 export type JobsTableDensity = "compact" | "comfortable";
 
 export type JobsTableProps = {
   jobs: JobPosting[];
+  query: string;
+  pagination: JobsPagination;
   /** AI 적합도 스냅샷 사유 컬럼 표시 */
   showAiRejectReasons?: boolean;
   sourceHeader?: ReactNode;

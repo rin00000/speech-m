@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * 공고 관리 테이블의 상태 조립 컴포넌트.
- * 검색, 페이지, 선택 상태를 계산하고 실제 렌더링은 하위 테이블/카드/툴바 컴포넌트로 위임한다.
+ * 공고 관리 테이블의 선택, 검색 URL 갱신, 일괄 작업 상태를 관리합니다.
+ * 목록 데이터와 페이지네이션은 서버에서 계산된 현재 페이지 결과만 사용합니다.
  */
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   bulkUpdateJobStatus,
   deleteRejectedJobPostings,
@@ -21,40 +21,61 @@ import { DesktopJobsTable } from "./desktop-jobs-table";
 import { JobsTablePagination } from "./jobs-table-pagination";
 import { JobsTableToolbar } from "./jobs-table-toolbar";
 import { MobileJobCard } from "./mobile-job-card";
-import {
-  JOBS_PAGE_SIZE,
-  type JobsTableDensity,
-  type JobsTableProps,
-} from "./jobs-table-types";
+import type { JobsTableDensity, JobsTableProps } from "./jobs-table-types";
 
 export const JobsTable = ({
   jobs,
+  query,
+  pagination,
+  ...props
+}: JobsTableProps) => {
+  const stateKey = [
+    query,
+    pagination.currentPage,
+    jobs.map((job) => job.id).join("|"),
+  ].join(":");
+
+  return (
+    <JobsTableContent
+      key={stateKey}
+      jobs={jobs}
+      query={query}
+      pagination={pagination}
+      {...props}
+    />
+  );
+};
+
+const JobsTableContent = ({
+  jobs,
+  query: initialQuery,
+  pagination,
   showAiRejectReasons = false,
   sourceHeader,
   emptyState,
 }: JobsTableProps) => {
   const router = useRouter();
-  const { isNavigating } = useLoading();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { isNavigating, startNavigation } = useLoading();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { isPending: isBulkPending, runAction: runBulkAction } = useAsyncAction();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [density, setDensity] = useState<JobsTableDensity>("compact");
-  const [page, setPage] = useState(1);
+  const queryTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (queryTimerRef.current !== null) {
+        window.clearTimeout(queryTimerRef.current);
+      }
+    };
+  }, []);
 
   const activeJobs = useMemo(
     () => jobs.filter((job) => !isExpiredDeadline(job.deadline)),
     [jobs],
   );
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return activeJobs;
-    return activeJobs.filter(
-      (job) =>
-        job.title.toLowerCase().includes(q) ||
-        (job.company ?? "").toLowerCase().includes(q),
-    );
-  }, [activeJobs, query]);
 
   const selectionAllRejected = useMemo(() => {
     if (selectedIds.size === 0) return false;
@@ -65,19 +86,39 @@ export const JobsTable = ({
     return true;
   }, [activeJobs, selectedIds]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / JOBS_PAGE_SIZE));
-  const currentPage = Math.min(Math.max(page, 1), totalPages);
-  const pageStart = (currentPage - 1) * JOBS_PAGE_SIZE;
-  const pageItems = useMemo(
-    () => filtered.slice(pageStart, pageStart + JOBS_PAGE_SIZE),
-    [filtered, pageStart],
-  );
+  const currentPage = pagination.currentPage;
+  const totalPages = pagination.totalPages;
+  const pageItems = activeJobs;
   const pageIds = useMemo(() => new Set(pageItems.map((job) => job.id)), [pageItems]);
   const selectedOnPageCount = pageItems.filter((job) => selectedIds.has(job.id)).length;
   const allSelected = pageItems.length > 0 && selectedOnPageCount === pageItems.length;
   const someSelected = selectedOnPageCount > 0 && !allSelected;
-  const visibleStart = filtered.length === 0 ? 0 : pageStart + 1;
-  const visibleEnd = Math.min(pageStart + pageItems.length, filtered.length);
+
+  const buildHref = (updates: { page?: number; query?: string }) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (updates.page !== undefined) {
+      if (updates.page > 1) nextParams.set("page", String(updates.page));
+      else nextParams.delete("page");
+    }
+
+    if (updates.query !== undefined) {
+      const trimmed = updates.query.trim();
+      if (trimmed) nextParams.set("q", trimmed);
+      else nextParams.delete("q");
+      nextParams.delete("page");
+    }
+
+    const nextSearch = nextParams.toString();
+    return `${pathname}${nextSearch ? `?${nextSearch}` : ""}`;
+  };
+
+  const navigateTo = (href: string) => {
+    const currentSearch = searchParams.toString();
+    const currentHref = `${pathname}${currentSearch ? `?${currentSearch}` : ""}`;
+    if (href === currentHref) return;
+    startNavigation();
+    router.push(href);
+  };
 
   const toggleAll = () => {
     if (allSelected) {
@@ -104,8 +145,13 @@ export const JobsTable = ({
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
-    setPage(1);
     clearSelection();
+    if (queryTimerRef.current !== null) {
+      window.clearTimeout(queryTimerRef.current);
+    }
+    queryTimerRef.current = window.setTimeout(() => {
+      navigateTo(buildHref({ query: value }));
+    }, 350);
   };
 
   const handleBulk = (status: JobStatus) => {
@@ -145,9 +191,9 @@ export const JobsTable = ({
     );
   }
 
-  if (activeJobs.length === 0 && !sourceHeader && !emptyState) return null;
+  if (activeJobs.length === 0 && !sourceHeader && !emptyState && !query) return null;
 
-  const showToolbar = activeJobs.length > 0;
+  const showToolbar = activeJobs.length > 0 || query.length > 0 || pagination.totalCount > 0;
   const showHeaderBlock = Boolean(sourceHeader) || showToolbar;
   const cellPaddingClass = density === "compact" ? "px-3 py-2" : "px-4 py-3";
 
@@ -164,10 +210,10 @@ export const JobsTable = ({
             >
               <JobsTableToolbar
                 query={query}
-                visibleStart={visibleStart}
-                visibleEnd={visibleEnd}
-                filteredCount={filtered.length}
-                activeCount={activeJobs.length}
+                visibleStart={pagination.visibleStart}
+                visibleEnd={pagination.visibleEnd}
+                filteredCount={pagination.totalCount}
+                activeCount={pagination.totalCount}
                 selectedCount={selectedIds.size}
                 selectionAllRejected={selectionAllRejected}
                 isBulkPending={isBulkPending}
@@ -187,9 +233,9 @@ export const JobsTable = ({
       {showToolbar ? (
         <>
           <div className="divide-y divide-gray-100 md:hidden">
-            {filtered.length === 0 ? (
+            {pageItems.length === 0 ? (
               <div className="px-4 py-12 text-center text-sm text-gray-400">
-                &ldquo;{query}&rdquo; 에 해당하는 공고가 없습니다.
+                &ldquo;{query}&rdquo;에 해당하는 공고가 없습니다.
               </div>
             ) : (
               pageItems.map((job) => (
@@ -215,15 +261,15 @@ export const JobsTable = ({
             onToggleOne={toggleOne}
           />
           <JobsTablePagination
-            visibleStart={visibleStart}
-            visibleEnd={visibleEnd}
-            filteredCount={filtered.length}
-            activeCount={activeJobs.length}
+            visibleStart={pagination.visibleStart}
+            visibleEnd={pagination.visibleEnd}
+            filteredCount={pagination.totalCount}
+            activeCount={pagination.totalCount}
             query={query}
             currentPage={currentPage}
             totalPages={totalPages}
-            onPrevious={() => setPage(Math.max(1, currentPage - 1))}
-            onNext={() => setPage(Math.min(totalPages, currentPage + 1))}
+            onPrevious={() => navigateTo(buildHref({ page: Math.max(1, currentPage - 1) }))}
+            onNext={() => navigateTo(buildHref({ page: Math.min(totalPages, currentPage + 1) }))}
           />
         </>
       ) : (

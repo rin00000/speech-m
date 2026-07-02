@@ -12,6 +12,7 @@ export type JobsSourceTabsProps = {
   activeStatus: JobStatus | null;
   activeSource: JobSource | null;
   showRejected: boolean;
+  query: string;
 };
 
 const STATUS_SCOPE_LABEL: Record<JobStatus, string> = {
@@ -33,10 +34,17 @@ const SOURCE_TABS_OTHER: { key: JobSource; label: string }[] = [
   { key: "custom", label: "직접입력" },
 ];
 
-const buildHref = (status: JobStatus | null, source: JobSource | null) =>
+const buildHref = (
+  status: JobStatus | null,
+  source: JobSource | null,
+  showRejected: boolean,
+  query: string
+) =>
   buildJobsAdminHref({
     status: status ?? undefined,
     source: source ?? undefined,
+    showRejected,
+    q: query,
   });
 
 const FilterTab = ({
@@ -77,6 +85,7 @@ export const JobsSourceTabs = ({
   activeStatus,
   activeSource,
   showRejected,
+  query,
 }: JobsSourceTabsProps) => {
   const hasFilter = activeStatus !== null || activeSource !== null || showRejected;
   const { startNavigation } = useLoading();
@@ -95,7 +104,7 @@ export const JobsSourceTabs = ({
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <FilterTab
-              href={buildHref(activeStatus, null)}
+              href={buildHref(activeStatus, null, showRejected, query)}
               isActive={activeSource === null}
               label="전체"
               count={sourceCounts.all}
@@ -108,7 +117,7 @@ export const JobsSourceTabs = ({
             {SOURCE_TABS_MEDIAJOB.map(({ key, label }) => (
               <FilterTab
                 key={key}
-                href={buildHref(activeStatus, key)}
+                href={buildHref(activeStatus, key, showRejected, query)}
                 isActive={activeSource === key}
                 label={label}
                 count={sourceCounts[key]}
@@ -121,7 +130,7 @@ export const JobsSourceTabs = ({
             {SOURCE_TABS_OTHER.map(({ key, label }) => (
               <FilterTab
                 key={key}
-                href={buildHref(activeStatus, key)}
+                href={buildHref(activeStatus, key, showRejected, query)}
                 isActive={activeSource === key}
                 label={label}
                 count={sourceCounts[key]}

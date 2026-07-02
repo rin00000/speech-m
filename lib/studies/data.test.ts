@@ -5,8 +5,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getStudiesForViewer, getStudyDetail } from "./data";
 
-const { mockCreateAdminClient } = vi.hoisted(() => ({
+const { mockCreateAdminClient, mockCreateSignedUrl } = vi.hoisted(() => ({
   mockCreateAdminClient: vi.fn(),
+  mockCreateSignedUrl: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -16,6 +17,7 @@ vi.mock("@/lib/supabase/server", () => ({
 const USER_A = "user-a";
 const USER_B = "user-b";
 const GROUP_ID = "group-1";
+const SUBMISSION_ID = "submission-1";
 const FUTURE_QUEST_ID = "quest-future";
 const EXPIRED_QUEST_ID = "quest-expired";
 const CLOSED_QUEST_ID = "quest-closed";
@@ -70,6 +72,37 @@ describe("getStudyDetail", () => {
     expect(detail?.quests.find((quest) => quest.id === CLOSED_QUEST_ID)).toMatchObject({
       isOverdue: false,
     });
+  });
+
+  it("does not issue signed audio URLs during initial detail load", async () => {
+    mockStudyRows({
+      study_relay_submissions: [
+        {
+          id: SUBMISSION_ID,
+          quest_id: FUTURE_QUEST_ID,
+          student_user_id: USER_A,
+          audio_path: "relay/quest-future/user-a/audio.mp3",
+          audio_file_name: "audio.mp3",
+          audio_content_type: "audio/mpeg",
+          audio_size_bytes: 1024,
+          sequence_number: 1,
+          submitted_at: "2026-06-30T00:00:00.000Z",
+          audio_deleted_at: null,
+        },
+      ],
+    });
+
+    const detail = await getStudyDetail({
+      studyId: GROUP_ID,
+      viewer: { role: "student", userId: USER_A },
+    });
+
+    const submission = detail?.quests
+      .find((quest) => quest.id === FUTURE_QUEST_ID)
+      ?.relay.submissions.find((item) => item.id === SUBMISSION_ID);
+
+    expect(submission?.audioUrl).toBeNull();
+    expect(mockCreateSignedUrl).not.toHaveBeenCalled();
   });
 });
 
@@ -156,7 +189,7 @@ function createSupabaseMock(rows: StudyRows) {
     from: vi.fn((table: string) => createQueryMock(table, rows)),
     storage: {
       from: vi.fn(() => ({
-        createSignedUrl: vi.fn(),
+        createSignedUrl: mockCreateSignedUrl,
       })),
     },
   };

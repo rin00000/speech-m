@@ -25,15 +25,15 @@ type NotificationRow = {
 };
 
 // Fetch up to 30 unread notifications for the current authenticated user.
-export async function getMyUnreadNotifications(): Promise<UserNotification[]> {
-  const user = await getCurrentUser();
-  if (!user) return [];
+export async function getMyUnreadNotifications(userId?: string | null): Promise<UserNotification[]> {
+  const currentUserId = userId ?? (await getCurrentUser())?.userId ?? null;
+  if (!currentUserId) return [];
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("user_notifications")
     .select("id, type, title, body, read_at, created_at")
-    .eq("user_id", user.userId)
+    .eq("user_id", currentUserId)
     .is("read_at", null)
     .order("created_at", { ascending: false })
     .limit(30)

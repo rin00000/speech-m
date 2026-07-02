@@ -6,14 +6,20 @@
  */
 
 import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/server";
-import { STUDY_AUDIO_BUCKET } from "@/lib/studies/constants";
+import {
+  STUDY_AUDIO_BUCKET,
+  STUDY_AUDIO_SIGNED_URL_TTL_SECONDS,
+} from "@/lib/studies/constants";
 import { validateStudyAudioFileMeta } from "@/lib/studies/relay";
+import type { Database } from "@/types/database.types";
 import {
   feedbackAndUploadSchema,
   finalFeedbackSchema,
   uploadedAudioSchema,
   uploadTargetSchema,
+  uuidSchema,
   type ActionResult,
 } from "./action-schemas";
 import {
@@ -26,6 +32,12 @@ import {
   revalidateStudyPaths,
   validateUploadedAudioInput,
 } from "./relay-action-helpers";
+
+type RelaySubmissionAudioAccessRow = Pick<
+  Database["public"]["Tables"]["study_relay_submissions"]["Row"],
+  "id" | "quest_id" | "student_user_id" | "audio_path" | "audio_deleted_at"
+>;
+type StudyQuestGroupRow = Pick<Database["public"]["Tables"]["study_quests"]["Row"], "group_id">;
 
 export async function createStudyAudioUploadTarget(
   input: z.input<typeof uploadTargetSchema>,
@@ -71,6 +83,68 @@ export async function createStudyAudioUploadTarget(
       contentType: fileValidation.contentType,
     },
   };
+}
+
+export async function getRelaySubmissionAudioUrl(
+  submissionId: string,
+): Promise<ActionResult<{ audioUrl: string }>> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "로그인이 필요합니다." };
+
+  const parsed = uuidSchema.safeParse(submissionId);
+  if (!parsed.success) {
+    return { success: false, error: "오디오 제출 ID가 올바르지 않습니다." };
+  }
+
+  const supabase = createAdminClient();
+  const { data: submissionData, error: submissionError } = await supabase
+    .from("study_relay_submissions")
+    .select("id, quest_id, student_user_id, audio_path, audio_deleted_at")
+    .eq("id", parsed.data)
+    .maybeSingle();
+
+  if (submissionError) {
+    return { success: false, error: "오디오 정보를 확인하지 못했습니다." };
+  }
+
+  const submission = submissionData as RelaySubmissionAudioAccessRow | null;
+  if (!submission || submission.audio_deleted_at) {
+    return { success: false, error: "재생할 오디오를 찾을 수 없습니다." };
+  }
+
+  const { data: questData, error: questError } = await supabase
+    .from("study_quests")
+    .select("group_id")
+    .eq("id", submission.quest_id)
+    .maybeSingle();
+
+  const quest = questData as StudyQuestGroupRow | null;
+  if (questError || !quest) {
+    return { success: false, error: "스터디 정보를 확인하지 못했습니다." };
+  }
+
+  if (user.role !== "admin") {
+    const { data: member, error: memberError } = await supabase
+      .from("study_group_members")
+      .select("student_user_id")
+      .eq("group_id", quest.group_id)
+      .eq("student_user_id", user.userId)
+      .maybeSingle();
+
+    if (memberError || !member) {
+      return { success: false, error: "스터디 오디오를 볼 권한이 없습니다." };
+    }
+  }
+
+  const { data, error } = await supabase.storage
+    .from(STUDY_AUDIO_BUCKET)
+    .createSignedUrl(submission.audio_path, STUDY_AUDIO_SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data?.signedUrl) {
+    return { success: false, error: "오디오 재생 URL을 발급하지 못했습니다." };
+  }
+
+  return { success: true, data: { audioUrl: data.signedUrl } };
 }
 
 export async function submitRelayFirstSubmission(

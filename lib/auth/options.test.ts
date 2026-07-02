@@ -15,7 +15,12 @@ vi.mock("@/lib/supabase/server", () => ({
 type QueryError = { message: string };
 type QueryResult<T> = { data: T | null; error: QueryError | null };
 type UserRow = { role: UserRole; status: UserStatus };
-type ProfileRow = { email: string | null; display_name: string | null; avatar_url: string | null };
+type ProfileRow = {
+  email: string | null;
+  display_name: string | null;
+  real_name: string | null;
+  avatar_url: string | null;
+};
 type JwtCallback = (params: { token: JWT; user?: User }) => Promise<JWT>;
 type SessionCallback = (params: { session: Session; token: JWT }) => Promise<Session>;
 
@@ -125,7 +130,12 @@ describe("authOptions jwt callback", () => {
     setSupabaseResults({
       userResult: { data: { role: "guest", status: "active" }, error: null },
       profileResult: {
-        data: { email: "guest@example.com", display_name: "Guest", avatar_url: null },
+        data: {
+          email: "guest@example.com",
+          display_name: "Guest",
+          real_name: "Real Guest",
+          avatar_url: null,
+        },
         error: null,
       },
     });
@@ -140,6 +150,30 @@ describe("authOptions jwt callback", () => {
     expect(session.user.userId).toBe("role-changed-id");
     expect(session.user.role).toBe("guest");
     expect(session.user.email).toBe("guest@example.com");
+    expect(session.user.realName).toBe("Real Guest");
+  });
+
+  it("invalidates inactive users and clears the cached realName", async () => {
+    setSupabaseResults({
+      userResult: { data: { role: "student", status: "suspended" }, error: null },
+    });
+
+    const token = await jwtCallback({
+      token: {
+        userId: "inactive-id",
+        role: "student",
+        status: "active",
+        realName: "Inactive Student",
+      },
+    });
+    const session = await sessionCallback({ session: makeSession(), token });
+
+    expect(token.userId).toBeUndefined();
+    expect(token.realName).toBeUndefined();
+    expect(token.authInvalidReason).toBe("inactive_user");
+    expect(session.user.userId).toBeUndefined();
+    expect(session.user.realName).toBeNull();
+    expect(session.user.status).toBe("suspended");
   });
 
   it("keeps authentication when only user_profiles lookup fails", async () => {
