@@ -44,6 +44,7 @@ const FilterTab = ({
   isActive,
   label,
   count,
+  onClick,
 }: {
   href: string;
   isActive: boolean;
