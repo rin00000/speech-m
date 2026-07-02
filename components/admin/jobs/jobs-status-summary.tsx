@@ -17,6 +17,7 @@ import {
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
 import type { JobSource, JobStatus } from "@/types/database.types";
 import { cn } from "@/lib/ui/cn";
+import { useLoading } from "@/lib/ui/loading-context";
 
 type JobsStatusSummaryProps = {
   statusCounts: Record<"all" | JobStatus, number>;
@@ -62,6 +63,8 @@ export function JobsStatusSummary({
   const optimisticActive =
     optimisticSnapshot.serverKey === serverKey ? optimisticSnapshot.active : serverActive;
 
+  const { startNavigation } = useLoading();
+
   const handleOptimisticClick = (
     event: MouseEvent<HTMLAnchorElement>,
     nextActive: OptimisticActiveState,
@@ -71,6 +74,7 @@ export function JobsStatusSummary({
     }
 
     setOptimisticSnapshot({ active: nextActive, serverKey });
+    startNavigation();
   };
 
   const statCards: {

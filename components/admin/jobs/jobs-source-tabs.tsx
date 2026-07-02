@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { buildJobsAdminHref } from "@/lib/jobs/jobs-admin-urls";
+import { useLoading } from "@/lib/ui/loading-context";
 import type { JobSource, JobStatus } from "@/types/database.types";
 
 type SourceCounts = Record<"all" | JobSource, number>;
@@ -46,9 +49,11 @@ const FilterTab = ({
   isActive: boolean;
   label: string;
   count: number;
+  onClick: () => void;
 }) => (
   <Link
     href={href}
+    onClick={onClick}
     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium leading-none transition-colors ${
       isActive
         ? "border-periwinkle-600 bg-periwinkle-600 text-white"
@@ -73,6 +78,7 @@ export const JobsSourceTabs = ({
   showRejected,
 }: JobsSourceTabsProps) => {
   const hasFilter = activeStatus !== null || activeSource !== null || showRejected;
+  const { startNavigation } = useLoading();
 
   return (
     <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
@@ -92,6 +98,7 @@ export const JobsSourceTabs = ({
               isActive={activeSource === null}
               label="전체"
               count={sourceCounts.all}
+              onClick={startNavigation}
             />
 
             <span className="mx-0.5 h-4 w-px shrink-0 bg-gray-200" />
@@ -104,6 +111,7 @@ export const JobsSourceTabs = ({
                 isActive={activeSource === key}
                 label={label}
                 count={sourceCounts[key]}
+                onClick={startNavigation}
               />
             ))}
 
@@ -116,6 +124,7 @@ export const JobsSourceTabs = ({
                 isActive={activeSource === key}
                 label={label}
                 count={sourceCounts[key]}
+                onClick={startNavigation}
               />
             ))}
           </div>
@@ -125,6 +134,7 @@ export const JobsSourceTabs = ({
       {hasFilter && (
         <Link
           href="/jobs"
+          onClick={startNavigation}
           className="shrink-0 text-xs font-medium text-gray-500 underline-offset-2 hover:text-gray-800 hover:underline"
         >
           초기화
